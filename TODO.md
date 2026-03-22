@@ -22,7 +22,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 - add observability (logging, metrics, tracing)
 - fix tracking of the url in the auth service, so that if the user clicks or enters a link, they are redirected, regardless of whether they are already signed in, or need to sign in
 - allow other addresses than localhost to read management/metrics. need to also expose it in docker file?
-- add a link to the sbom in readme: e.g. https://github.com/abstratium-dev/abnemo/dependency-graph/sbom
+- add a link to the sbom in readme: e.g. https://github.com/abstratium-dev/abnemo/dependency-graph/sbom. although a copy needs adding to the release! what does the law say?
 - observability
   - see https://quarkus.io/quarkus-workshop-langchain4j/section-1/step-10/#tracing
 
