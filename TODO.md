@@ -31,3 +31,8 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
     quarkus.log.console.format=%d{HH:mm:ss} %-5p traceId=%X{traceId}, parentId=%X{parentId}, spanId=%X{spanId}, sampled=%X{sampled} [%c{2.}] (%t) %s%e%n  
     # enable tracing db requests
     quarkus.datasource.jdbc.telemetry=true
+- fix security testing
+  - use # Disable OIDC tenant in test mode to allow @TestSecurity to work without 302 redirects
+        %test.quarkus.oidc.tenant-enabled=false
+    in application.properties and then add     @TestSecurity(user = "testUser", roles = {Roles.USER})
+    to any tests that need security 
