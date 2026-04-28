@@ -19,3 +19,5 @@ globs: e2e-tests/**/*.ts
 - run the tests with just chromium, rather than running the tests in firefox or other browsers too.
 - add `data-testid` attributes to the html source if that makes the selection of elements easier or more deterministic
 - when you write page object models and tests, make sure that you add logging, so that you can debug the tests when they are failing
+- you can use the playwright-cli (see .windsurf/skills/playwright-cli/SKILL.md)
+- to access files in the .playwright-cli folder use command line tools as they are blocked by .gitignore and your other tools cannot access them.
