@@ -1,9 +1,16 @@
 # abstracore
 
 ----
-FIRST: check that the file `.git/hooks/pre-commit` exists and is executable. If not, move the script `copy_to_.git_hooks_pre-commit` to there.
+ONLY if modifying this for your own company:
 
-THEN: read more below.
+  FIRST: check that the file `.git/hooks/pre-commit` exists and is executable. If not, move the script `copy_to_.git_hooks_pre-commit` to there.
+
+  THEN: read more below.
+
+OTHERWISE:
+
+  REMOVE the `copy_to_.git_hooks_pre-commit` file and delete this section
+
 ----
 
 **abstracore** is the master blueprint for abstratium applications. Built on the Quarkus subatomic Java stack, Quinoa for seamless integration, and Angular for the frontend, it serves as the upstream source for all specific project forks.
@@ -161,7 +168,7 @@ Background Color: #5c6bc0
 - [ ] - decide on a new port number for this service and change it
   - in `proxy.conf.json`
   - and all the TODO comments that tell you to do that 
-  - and all the places that use 
+  - and all the places that use (see https://github.com/abstratium-dev/abstrerp/blob/main/README.md for next available ports and update that table)
     - `808x`
     - `900x`
     - `420x`
