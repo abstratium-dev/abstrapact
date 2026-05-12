@@ -13,6 +13,18 @@ OTHERWISE:
 
 ----
 
+## Windsurf Hooks Installation
+
+This repository includes optional Windsurf hooks for enhanced safety. To install them:
+
+```bash
+bash scripts/windsurf-hooks/install-hooks.sh
+```
+
+This will copy the hook scripts to `~/.codeium/abstratium-hooks/`. The install script will also provide instructions for configuring Windsurf to use these hooks.
+
+----
+
 **abstracore** is the master blueprint for abstratium applications. Built on the Quarkus subatomic Java stack, Quinoa for seamless integration, and Angular for the frontend, it serves as the upstream source for all specific project forks.
 
 ## 📦 Tech Stack
