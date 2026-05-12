@@ -1,0 +1,4 @@
+# see https://docs.windsurf.com/context-awareness/windsurf-ignore
+**/*.env
+*.env
+/w/*.env
