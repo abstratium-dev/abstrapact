@@ -4,15 +4,49 @@
   top: 0;
   z-index: 999;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  
+
   code {
     background: rgba(0, 0, 0, 0.1);
     padding: 0.2rem 0.4rem;
     border-radius: 3px;
     font-family: 'Courier New', monospace;
   }
-  
+
   button {
     margin-top: 0.5rem;
+  }
+}
+
+.environment-warning {
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  color: #856404;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+
+  strong {
+    font-weight: 600;
+  }
+
+  .dismiss-btn {
+    background: none;
+    border: none;
+    color: #856404;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.25rem;
+    margin: 0;
+
+    &:hover {
+      color: #5a3f03;
+    }
   }
 }

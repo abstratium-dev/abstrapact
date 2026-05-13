@@ -17,20 +17,30 @@ public class ConfigResource {
     @ConfigProperty(name = "client.log.level")
     String clientLogLevel;
 
+    @ConfigProperty(name = "warning.message", defaultValue = "-")
+    String warningMessage;
+
+    @ConfigProperty(name = "abstratium.stage", defaultValue = "dev")
+    String stage;
+
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public SuccessResponse config() {
-        return new SuccessResponse(clientLogLevel, BuildInfo.BUILD_TIMESTAMP);
+        return new SuccessResponse(clientLogLevel, BuildInfo.BUILD_TIMESTAMP, warningMessage, stage);
     }
 
     @RegisterForReflection
     public static class SuccessResponse {
         public String logLevel;
         public String baselineBuildTimestamp;
-        
-        public SuccessResponse(String logLevel, String baselineBuildTimestamp) {
+        public String warningMessage;
+        public String stage;
+
+        public SuccessResponse(String logLevel, String baselineBuildTimestamp, String warningMessage, String stage) {
             this.logLevel = logLevel;
             this.baselineBuildTimestamp = baselineBuildTimestamp;
+            this.warningMessage = warningMessage;
+            this.stage = stage;
         }
     }
 }

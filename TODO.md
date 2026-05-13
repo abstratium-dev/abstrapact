@@ -9,6 +9,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
+- integrate toggles
 
 ## Tomorrow
 

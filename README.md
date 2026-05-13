@@ -210,6 +210,7 @@ Background Color: #5c6bc0
 - [ ] - delete the top of this file that talks about the git hook
 - [ ] - delete the file name `copy_to_.git_hooks_pre-commit` as it is only required in the baseline project, and keeping that hook in your new project would break the mechanism!!!
 - [ ] add a new oauth client to your oauth authorization server like abstrauth
+- [ ] change the "TODO" at the end of the line for the LABEL in the file `src/main/docker/Dockerfile.native-micro`
 - [ ] - delete this TODO list
 
 # First Prompt for LLM 

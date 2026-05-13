@@ -26,7 +26,9 @@ class ConfigResourceTest {
             .statusCode(200)
             .contentType(ContentType.JSON)
             .body("logLevel", notNullValue())
-            .body("logLevel", is("INFO")); // Default value from application.properties
+            .body("logLevel", is("INFO")) // Default value from application.properties
+            .body("warningMessage", notNullValue()) // Default "-" means no banner
+            .body("stage", notNullValue()); // Default "dev" or from test config
     }
 
     @Test
@@ -68,5 +70,31 @@ class ConfigResourceTest {
             // Verify it matches ISO-8601 format (basic check for 'T' and 'Z')
             .body("baselineBuildTimestamp", org.hamcrest.Matchers.containsString("T"))
             .body("baselineBuildTimestamp", org.hamcrest.Matchers.endsWith("Z"));
+    }
+
+    @Test
+    void testConfigEndpointReturnsWarningMessage() {
+        // Verify that warningMessage is returned (default "-" means no banner)
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("warningMessage", notNullValue())
+            .body("warningMessage", is("-")); // Default "-" means no banner
+    }
+
+    @Test
+    void testConfigEndpointReturnsStage() {
+        // Verify that stage is returned (test profile uses "test")
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("stage", notNullValue())
+            .body("stage", is("test")); // Test profile uses "test"
     }
 }

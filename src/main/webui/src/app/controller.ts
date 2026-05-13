@@ -81,10 +81,10 @@ export class Controller {
     }
   }
 
-  async loadConfig(): Promise<{logLevel: string}> {
+  async loadConfig(): Promise<{logLevel: string, warningMessage: string}> {
     try {
       const config = await firstValueFrom(
-        this.http.get<{logLevel: string}>('/public/config')
+        this.http.get<{logLevel: string, warningMessage: string}>('/public/config')
       );
       this.modelService.setConfig(config);
       return config;
