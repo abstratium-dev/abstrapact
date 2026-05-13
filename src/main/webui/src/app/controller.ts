@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { Demo, ModelService } from './model.service';
+import { Config, Demo, ModelService } from './model.service';
 
 @Injectable({
   providedIn: 'root',
@@ -81,10 +81,10 @@ export class Controller {
     }
   }
 
-  async loadConfig(): Promise<{logLevel: string, warningMessage: string}> {
+  async loadConfig(): Promise<Config> {
     try {
       const config = await firstValueFrom(
-        this.http.get<{logLevel: string, warningMessage: string}>('/public/config')
+        this.http.get<Config>('/public/config')
       );
       this.modelService.setConfig(config);
       return config;
