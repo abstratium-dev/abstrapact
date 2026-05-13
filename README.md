@@ -209,8 +209,9 @@ Background Color: #5c6bc0
 - [ ] - Update documentation files (QUARKUS.md, DEVELOPMENT_AND_TESTING.md, AUTHENTICATION_FLOW.md)
 - [ ] - delete the top of this file that talks about the git hook
 - [ ] - delete the file name `copy_to_.git_hooks_pre-commit` as it is only required in the baseline project, and keeping that hook in your new project would break the mechanism!!!
-- [ ] add a new oauth client to your oauth authorization server like abstrauth
-- [ ] change the "TODO" at the end of the line for the LABEL in the file `src/main/docker/Dockerfile.native-micro`
+- [ ] - add a new oauth client to your oauth authorization server like abstrauth
+- [ ] - change the "TODO" at the end of the line for the LABEL in the file `src/main/docker/Dockerfile.native-micro`
+- [ ] - keep this TODO in place to remind the user to search for all remaining places that use "abstracore" and replace them with the name of the new service
 - [ ] - delete this TODO list
 
 # First Prompt for LLM 
