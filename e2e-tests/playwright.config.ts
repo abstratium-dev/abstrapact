@@ -41,7 +41,6 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
-    // TODO change port number to 808x
     baseURL: process.env.BASE_URL || 'http://localhost:8081',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
@@ -93,7 +92,6 @@ export default defineConfig({
   webServer: process.env.BASE_URL ? {
     // When BASE_URL is set (Maven integration), start the built jar
     command: './start-e2e-server.sh',
-    // TODO change port number to 808x
     url: 'http://localhost:8081/m/health',
     reuseExistingServer: !process.env.CI,
     timeout: 12000,

@@ -24,7 +24,7 @@ public class ConstraintViolationTestResource {
         SQLException sqlException = new SQLException(
             "Duplicate entry 'temp' for key 'T_test.UQ_test_name'", "23000", 1062);
         throw new ConstraintViolationException(
-            "could not execute statement", sqlException, "UQ_test_name");
+            "Duplicate entry 'temp' for key 'T_test.UQ_test_name'", sqlException, "UQ_test_name");
     }
 
     @GET
@@ -34,17 +34,37 @@ public class ConstraintViolationTestResource {
         SQLException sqlException = new SQLException(
             "Unique index or primary key violation: \"UQ_TEST_NAME ON T_TEST(NAME)\"", "23505", 23505);
         throw new ConstraintViolationException(
-            "could not execute statement", sqlException, "UQ_test_name");
+            "Unique index or primary key violation: \"UQ_TEST_NAME ON T_TEST(NAME)\"", sqlException, "UQ_test_name");
     }
 
     @GET
     @Path("/fk-violation")
     @Produces(MediaType.APPLICATION_JSON)
     public void triggerFkViolation() {
-        SQLException sqlException = new SQLException(
-            "Cannot add or update a child row: a foreign key constraint fails", "23000", 1452);
         throw new ConstraintViolationException(
-            "could not execute statement", sqlException, "FK_some_fk");
+            "Cannot add or update a child row: a foreign key constraint fails",
+            new SQLException("Cannot add or update a child row: a foreign key constraint fails", "23000", 1452),
+            "FK_some_fk");
+    }
+
+    @GET
+    @Path("/fk-parent-violation")
+    @Produces(MediaType.APPLICATION_JSON)
+    public void triggerFkParentViolation() {
+        throw new ConstraintViolationException(
+            "could not execute statement [Cannot delete or update a parent row: a foreign key constraint fails (`abstoggle`.`T_toggle_stage_rule`, CONSTRAINT `FK_toggle_stage_rule_stage_id` FOREIGN KEY (`stage_id`) REFERENCES `T_stage` (`id`))] [delete from T_stage where id=?]",
+            new SQLException("Cannot delete or update a parent row", "23000", 1451),
+            "FK_toggle_stage_rule_stage_id");
+    }
+
+    @GET
+    @Path("/fk-by-error-code")
+    @Produces(MediaType.APPLICATION_JSON)
+    public void triggerFkByErrorCode() {
+        throw new ConstraintViolationException(
+            "could not execute statement",
+            new SQLException("Cannot delete or update a parent row", "23000", 1451),
+            "FK_toggle_stage_rule_stage_id");
     }
 
     @GET
@@ -71,5 +91,15 @@ public class ConstraintViolationTestResource {
     @Produces(MediaType.APPLICATION_JSON)
     public void triggerNullCause() {
         throw new ConstraintViolationException(null, null, "FK_some_fk");
+    }
+
+    @GET
+    @Path("/unknown-constraint")
+    @Produces(MediaType.APPLICATION_JSON)
+    public void triggerUnknownConstraint() {
+        throw new ConstraintViolationException(
+            "some other db error",
+            new SQLException("generic error", "42000", 9999),
+            null);
     }
 }

@@ -31,7 +31,7 @@ class ConstraintViolationExceptionMapperTest {
             .contentType(containsString("problem+json"))
             .body("status", is(409))
             .body("title", is("Duplicate entry detected"))
-            .body("detail", is("could not execute statement"));
+            .body("detail", is("A test with name 'temp' already exists. Please choose a different name."));
     }
 
     @Test
@@ -45,20 +45,49 @@ class ConstraintViolationExceptionMapperTest {
             .contentType(containsString("problem+json"))
             .body("status", is(409))
             .body("title", is("Duplicate entry detected"))
-            .body("detail", is("could not execute statement"));
+            .body("detail", is("A test name with the provided value already exists. Please choose a different value."));
     }
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
-    void testForeignKeyViolationReturnsInternalServerError() {
+    void testForeignKeyChildViolationReturnsConflict() {
         given()
             .when()
             .get("/api/test/constraint/fk-violation")
             .then()
-            .statusCode(500)
+            .statusCode(409)
             .contentType(containsString("problem+json"))
-            .body("status", is(500))
-            .body("title", is("Database operation failed"));
+            .body("status", is(409))
+            .body("title", is("Resource is still referenced by other data"))
+            .body("detail", is("The referenced resource does not exist. Please ensure all related resources are created first."));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testForeignKeyParentViolationReturnsConflict() {
+        given()
+            .when()
+            .get("/api/test/constraint/fk-parent-violation")
+            .then()
+            .statusCode(409)
+            .contentType(containsString("problem+json"))
+            .body("status", is(409))
+            .body("title", is("Resource is still referenced by other data"))
+            .body("detail", is("This stage is still referenced by other data and cannot be deleted. Remove the dependent data first."));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testForeignKeyByErrorCodeReturnsConflict() {
+        given()
+            .when()
+            .get("/api/test/constraint/fk-by-error-code")
+            .then()
+            .statusCode(409)
+            .contentType(containsString("problem+json"))
+            .body("status", is(409))
+            .body("title", is("Resource is still referenced by other data"))
+            .body("detail", is("This resource is still referenced by other data and cannot be deleted or modified."));
     }
 
     @Test
@@ -71,7 +100,8 @@ class ConstraintViolationExceptionMapperTest {
             .statusCode(409)
             .contentType(containsString("problem+json"))
             .body("status", is(409))
-            .body("title", is("Duplicate entry detected"));
+            .body("title", is("Duplicate entry detected"))
+            .body("detail", is("A resource with the provided value already exists. Please choose a different value."));
     }
 
     @Test
@@ -85,20 +115,34 @@ class ConstraintViolationExceptionMapperTest {
             .contentType(containsString("problem+json"))
             .body("status", is(409))
             .body("title", is("Duplicate entry detected"))
-            .body("detail", containsString("Duplicate entry"));
+            .body("detail", is("A test with name 'x' already exists. Please choose a different name."));
     }
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
-    void testNullCauseReturnsDefaultDetail() {
+    void testNullCauseWithFkConstraintReturnsConflict() {
         given()
             .when()
             .get("/api/test/constraint/null-cause")
+            .then()
+            .statusCode(409)
+            .contentType(containsString("problem+json"))
+            .body("status", is(409))
+            .body("title", is("Resource is still referenced by other data"))
+            .body("detail", is("This resource is still referenced by other data and cannot be deleted or modified."));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testUnknownConstraintViolationReturnsInternalServerError() {
+        given()
+            .when()
+            .get("/api/test/constraint/unknown-constraint")
             .then()
             .statusCode(500)
             .contentType(containsString("problem+json"))
             .body("status", is(500))
             .body("title", is("Database operation failed"))
-            .body("detail", is("A database constraint was violated."));
+            .body("detail", is("A resource with the provided value already exists. Please choose a different value."));
     }
 }

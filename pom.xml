@@ -263,7 +263,6 @@
                                 <argument>test</argument>
                             </arguments>
                             <environmentVariables>
-                                <!-- TODO change port number to 808x -->
                                 <BASE_URL>http://localhost:8081</BASE_URL>
                             </environmentVariables>
                         </configuration>
@@ -321,7 +320,6 @@
                                         <argument>test</argument>
                                     </arguments>
                                     <environmentVariables>
-                                        <!-- TODO change port number to 808x -->
                                         <BASE_URL>http://localhost:8081</BASE_URL>
                                     </environmentVariables>
                                 </configuration>

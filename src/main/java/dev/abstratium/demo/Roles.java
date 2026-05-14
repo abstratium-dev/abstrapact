@@ -5,7 +5,6 @@ package dev.abstratium.demo;
  */
 public interface Roles {
     /** The oauth client_id for the service */
-    // TODO set the client_id to be that of the oauth client registered for this service
     String CLIENT_ID = "abstratium-abstracore";
 
     /** The user is simply that. Used to ensure that they can only call some APIs if they are also signed in. */

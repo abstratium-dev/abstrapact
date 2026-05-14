@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "TODO": {
+    "abstracore": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/TODO",
+            "outputPath": "dist/abstracore",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
@@ -64,10 +64,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "TODO:build:production"
+              "buildTarget": "abstracore:build:production"
             },
             "development": {
-              "buildTarget": "TODO:build:development"
+              "buildTarget": "abstracore:build:development"
             }
           },
           "defaultConfiguration": "development"
