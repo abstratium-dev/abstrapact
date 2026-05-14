@@ -108,7 +108,7 @@ sequenceDiagram
     OIDC->>Browser: 302 Redirect to Auth Server
     
     Note over Browser,Auth: Authorization Request
-    Browser->>Auth: GET /oauth2/authorize?<br/>response_type=code<br/>&client_id=abstratium-abstracore<br/>&redirect_uri=http://localhost:808x/oauth/callback<br/>&state=[random]<br/>&code_challenge=[hash]<br/>&code_challenge_method=S256<br/>&scope=openid+profile+email
+    Browser->>Auth: GET /oauth2/authorize?<br/>response_type=code<br/>&client_id=abstratium-abstrapact<br/>&redirect_uri=http://localhost:8088/oauth/callback<br/>&state=[random]<br/>&code_challenge=[hash]<br/>&code_challenge_method=S256<br/>&scope=openid+profile+email
     
     Auth->>Browser: Show login page
     Browser->>Auth: User authenticates
@@ -120,7 +120,7 @@ sequenceDiagram
     Note over Browser: Sends q_auth_[state] cookie
     
     OIDC->>OIDC: Validate state cookie matches
-    OIDC->>Auth: POST /oauth2/token<br/>grant_type=authorization_code<br/>&code=[auth_code]<br/>&redirect_uri=http://localhost:808x/oauth/callback<br/>&code_verifier=[verifier]<br/>Authorization: Basic [client_id:secret]
+    OIDC->>Auth: POST /oauth2/token<br/>grant_type=authorization_code<br/>&code=[auth_code]<br/>&redirect_uri=http://localhost:8088/oauth/callback<br/>&code_verifier=[verifier]<br/>Authorization: Basic [client_id:secret]
     
     Auth->>Auth: Validate code & verifier
     Auth->>OIDC: 200 OK<br/>{access_token, id_token}
@@ -174,8 +174,8 @@ window.location.href = '/api/auth/login';
 ```
 https://auth.abstratium.dev/oauth2/authorize?
   response_type=code
-  &client_id=abstratium-abstracore
-  &redirect_uri=http://localhost:808x/oauth/callback
+  &client_id=abstratium-abstrapact
+  &redirect_uri=http://localhost:8088/oauth/callback
   &state=9011d874-320f-4c83-8c64-cad203ec13ec
   &code_challenge=yWua0iJq5xA54UyURCz4S9W9XFxIw9VfanSv8t9rGR8
   &code_challenge_method=S256
@@ -199,7 +199,7 @@ https://auth.abstratium.dev/oauth2/authorize?
 - Verifies ID token signature using JWKS from auth server
 - Validates:
   - **Issuer**: `https://abstrauth.abstratium.dev`
-  - **Audience**: `abstratium-abstracore`
+  - **Audience**: `abstratium-abstrapact`
   - **Expiration**: Token not expired
   - **Not Before**: Token is valid now
 
@@ -340,7 +340,7 @@ quarkus.http.auth.permission.api.policy=authenticated
 public class DemoResource {
     
     @GET
-    @RolesAllowed({Roles.USER})  // Requires "abstratium-abstracore_user" role
+    @RolesAllowed({Roles.USER})  // Requires "abstratium-abstrapact_user" role
     public List<Demo> getAll() {
         return demoService.findAll();
     }
@@ -348,7 +348,7 @@ public class DemoResource {
 ```
 
 **Role Mapping:**
-- JWT contains: `"groups": ["abstratium-abstracore_user"]`
+- JWT contains: `"groups": ["abstratium-abstrapact_user"]`
 - Mapped to roles via: `smallrye.jwt.path.groups=groups`
 - `@RolesAllowed` checks if user has required group
 
@@ -479,7 +479,7 @@ Restricts which origins can make API requests.
 
 ```properties
 quarkus.http.cors.enabled=true
-quarkus.http.cors.origins=http://localhost:4200,http://localhost:808x
+quarkus.http.cors.origins=http://localhost:4208,http://localhost:8088
 quarkus.http.cors.access-control-allow-credentials=true
 ```
 
@@ -495,7 +495,7 @@ quarkus.oidc.auth-server-url=https://auth.abstratium.dev
 quarkus.oidc.token.issuer=https://abstrauth.abstratium.dev
 
 # Client Credentials
-quarkus.oidc.client-id=abstratium-abstracore
+quarkus.oidc.client-id=abstratium-abstrapact
 quarkus.oidc.credentials.secret=${ABSTRATIUM_CLIENT_SECRET}
 
 # Application Type

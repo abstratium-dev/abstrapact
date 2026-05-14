@@ -18,10 +18,10 @@ console.log("BASE_URL: ", process.env.BASE_URL);
  * 
  * Usage:
  * - Manual testing: Run `mvn quarkus:dev` then `npx playwright test`
- *   Tests will use http://localhost:808x (Quinoa Angular dev server)
+ *   Tests will use http://localhost:8088 (Quinoa Angular dev server)
  * 
  * - Maven integration: Run `mvn verify -Pe2e`
- *   Tests will use http://localhost:808x (built Quarkus jar with H2 and static Angular files)
+ *   Tests will use http://localhost:8088 (built Quarkus jar with H2 and static Angular files)
  *   The BASE_URL environment variable is set by Maven to trigger jar startup
  * 
  * See https://playwright.dev/docs/test-configuration.
@@ -41,8 +41,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
-    // TODO change port number to 808x
-    baseURL: process.env.BASE_URL || 'http://localhost:8081',
+    baseURL: process.env.BASE_URL || 'http://localhost:8088',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -93,8 +92,7 @@ export default defineConfig({
   webServer: process.env.BASE_URL ? {
     // When BASE_URL is set (Maven integration), start the built jar
     command: './start-e2e-server.sh',
-    // TODO change port number to 808x
-    url: 'http://localhost:8081/m/health',
+    url: 'http://localhost:8088/m/health',
     reuseExistingServer: !process.env.CI,
     timeout: 12000,
     stdout: 'pipe',

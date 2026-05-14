@@ -20,7 +20,7 @@ import org.jboss.logging.Logger;
  * The problem this solves:
  * - quarkus-resteasy-problem extension converts ALL NotFoundException to RFC-7807 Problem JSON
  * - This prevents Quinoa's SPA routing from working for Angular routes like /addresses
- * - When accessing http://localhost:8083/addresses directly, browser receives
+ * - When accessing http://localhost:8088/addresses directly, browser receives
  *   {"status":404,"title":"Not Found",...} instead of the Angular application
  * 
  * How it works:

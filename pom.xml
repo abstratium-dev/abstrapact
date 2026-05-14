@@ -225,7 +225,7 @@
                 2. Run unit tests
                 3. Package the JAR
                 4. Start Quarkus with H2 via start-e2e-server.sh
-                5. Run Playwright tests against http://localhost:808x
+                5. Run Playwright tests against http://localhost:8088
                 6. Stop the server
             -->
             <plugin>
@@ -263,8 +263,7 @@
                                 <argument>test</argument>
                             </arguments>
                             <environmentVariables>
-                                <!-- TODO change port number to 808x -->
-                                <BASE_URL>http://localhost:8081</BASE_URL>
+                                <BASE_URL>http://localhost:8088</BASE_URL>
                             </environmentVariables>
                         </configuration>
                     </execution>
@@ -321,8 +320,7 @@
                                         <argument>test</argument>
                                     </arguments>
                                     <environmentVariables>
-                                        <!-- TODO change port number to 808x -->
-                                        <BASE_URL>http://localhost:8081</BASE_URL>
+                                        <BASE_URL>http://localhost:8088</BASE_URL>
                                     </environmentVariables>
                                 </configuration>
                             </execution>

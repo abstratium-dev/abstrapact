@@ -13,7 +13,7 @@ source /w/abstratium-TODO.env
 ./mvnw quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:808x/q/dev/>.
+> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8088/q/dev/>.
 
 ## Packaging and running the application
 

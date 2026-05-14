@@ -55,19 +55,17 @@ docker run -d \
 # create the database and user
 docker run -it --rm --network abstratium mysql mysql -h abstratium-mysql --port 3306 -u root -psecret
 
-TODO change `abstracore` to the actual database name, in all of the statements below
+DROP USER IF EXISTS 'abstrapact'@'%';
 
-DROP USER IF EXISTS 'abstracore'@'%';
+CREATE USER 'abstrapact'@'%' IDENTIFIED BY 'secret';
 
-CREATE USER 'abstracore'@'%' IDENTIFIED BY 'secret';
+DROP DATABASE IF EXISTS abstrapact;
 
-DROP DATABASE IF EXISTS abstracore;
-
-CREATE DATABASE abstracore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-GRANT ALL PRIVILEGES ON abstracore.* TO abstracore@'%'; -- on own database
+CREATE DATABASE abstrapact CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON abstrapact.* TO abstrapact@'%'; -- on own database
 
 FLUSH PRIVILEGES;
-USE abstracore;
+USE abstrapact;
 ```
 
 exit, then reconnect using the new user:
@@ -136,7 +134,7 @@ After running the script, review the changes and resolve any conflicts before co
 
 ## Upgrading Dependencies
 
-**THIS SHOULD REALLY BE DONE IN `abstracore` AND NOT IN THE DOWNSTREAM PROJECTS. After that, the sync script will merge the changes into the downstream projects.**
+**THIS SHOULD REALLY BE DONE IN `Abstracore` AND NOT IN THE DOWNSTREAM PROJECTS. After that, the sync script will merge the changes into the downstream projects.**
 
 1. Update Quarkus:
 ```bash
@@ -177,7 +175,7 @@ Ensure that `mvn verify` is successful.
 
 Start `quarkus dev`
 
-(Alternatively, don't start quarkus or the client example, and set `BASE_URL=http://localhost:808x` in the command line after ALLOW_SIGNUP)
+(Alternatively, don't start quarkus or the client example, and set `BASE_URL=http://localhost:8088` in the command line after ALLOW_SIGNUP)
 
 Run `npx playwright test --ui` in the `e2e-tests` directory.
 

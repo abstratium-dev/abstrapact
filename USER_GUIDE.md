@@ -1,11 +1,34 @@
 # User Manual
 
+## Using abstrapact
+
+TODO write detailed instructions on how your application works
+
+
+### Overview
+#### Key Features
+#### Core concepts
+#### Typical workflow
+
+---
+
 ## Installation
 
 It is intended that this component be run using docker.
 It supports MySql and will soon also support postgresql and MS SQL Server.
 
 You need to add a database/schema and a user to the database manually.
+
+### Prerequisites
+
+Before installation, ensure you have:
+
+- **Docker** installed and running
+- **MySQL 8.0+** database server
+- **Network connectivity** between Docker container and MySQL
+- **OpenSSL** for generating JWT keys
+- **GitHub account** (if pulling from GitHub Container Registry)
+- **nginx** or similar for reverse proxying and terminating TLS
 
 ### Create the Database, User and Grant Permissions
 
@@ -39,7 +62,7 @@ This project will automatically create all necessary tables and any initial data
 
 New versions will update the database as needed.
 
-### Generate TODO
+### Generate Environment Variables
 
 TODO any env vars that need generating are to be described here.
 
@@ -64,8 +87,8 @@ _Replace all `TODO_...` values with the values generated above.
    docker run -d \
      --name TODO \
      --network your-network \
-     -p 127.0.0.1:4108x:808x \
-     -p 127.0.0.1:900x:900x \
+     -p 127.0.0.1:4108x:8088 \
+     -p 127.0.0.1:9010:9010 \
      -e QUARKUS_DATASOURCE_JDBC_URL="jdbc:mysql://your-mysql-host:3306/TODO" \
      -e QUARKUS_DATASOURCE_USERNAME="TODO_YOUR_USERNAME" \
      -e QUARKUS_DATASOURCE_PASSWORD="TODO_YOUR_SECURE_PASSWORD" \
@@ -89,47 +112,24 @@ _Replace all `TODO_...` values with the values generated above.
 3. **Verify the container is running**:
    ```bash
    docker ps
-   docker logs TODO
+   docker logs abstrapact
    curl http://localhost:4108x/m/health
    curl http://localhost:4108x/m/info
    ```
 
 4. **Access the application**:
    - Main application: http://localhost:4108x
-   - Management interface: http://localhost:900x/m/info
-
-### Prerequisites
-
-Before installation, ensure you have:
-
-- **Docker** installed and running
-- **MySQL 8.0+** database server
-- **Network connectivity** between Docker container and MySQL
-- **OpenSSL** for generating JWT keys
-- **GitHub account** (if pulling from GitHub Container Registry)
-- **nginx** or similar for reverse proxying and terminating TLS
-
-## Initial Onboarding
-
-TODO
-
-## Account and Role Management
-
-This component requires that users can authenticate using an oauth authorization server. That requires that an administrator signs into something like `abstratium-abstrauth` first, to create the oauth2 client. The callback url should be `http://localhost:808x/oauth/callback` and one for the production environment, also ending in `/oauth/callback`. Use the `client_id` and `client_secret` that it provides, to set the values of the environment variables above, so that users can sign in.
-
-## TODO
-
-TODO describe other functionality here.
+   - Management interface: http://localhost:9010/m/info
 
 ## Monitoring and Health Checks
 
 This project provides several endpoints for monitoring:
 
-- **Health Check**: `http://localhost:900x/m/health`
+- **Health Check**: `http://localhost:9010/m/health`
   - Returns application health status
   - Includes database connectivity check
 
-- **Info Endpoint**: `http://localhost:900x/m/info`
+- **Info Endpoint**: `http://localhost:9010/m/info`
   - Returns build information, version, and configuration
   - Useful for verifying deployment
 

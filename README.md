@@ -1,4 +1,4 @@
-# abstracore
+# abstrapact
 
 ----
 ONLY if modifying this for your own company:
@@ -25,7 +25,7 @@ This will copy the hook scripts to `~/.codeium/abstratium-hooks/`. The install s
 
 ----
 
-**abstracore** is the master blueprint for abstratium applications. Built on the Quarkus subatomic Java stack, Quinoa for seamless integration, and Angular for the frontend, it serves as the upstream source for all specific project forks.
+**abstrapact** is the master blueprint for abstratium applications. Built on the Quarkus subatomic Java stack, Quinoa for seamless integration, and Angular for the frontend, it serves as the upstream source for all specific project forks.
 
 ## 📦 Tech Stack
 
@@ -50,7 +50,7 @@ Create a new empty repository on your Git server.
 Clone Abstracore and point it to your new origin:
 
 ```bash
-git clone https://github.com/abstratium-dev/abstracore.git your-new-project
+git clone https://github.com/abstratium-dev/abstrapact.git your-new-project
 cd your-new-project
 git remote rename origin upstream
 git remote add origin git@github.com:your-org/your-new-project.git
@@ -81,7 +81,7 @@ If you prefer to sync manually:
 git checkout main
 
 # Add upstream remote (only needed once)
-git remote add upstream git@github.com:abstratium-dev/abstracore.git
+git remote add upstream git@github.com:abstratium-dev/abstrapact.git
 
 # Fetch the latest baseline code
 git fetch upstream
@@ -112,11 +112,11 @@ Run the following command to start Quarkus in Dev Mode with the Angular live-rel
 ```bash
 ./mvnw quarkus:dev
 ```
-Backend: http://localhost:808x
+Backend: http://localhost:8088
 
 Frontend: Automatically proxied by Quinoa
 
-Dev UI: http://localhost:808x/q/dev
+Dev UI: http://localhost:8088/q/dev
 
 ## 📝 Governance
 
@@ -177,15 +177,6 @@ Background Color: #5c6bc0
 
 # Things to do when creating a new project
 
-- [ ] - decide on a new port number for this service and change it
-  - in `proxy.conf.json`
-  - and all the TODO comments that tell you to do that 
-  - and all the places that use (see https://github.com/abstratium-dev/abstrerp/blob/main/README.md for next available ports and update that table)
-    - `808x`
-    - `900x`
-    - `420x`
-  - in `package.json` of `src/main/webui` where it tells `ng serve` which port number to use
-    - `"start": "ng serve --proxy-config proxy.conf.json --port=4201",` <<< THERE!
 - [ ] - Use the prompt below, to get an LLM to do this
 - [ ] - Search for TODO and fix
 - [ ] - Search for core and fix, e.g. in `pom.xml`
@@ -193,26 +184,20 @@ Background Color: #5c6bc0
 - [ ] - Update USER_GUIDE.md with project-specific information
 - [ ] - Update DATABASE.md with project-specific information
 - [ ] - Update NATIVE_IMAGE_BUILD.md with project-specific information
-- [ ] - Update SECURITY_DESIGN.md with project-specific information
 - [ ] - Update TODO.md with project-specific information
 - [ ] - Update SECURITY.md with project-specific information
-- [ ] - Update CONTRIBUTING.md with project-specific information
 - [ ] - Create favicon, store it in root as zip and put it in `src/main/webui/public`
 - [ ] - Update `.windsurf` configuration
 - [ ] - Replace `src/main/webui/src/app/demo` with project-specific components
-- [ ] - Update application.properties with abstradex-specific values
-- [ ] - Update Angular configuration files (angular.json, package.json, index.html)
+- [ ] - Update application.properties with application specific values
+- [ ] - Update angular.json where it uses "TODO"
+- [ ] - Udpate src/main/webui/package.json where it uses "TODO"
+- [ ] - Udpate src/main/webui/src/index.html where it uses "TODO"
 - [ ] - Update Java source files (Roles.java, ConfigInfoContributor.java)
-- [ ] - Update database migration files
 - [ ] - Update script files (build-docker-image.sh, push-docker-image.sh, clear-test-db.sh)
 - [ ] - Update e2e-tests configuration
-- [ ] - Update documentation files (QUARKUS.md, DEVELOPMENT_AND_TESTING.md, AUTHENTICATION_FLOW.md)
-- [ ] - delete the top of this file that talks about the git hook
-- [ ] - delete the file name `copy_to_.git_hooks_pre-commit` as it is only required in the baseline project, and keeping that hook in your new project would break the mechanism!!!
-- [ ] - add a new oauth client to your oauth authorization server like abstrauth
-- [ ] - change the "TODO" at the end of the line for the LABEL in the file `src/main/docker/Dockerfile.native-micro`
-- [ ] - keep this TODO in place to remind the user to search for all remaining places that use "abstracore" and replace them with the name of the new service
-- [ ] - delete this TODO list
+- [ ] - Update documentation files (QUARKUS.md, DEVELOPMENT_AND_TESTING.md)
+
 
 # First Prompt for LLM 
 
@@ -221,7 +206,7 @@ I have copied a "baseline project" that I use to create an initial version of al
 
 This project is called "abstradex" and is A "rolodex" for your SME's partners (customers, suppliers, etc.) . Search for all places that contain the text "todo" and make the appropriate changes. 
 
-Also use @README.md#L154-169  as a checklist and as you fix those things, add an X between the square brackets. if anything is missing off of that list, please append it to the list. keep going until you cannot find any more TODOs to fix. 
+Also use @README.md#L154-169 >>>FIX THOSE NUMBERS!!!<<< as a checklist and as you fix those things, add an X between the square brackets. if anything is missing off of that list, please append it to the list. keep going until you cannot find any more TODOs to fix. 
 
 If there is anything you are unsure of, add that to a new chapter named "FIXME" below the todo list in @README.md .  
 
@@ -251,5 +236,9 @@ That Entity should have the following properties:
 
 # TODO later after implementing your first feature
 
+- [ ] delete the top of this file that talks about the git hook
+- [ ] Update database migration files
+- [ ] add a new oauth client to your oauth authorization server like abstrauth
 - [ ] remove all references to `demo` in the entire project
 - [ ] remove all files with `demo` in their name
+- [ ] ensure all TODOs in the code have been fixed
