@@ -74,4 +74,16 @@ public class DemoResource {
         );
     }
 
+    /**
+     * Demo endpoint that throws an IllegalArgumentException to demonstrate the IllegalArgumentExceptionMapper.
+     * Accepts an optional query parameter; if the value is "bad", it throws IllegalArgumentException.
+     */
+    @GET
+    @Path("/illegal-argument")
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed({Roles.USER})
+    public void triggerIllegalArgument(@jakarta.ws.rs.QueryParam("value") String value) {
+        throw new IllegalArgumentException("Illegal argument: " + value);
+    }
+
 }

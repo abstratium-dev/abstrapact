@@ -198,7 +198,6 @@ Background Color: #5c6bc0
 - [ ] - Update e2e-tests configuration
 - [ ] - Update documentation files (QUARKUS.md, DEVELOPMENT_AND_TESTING.md)
 
-
 # First Prompt for LLM 
 
 ```

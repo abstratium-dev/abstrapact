@@ -27,6 +27,7 @@ public enum ErrorCode {
     BUSINESS_RULE_VIOLATION("ERR-4000", "Business rule violation"),
     DUPLICATE_ENTRY("ERR-4001", "Duplicate entry detected"),
     INVALID_STATE("ERR-4002", "Invalid state for operation"),
+    FOREIGN_KEY_VIOLATION("ERR-4003", "Resource is still referenced by other data"),
     
     // System errors (5000-5999)
     INTERNAL_ERROR("ERR-5000", "Internal system error"),
