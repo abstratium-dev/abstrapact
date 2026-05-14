@@ -14,7 +14,7 @@ import java.util.Map;
 @ApplicationScoped
 public class ConfigInfoContributor implements InfoContributor {
 
-    // TODO any config that you want to expose
+    // Add project-specific config properties here to expose them via /info
     // @ConfigProperty(name = "allow.signup")
     // boolean allowSignup;
 

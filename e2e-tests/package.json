@@ -1,23 +1,23 @@
 {
-  "name": "TODO",
+  "name": "abstrapact-e2e",
   "version": "1.0.0",
-  "description": "A minimum implementation of an oauth authorization server capable of serving multiple applications at same time. It uses JWT for authentication and authorization, signed with a public/private key pair so that third-party applications can validate the tokens and roles without calls to the authorization server.",
+  "description": "End-to-end tests for the abstrapact application using Playwright.",
   "main": "index.js",
   "scripts": {
     "postinstall": "playwright install --with-deps chromium firefox webkit"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/abstratium-dev/TODO.git"
+    "url": "git+https://github.com/abstratium-dev/abstrapact.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/abstratium-dev/TODO/issues"
+    "url": "https://github.com/abstratium-dev/abstrapact/issues"
   },
-  "homepage": "https://github.com/abstratium-dev/TODO#readme",
+  "homepage": "https://github.com/abstratium-dev/abstrapact#readme",
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "@types/node": "^24.10.1"

@@ -5,7 +5,7 @@ import { catchError, map, tap } from 'rxjs/operators';
 import { WINDOW } from './window.token';
 import { Router } from '@angular/router';
 
-export const CLIENT_ID = 'abstratium-abstrapact'; // TODO set the client id properly
+export const CLIENT_ID = 'abstratium-abstrapact';
 export const ISSUER = 'https://abstrauth.abstratium.dev';
 
 export interface Token {

@@ -2,7 +2,7 @@
 
 ## Using abstrapact
 
-TODO write detailed instructions on how your application works
+abstrapact is an application for contract management, sales processes, and products. It provides a web-based UI built with Angular, backed by a Quarkus REST API, and uses OIDC authentication via the Abstrauth authorization server.
 
 
 ### Overview
@@ -39,19 +39,18 @@ This component requires a MySQL database. Create a database and user with the fo
 1. **Connect to MySQL** as root or admin user:
 
 (change `<password>` to your password)
-(change `<TODO>` to the project name)
 
 ```bash
 docker run -it --rm --network abstratium mysql mysql -h abstratium-mysql --port 3306 -u root -p<password>
 
-DROP USER IF EXISTS 'TODO'@'%';
+DROP USER IF EXISTS 'abstrapact'@'%';
 
-CREATE USER 'TODO'@'%' IDENTIFIED BY '<password>';
+CREATE USER 'abstrapact'@'%' IDENTIFIED BY '<password>';
 
-DROP DATABASE IF EXISTS TODO;
+DROP DATABASE IF EXISTS abstrapact;
 
-CREATE DATABASE TODO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-GRANT ALL PRIVILEGES ON TODO.* TO TODO@'%'; -- on own database
+CREATE DATABASE abstrapact CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON abstrapact.* TO abstrapact@'%'; -- on own database
 
 FLUSH PRIVILEGES;
 
@@ -64,36 +63,44 @@ New versions will update the database as needed.
 
 ### Generate Environment Variables
 
-TODO any env vars that need generating are to be described here.
+1. **Generate CSRF Token Signature Key** (64+ characters recommended):
+   ```bash
+   openssl rand -base64 64 | tr -d '\n'
+   ```
+   Use this output for `CSRF_TOKEN_SIGNATURE_KEY`.
 
-1. **Generate TODO** (32+ characters recommended):
+2. **Generate Cookie Encryption Secret** (32+ characters recommended):
    ```bash
    openssl rand -base64 32
    ```
-   Use this output for `TODO_ENV_VAR_NAME`.
+   Use this output for `COOKIE_ENCRYPTION_SECRET`.
+
+3. **Get the OAuth Client Secret** from the Abstrauth application configuration for `abstratium-abstrapact`.
 
 ### Pull and Run the Docker Container
 
 1. **Pull the latest image** from GitHub Container Registry:
    ```bash
-   docker pull ghcr.io/abstratium-dev/TODO:latest
+   docker pull ghcr.io/abstratium-dev/abstrapact:latest
    ```
 
 2. **Run the container**:
 
-_Replace all `TODO_...` values with the values generated above.
+_Replace all placeholder values with the values generated above.
 
    ```bash
    docker run -d \
-     --name TODO \
+     --name abstrapact \
      --network your-network \
-     -p 127.0.0.1:4108x:8088 \
+     -p 127.0.0.1:41080:8088 \
      -p 127.0.0.1:9010:9010 \
-     -e QUARKUS_DATASOURCE_JDBC_URL="jdbc:mysql://your-mysql-host:3306/TODO" \
-     -e QUARKUS_DATASOURCE_USERNAME="TODO_YOUR_USERNAME" \
-     -e QUARKUS_DATASOURCE_PASSWORD="TODO_YOUR_SECURE_PASSWORD" \
-     -e COOKIE_ENCRYPTION_SECRET="TODO_YOUR_COOKIE_ENCRYPTION_SECRET" \
-     ghcr.io/abstratium-dev/TODO:latest
+     -e QUARKUS_DATASOURCE_JDBC_URL="jdbc:mysql://your-mysql-host:3306/abstrapact" \
+     -e QUARKUS_DATASOURCE_USERNAME="abstrapact" \
+     -e QUARKUS_DATASOURCE_PASSWORD="<your-database-password>" \
+     -e COOKIE_ENCRYPTION_SECRET="<your-cookie-encryption-secret>" \
+     -e CSRF_TOKEN_SIGNATURE_KEY="<your-csrf-signature-key>" \
+     -e ABSTRATIUM_CLIENT_SECRET="<your-oauth-client-secret>" \
+     ghcr.io/abstratium-dev/abstrapact:latest
    ```
 
    **Required Environment Variables:**
@@ -106,7 +113,7 @@ _Replace all `TODO_...` values with the values generated above.
    - `STAGE`: Deployment stage identifier exposed to the frontend (e.g., "dev", "test", "prod", defaults to "dev")
    
    **Optional Environment Variables:**
-   - `TODO_ENV_VAR_NAME`: TODO
+   - `ABSTRA_WARNING_MESSAGE`: Warning banner message displayed at the top of the UI (e.g., "You are in the TEST environment!"). Set to "-" or leave empty to hide the banner.
 
 
 3. **Verify the container is running**:
@@ -137,14 +144,14 @@ This project provides several endpoints for monitoring:
 
 ### Container won't start
 
-1. Check Docker logs: `docker logs TODO`
+1. Check Docker logs: `docker logs abstrapact`
 2. Verify environment variables are set correctly
 3. Ensure database is accessible from container
 4. Check network connectivity: `docker network inspect your-network`
 
 ### Database connection errors
 
-1. Verify MySQL is running: `mysql -u TODO -p -h your-mysql-host`
+1. Verify MySQL is running: `mysql -u abstrapact -p -h your-mysql-host`
 2. Check firewall rules allow connection on port 3306
 3. Verify database user has correct permissions
 4. Check JDBC URL format is correct
@@ -170,5 +177,5 @@ This project provides several endpoints for monitoring:
 
 ### Additional Resources
 
-- TODO e.g. [RFC 7636 - PKCE](https://datatracker.ietf.org/doc/html/rfc7636)
+- [RFC 7636 - PKCE](https://datatracker.ietf.org/doc/html/rfc7636)
 

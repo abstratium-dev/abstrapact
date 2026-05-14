@@ -13,7 +13,7 @@ import { ModelService } from './model.service';
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
-  title = 'TODO';
+  title = 'abstrapact';
   copyrightYear: any;
   protected warningMessage$ = inject(ModelService).warningMessage$;
 

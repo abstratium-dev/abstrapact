@@ -2,9 +2,7 @@
 
 ## Overview
 
-TODO: _get the LLM to generate this_
-
-TODO describe the data model.
+The abstrapact database currently contains a minimal schema for the demo entity, which serves as a placeholder while the application's domain model (contracts, sales processes, products) is being developed.
 
 The schema is compatible with both MySQL and H2 databases and follows a naming convention where all tables are prefixed with `T_`, foreign keys with `FK_`, and indices with `I_`.
 
@@ -12,39 +10,26 @@ The schema is compatible with both MySQL and H2 databases and follows a naming c
 
 ```mermaid
 erDiagram
-    T_... ||--o{ T_credentials : "has"
+    T_demo {
+        varchar id PK
+    }
 ```
 
 ## Table Descriptions
 
-### TODO one of these paragraphs per table
+### T_demo
 
-The `T_TODO` table stores ...
-
-**Important:** TODO if there is anything important, add it here...
+The `T_demo` table stores a minimal demo entity used to validate the application's CRUD and authentication capabilities.
 
 **Key Features:**
-- TODO
+- Single-column table with a UUID primary key
+- Used by the DemoResource REST endpoint and DemoService
 
 **Constraints:**
-- `I_TODO`: Unique constraint on TODO field
-
-**Status Values:**
-- `TODO`: a line per status, if the field contains status
-
-**Indices:**
-- `I_TODO`: describe indices here
-
-**Relationships:**
-- TODO Links to client via `client_id` (not enforced FK for flexibility)
-- TODO Links to account via `account_id` after user authentication
-- TODO ---
-
-**Security Features:**
-- TODO if there are any...
+- `id`: Primary key, VARCHAR(36)
 
 **Default Data:**
-- TODO if there is any
+- One seed record with id `e9877513-73cf-44fe-b581-4bad96e168cb`
 
 ## Naming Conventions
 
@@ -58,7 +43,7 @@ The database follows strict naming conventions for consistency and clarity:
 
 ## Data Flow
 
-TODO describe it here.
+Data flows from the Angular frontend through the Quarkus REST API (DemoResource) to the DemoService, which persists and retrieves records from the `T_demo` table via Hibernate ORM.
 
 ## Database Compatibility
 
@@ -91,22 +76,9 @@ Strategic indexes are placed for common query patterns:
 
 ### Cleanup Queries
 
-Expired records should be periodically cleaned:
-
-TODO describe the queries here. e.g.:
-```sql
--- Clean expired authorization requests
-DELETE FROM T_authorization_requests 
-WHERE expires_at < CURRENT_TIMESTAMP;
+As the schema evolves, add cleanup queries here for time-sensitive data such as expired sessions or temporary records.
 
 ### Monitoring Queries
 
-TODO describe them here, e.g.:
-```sql
--- Check for locked accounts
-SELECT a.email, c.locked_until, c.failed_login_attempts
-FROM T_accounts a
-JOIN T_credentials c ON a.id = c.account_id
-WHERE c.locked_until > CURRENT_TIMESTAMP;
-```
+As the schema evolves, add monitoring queries here for operational visibility.
 

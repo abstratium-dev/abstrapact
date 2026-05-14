@@ -650,13 +650,13 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 4. Use LogQL queries:
    ```logql
    # All logs
-   {service_name="TODO"}
+   {service_name="abstrapact"}
    
    # Error logs only
-   {service_name="TODO"} | level="ERROR"
+   {service_name="abstrapact"} | level="ERROR"
    
    # Logs with specific trace ID
-   {service_name="TODO"} | traceID="abc123..."
+   {service_name="abstrapact"} | traceID="abc123..."
    ```
 
 ### Viewing Traces in Grafana
@@ -664,7 +664,7 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 1. Go to **Explore**
 2. Select **Tempo** data source
 3. Search by:
-   - Service name: `TODO`
+   - Service name: `abstrapact`
    - Trace ID
    - Duration
    - Tags

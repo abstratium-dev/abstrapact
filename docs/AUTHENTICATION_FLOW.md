@@ -553,7 +553,7 @@ quarkus.oidc.token-state-manager.encryption-required=true
 
 #### Issue: 403 Forbidden on API calls
 
-**Cause:** Role mismatch - JWT has `abstratium-TODO_user` but code checks for `abstratium-TODO_other`.
+**Cause:** Role mismatch - JWT has `abstratium-abstrapact_user` but code checks for `abstratium-abstrapact_other`.
 
 **Solution:** Update `Roles.CLIENT_ID` to match actual OIDC client ID.
 

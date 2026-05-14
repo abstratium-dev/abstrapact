@@ -5,7 +5,7 @@ This directory contains Playwright-based end-to-end tests.
 **IMPORTANT**: E2E tests require the application to be built with H2 database support. 
 Since `quarkus.datasource.db-kind` is a build-time property, you must use the `e2e` profile:
 
-    source /w/abstratium-TODO.env
+    source /w/abstratium-abstrapact.env
     mvn verify -Pe2e
 
 This will:
@@ -49,7 +49,7 @@ When developing tests or debugging, you can run the server manually and then run
 
 ```bash
 # Start Quarkus in dev mode
-source /w/abstratium-TODO.env
+source /w/abstratium-abstrapact.env
 mvn quarkus:dev
 
 # In another terminal, run tests

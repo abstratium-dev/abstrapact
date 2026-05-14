@@ -29,13 +29,13 @@ echo "Build version: $VERSION"
 # Build the Docker image with version tag and latest tag
 echo "Building Docker image..."
 docker build -f src/main/docker/Dockerfile.native-micro \
-    -t ghcr.io/abstratium-dev/TODO:$VERSION \
-    -t ghcr.io/abstratium-dev/TODO:latest \
+    -t ghcr.io/abstratium-dev/abstrapact:$VERSION \
+    -t ghcr.io/abstratium-dev/abstrapact:latest \
     .
 
 echo ""
 echo "Successfully built Docker images:"
-echo "  - ghcr.io/abstratium-dev/TODO:$VERSION"
-echo "  - ghcr.io/abstratium-dev/TODO:latest"
+echo "  - ghcr.io/abstratium-dev/abstrapact:$VERSION"
+echo "  - ghcr.io/abstratium-dev/abstrapact:latest"
 echo ""
 echo "To push to GitHub Container Registry, run: ./push-docker-image.sh"

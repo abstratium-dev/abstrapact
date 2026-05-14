@@ -1,3 +1,3 @@
-# TODO
+# Architecture Decisions
 
-a file per project decision
+One file per significant project decision.

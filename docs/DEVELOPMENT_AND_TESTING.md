@@ -9,11 +9,11 @@
 
 First add env vars:
 
-    source /w/abstratium-TODO.env
+    source /w/abstratium-abstrapact.env
 
 That file should contain:
 
-    export ABSTRATIUM_CLIENT_ID="abstratium-TODO"
+    export ABSTRATIUM_CLIENT_ID="abstratium-abstrapact"
     export ABSTRATIUM_CLIENT_SECRET="... (taken from the abstrauth application)"
     export CSRF_TOKEN_SIGNATURE_KEY="... (generated with `openssl rand -base64 64 | tr -d '\n'`)"
     export COOKIE_ENCRYPTION_SECRET="... (generated with `openssl rand -base64 32`)"
@@ -71,7 +71,7 @@ USE abstrapact;
 exit, then reconnect using the new user:
 
 ```bash
-docker run -it --network abstratium --rm mysql mysql -h abstratium-mysql --port 3306 -u TODO -psecret TODO
+docker run -it --network abstratium --rm mysql mysql -h abstratium-mysql --port 3306 -u abstrapact -psecret abstrapact
 ```
 
 # Authorization
@@ -100,8 +100,8 @@ It might be easier to test these manually during testing.
 
 Start the component:
 ```bash
-source /w/abstratium-TODO.env
-quarkus dev
+    source /w/abstratium-abstrapact.env
+    quarkus dev
 ```
 
 And then the e2e tests:
@@ -157,7 +157,7 @@ ng update
 ng update @angular/cli @angular/core
 ```
 
-5. Check Github for security problems by signing in and viewing the problems here: https://github.com/abstratium-dev/TODO/security/dependabot and https://github.com/abstratium-dev/TODO/security/code-scanning
+5. Check Github for security problems by signing in and viewing the problems here: https://github.com/abstratium-dev/abstrapact/security/dependabot and https://github.com/abstratium-dev/abstrapact/security/code-scanning
 
 # Issues with Webkit
 

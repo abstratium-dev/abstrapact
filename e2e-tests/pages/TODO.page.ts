@@ -1,10 +1,10 @@
 import { expect, Page } from '@playwright/test';
 
-// TODO: rename this file
+// NOTE: This file should be renamed to match the feature under test.
 
-// TODO: Replace with actual element selectors
+// Replace with actual element selectors for the pages being tested.
 
-// TODO: create functions for doing things on pages, e.g.:
+// Example page object model function:
 /**
  * Adds a new OAuth client.
  * Assumes we're already on the clients page.
