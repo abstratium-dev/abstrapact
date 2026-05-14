@@ -1,8 +1,12 @@
 package dev.abstratium.core.boundary.publik;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.junit.QuarkusTestProfile;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
@@ -15,7 +19,15 @@ import static org.hamcrest.CoreMatchers.notNullValue;
  * 3. The endpoint is NOT tracked by OIDC (no @PermitAll annotation needed)
  */
 @QuarkusTest
+@TestProfile(ConfigResourceTest.TestProfile.class)
 class ConfigResourceTest {
+
+    public static class TestProfile implements QuarkusTestProfile {
+        @Override
+        public Map<String, String> getConfigOverrides() {
+            return Map.of("abstratium.stage", "test");
+        }
+    }
 
     @Test
     void testConfigEndpointReturnsLogLevel() {

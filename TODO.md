@@ -9,7 +9,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
-- integrate toggles
 
 ## Tomorrow
 
@@ -19,12 +18,13 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 # TODOs for Abstracore (to be deleted downstream)
 
-- add a banner for non-prod envs with a custom string to warn users that they are not using prod
-- add observability (logging, metrics, tracing)
+- integrate toggles
+- add an application title next to the abstratium logo
+- banner / message - we should be able to configure the colour of it so each stage can have a different colour
 - fix tracking of the url in the auth service, so that if the user clicks or enters a link, they are redirected, regardless of whether they are already signed in, or need to sign in
 - allow other addresses than localhost to read management/metrics. need to also expose it in docker file?
 - add a link to the sbom in readme: e.g. https://github.com/abstratium-dev/abnemo/dependency-graph/sbom. although a copy needs adding to the release! what does the law say?
-- observability
+- add observability (logging, metrics, tracing)
   - see https://quarkus.io/quarkus-workshop-langchain4j/section-1/step-10/#tracing
 
     # quarkus.otel.exporter.otlp.traces.endpoint=http://localhost:4317
