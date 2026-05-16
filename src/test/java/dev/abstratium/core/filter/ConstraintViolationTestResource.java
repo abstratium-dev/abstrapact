@@ -52,9 +52,9 @@ public class ConstraintViolationTestResource {
     @Produces(MediaType.APPLICATION_JSON)
     public void triggerFkParentViolation() {
         throw new ConstraintViolationException(
-            "could not execute statement [Cannot delete or update a parent row: a foreign key constraint fails (`abstoggle`.`T_toggle_stage_rule`, CONSTRAINT `FK_toggle_stage_rule_stage_id` FOREIGN KEY (`stage_id`) REFERENCES `T_stage` (`id`))] [delete from T_stage where id=?]",
+            "could not execute statement [Cannot delete or update a parent row: a foreign key constraint fails (`db`.`T_child`, CONSTRAINT `FK_child_example_id` FOREIGN KEY (`example_id`) REFERENCES `T_example` (`id`))] [delete from T_example where id=?]",
             new SQLException("Cannot delete or update a parent row", "23000", 1451),
-            "FK_toggle_stage_rule_stage_id");
+            "FK_child_example_id");
     }
 
     @GET
@@ -64,7 +64,7 @@ public class ConstraintViolationTestResource {
         throw new ConstraintViolationException(
             "could not execute statement",
             new SQLException("Cannot delete or update a parent row", "23000", 1451),
-            "FK_toggle_stage_rule_stage_id");
+            "FK_child_example_id");
     }
 
     @GET

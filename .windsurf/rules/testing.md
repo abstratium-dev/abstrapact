@@ -10,7 +10,7 @@ globs: src/test/java/**/.*,src/main/webui/**/*.spec.ts
 - Fix tests which fail due to transactional errors last - those can be side effects of other tests failing. Fix the other failing tests first.
 - Don't use things like "head -n 10" very vigourously since you end up having to rerun the tests again in order to find errors. It is inefficient and slows us down.
 
-**When you execute the tests with mvn, send the output to a file in the `/tmp` directory. search that file for results. use the same file for all test runs. That way, you will not run tests, and then need to run them again, in order to search for specific results!**
+**When you execute the tests with mvn, send the output to a file in the `tmp` directory of this project (it may need creating). search that file for results. use the same file for all test runs. That way, you will not run tests, and then need to run them again, in order to search for specific results!**
 
 You must check that coverage is at 80% statement coverage and 70% branch coverage. Use coverage results to find missing tests.
 

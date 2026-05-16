@@ -117,29 +117,42 @@ public class ConstraintViolationExceptionMapper implements ExceptionMapper<Const
     }
 
     private String extractReferencedEntity(String raw, String constraintName) {
-        if (constraintName != null) {
-            String name = constraintName.toUpperCase();
-            if (name.contains("STAGE")) {
-                return "stage";
-            }
-            if (name.contains("TOGGLE")) {
-                return "toggle";
-            }
-            if (name.contains("RULE")) {
-                return "rule";
-            }
-        }
         if (raw != null) {
-            if (raw.contains("T_stage")) {
-                return "stage";
+            // MySQL FK messages: look for REFERENCES `T_tablename`
+            int refIdx = raw.indexOf("REFERENCES `T_");
+            if (refIdx != -1) {
+                int start = refIdx + "REFERENCES `".length();
+                int end = raw.indexOf('`', start);
+                if (end != -1) {
+                    return toFriendlyEntityName(raw.substring(start, end));
+                }
             }
-            if (raw.contains("T_toggle")) {
-                return "toggle";
-            }
-            if (raw.contains("T_toggle_rule")) {
-                return "rule";
+
+            // Fallback: find any T_ table reference
+            int tIdx = raw.indexOf("T_");
+            if (tIdx != -1) {
+                int end = tIdx + 2;
+                while (end < raw.length()
+                        && (Character.isLetterOrDigit(raw.charAt(end)) || raw.charAt(end) == '_')) {
+                    end++;
+                }
+                return toFriendlyEntityName(raw.substring(tIdx, end));
             }
         }
+
+        if (constraintName != null) {
+            String upper = constraintName.toUpperCase();
+            if (upper.startsWith("FK_")) {
+                // FK_<tableName>_<columnName> — strip column name suffix
+                String name = constraintName.substring(3);
+                int lastUnderscore = name.lastIndexOf('_');
+                if (lastUnderscore > 0) {
+                    name = name.substring(0, lastUnderscore);
+                }
+                return toFriendlyEntityName(name);
+            }
+        }
+
         return "resource";
     }
 
@@ -237,6 +250,9 @@ public class ConstraintViolationExceptionMapper implements ExceptionMapper<Const
             name = name.substring(dot + 1);
         }
         if (name.toUpperCase().startsWith("UQ_")) {
+            name = name.substring(3);
+        }
+        if (name.toUpperCase().startsWith("FK_")) {
             name = name.substring(3);
         }
         if (name.toUpperCase().startsWith("T_")) {

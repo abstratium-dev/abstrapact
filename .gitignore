@@ -56,3 +56,6 @@ e2e-tests/playwright/.auth/
 **/node_modules/
 
 **/__pycache__
+
+# project tmp folder for LLM stuff that isn't needed for very long
+tmp/**

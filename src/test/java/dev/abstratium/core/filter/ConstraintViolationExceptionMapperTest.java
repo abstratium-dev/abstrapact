@@ -73,7 +73,7 @@ class ConstraintViolationExceptionMapperTest {
             .contentType(containsString("problem+json"))
             .body("status", is(409))
             .body("title", is("Resource is still referenced by other data"))
-            .body("detail", is("This stage is still referenced by other data and cannot be deleted. Remove the dependent data first."));
+            .body("detail", is("This example is still referenced by other data and cannot be deleted. Remove the dependent data first."));
     }
 
     @Test
