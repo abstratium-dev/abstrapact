@@ -19,6 +19,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 # TODOs for Abstracore (to be deleted downstream)
 
 - integrate toggles
+- create build scripts for maven and angular which output the test errors, so the LLM doesn't need to use maven and can optimise token usage. then update the skills and rules to use those scripts
 - add an application title next to the abstratium logo
 - banner / message - we should be able to configure the colour of it so each stage can have a different colour
 - fix tracking of the url in the auth service, so that if the user clicks or enters a link, they are redirected, regardless of whether they are already signed in, or need to sign in
