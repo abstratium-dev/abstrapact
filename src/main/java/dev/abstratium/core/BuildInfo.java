@@ -18,7 +18,7 @@ public final class BuildInfo {
      * This value is automatically updated by .git/hooks/pre-commit
      * DO NOT EDIT MANUALLY - changes will be overwritten
      */
-    public static final String BUILD_TIMESTAMP = "2026-05-17T17:56:23Z";
+    public static final String BUILD_TIMESTAMP = "2026-05-18T17:38:19Z";
     
     private BuildInfo() {
         // Utility class - prevent instantiation
