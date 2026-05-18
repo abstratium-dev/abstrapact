@@ -4,8 +4,8 @@ description: Used when running tests.
 globs: src/test/java/**/.*,src/main/webui/**/*.spec.ts
 ---
 
-- Run tests using `mvn verify`, which will run backend but also the Angular tests.
-- Run just the angular tests with `mvn exec:exec@run-angular-tests`
+- Run backend java tests using `mvn verify`.
+- Run angular tests with `./scripts/run-ng-tests.py` which gives a summary of the errors so that you do not have to use tail!
 - Do NOT use `ng test` as it hangs.
 - Fix tests which fail due to transactional errors last - those can be side effects of other tests failing. Fix the other failing tests first.
 - Don't use things like "head -n 10" very vigourously since you end up having to rerun the tests again in order to find errors. It is inefficient and slows us down.
@@ -20,7 +20,7 @@ Make sure that all tests contain assertions and not just for rudimentary things.
 
 It is EXTREMELY IMPORTANT that this project be tested using unit and integration tests.
 
-Coverage can be measured using `mvn verify`. The backend coverage results in xml files from the folder `target/jacoco-report` (use grep to access the report if you cannot access the file because it is ignored by git). Front end coverage results are part of the output which is written when mvn executes the Angular tests as part of `mvn verify`.
+Java Coverage can be measured using `mvn verify`. The backend coverage results in xml files from the folder `target/jacoco-report` (use grep to access the report if you cannot access the file because it is ignored by git). Front end coverage results are part of the output which is written when mvn executes the Angular tests as part of `mvn verify`.
 
 Tests annotated with `@QuarkusTest` are the primary kind of test for the backend.
 You can also write plain unit tests, in order to test edge cases.
