@@ -102,4 +102,70 @@ public class ConstraintViolationTestResource {
             new SQLException("generic error", "42000", 9999),
             null);
     }
+
+    @GET
+    @Path("/fk-parent-references-style")
+    @Produces(MediaType.APPLICATION_JSON)
+    public void triggerFkParentReferencesStyle() {
+        // Message contains REFERENCES `T_example` — exercises extractReferencedEntity REFERENCES path
+        throw new ConstraintViolationException(
+            "Cannot delete or update a parent row: REFERENCES `T_example` (`id`)",
+            new SQLException("Cannot delete or update a parent row", "23000", 1451),
+            "FK_child_example_id");
+    }
+
+    @GET
+    @Path("/fk-parent-t-fallback")
+    @Produces(MediaType.APPLICATION_JSON)
+    public void triggerFkParentTFallback() {
+        // Message has T_ but no REFERENCES keyword — exercises T_ fallback in extractReferencedEntity
+        throw new ConstraintViolationException(
+            "Cannot delete or update a parent row: T_example constraint",
+            new SQLException("Cannot delete or update a parent row", "23000", 1451),
+            null);
+    }
+
+    @GET
+    @Path("/fk-constraint-name-only")
+    @Produces(MediaType.APPLICATION_JSON)
+    public void triggerFkConstraintNameOnly() {
+        // No message detail at all — exercises FK_ constraint name parsing in extractReferencedEntity
+        throw new ConstraintViolationException(
+            "Cannot delete or update a parent row",
+            new SQLException("Cannot delete or update a parent row", "23000", 1451),
+            "FK_order_customer_id");
+    }
+
+    @GET
+    @Path("/fk-cause-message")
+    @Produces(MediaType.APPLICATION_JSON)
+    public void triggerFkCauseMessage() {
+        // Null exception message, cause has FK message — exercises extractForeignKeyDetail null-message path
+        throw new ConstraintViolationException(
+            null,
+            new SQLException("Cannot add or update a child row: foreign key fails", "23000", 1452),
+            null);
+    }
+
+    @GET
+    @Path("/duplicate-no-key")
+    @Produces(MediaType.APPLICATION_JSON)
+    public void triggerDuplicateNoKey() {
+        // Duplicate entry message without 'for key' part — exercises partial match in extractDuplicateDetail
+        throw new ConstraintViolationException(
+            "Duplicate entry 'abc'",
+            new SQLException("Duplicate entry 'abc'", "23000", 1062),
+            null);
+    }
+
+    @GET
+    @Path("/h2-unique-null-constraint")
+    @Produces(MediaType.APPLICATION_JSON)
+    public void triggerH2UniqueNullConstraint() {
+        // H2 unique violation with null constraint name — exercises null constraint branch in extractDuplicateDetail
+        throw new ConstraintViolationException(
+            "Unique index or primary key violation: ON T_TEST(NAME)",
+            new SQLException("Unique index or primary key violation", "23505", 23505),
+            null);
+    }
 }

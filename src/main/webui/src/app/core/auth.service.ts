@@ -4,6 +4,7 @@ import { Observable, of } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { WINDOW } from './window.token';
 import { Router } from '@angular/router';
+import { RouteTrackingService } from './route-tracking.service';
 
 export const CLIENT_ID = 'abstratium-abstracore';
 export const ISSUER = 'https://abstrauth.abstratium.dev';
@@ -47,6 +48,7 @@ export class AuthService {
     private http = inject(HttpClient);
     private router = inject(Router);
     private window = inject(WINDOW);
+    private routeTracking = inject(RouteTrackingService);
 
     token$ = signal<Token>(ANONYMOUS);
     private token = ANONYMOUS;
@@ -67,10 +69,18 @@ export class AuthService {
             return of(void 0);
         }
 
-        // Capture the initial URL before any navigation happens
-        const initialUrl = this.window.location.pathname + this.window.location.search;
-        console.debug('[AUTH] Initial URL captured:', initialUrl);
-        
+        // Capture the raw browser URL *now*, before the Angular Router has a
+        // chance to redirect. This is only reliable in the unauthenticated path
+        // (to remember where an unauthenticated user was trying to go).
+        //
+        // SpaRoutingNotFoundMapper redirects unknown paths to
+        // /?_spa=<encodedOriginalPath>. Decode that parameter if present so we
+        // restore the intended URL rather than '/'.
+        const params = new URLSearchParams(this.window.location.search);
+        const spaRedirect = params.get('_spa');
+        const rawUrl = spaRedirect ? decodeURIComponent(spaRedirect) : this.window.location.pathname + this.window.location.search;
+        console.debug('[AUTH] Raw browser URL at bootstrap:', rawUrl);
+
         return this.http.get<Token>('/api/core/userinfo').pipe(
             tap(token => {
                 console.debug('[AUTH] User is authenticated:', token.email);
@@ -78,13 +88,37 @@ export class AuthService {
                 this.token$.set(token);
                 this.initialized = true;
                 this.setupTokenExpiryTimer(token.exp);
+
+                // Navigation priority:
+                // 1. _spa redirect: server couldn't serve the path directly,
+                //    encoded it as /?_spa=<path> — navigate to the decoded path.
+                // 2. All other cases: navigate to the actual browser path.
+                //    Post-login, LoginResource redirects to /signed-in which is an
+                //    Angular route that reads lastRoute and redirects there itself.
+                const target = spaRedirect ? rawUrl : this.window.location.pathname;
+                console.debug('[AUTH] Navigating to target:', target, '(spaRedirect:', spaRedirect, ', rawUrl:', rawUrl, ')');
+                this.router.navigateByUrl(target);
             }),
             catchError((err) => {
                 console.debug('[AUTH] User is NOT authenticated, error:', err.status);
+
+                // Persist where the user was trying to go so that after sign-in
+                // (which always redirects to /) we can send them back here.
+                if (rawUrl && rawUrl !== '/' ) {
+                    this.routeTracking.saveRoute(rawUrl);
+                }
+
                 // Use ANONYMOUS token
                 this.token = ANONYMOUS;
                 this.token$.set(ANONYMOUS);
                 this.initialized = true;
+
+                // If a _spa redirect brought us here (e.g. /?_spa=%2FTODO), navigate
+                // to the intended path so authGuard can fire and redirect to /signed-out.
+                if (spaRedirect) {
+                    this.router.navigateByUrl(rawUrl);
+                }
+
                 return of(ANONYMOUS);
             }),
             map(() => void 0)
@@ -102,11 +136,11 @@ export class AuthService {
         const millisUntilExpiry = expiry.getTime() - now;
         const oneMinLessThanMillisUntilExpiry = Math.max(0, millisUntilExpiry - (1 * 60 * 1000));
         
-        console.debug("Token expires in", millisUntilExpiry, "ms, redirecting to sign-in in", oneMinLessThanMillisUntilExpiry, "ms");
+        console.debug("Token expires in", millisUntilExpiry, "ms, redirecting to sign-out in", oneMinLessThanMillisUntilExpiry, "ms");
         
         setTimeout(() => {
-            console.info("Session expired, redirecting to sign-in");
-            this.signout();
+            console.info("Session expired, redirecting to sign-out");
+            this.signOut();
         }, oneMinLessThanMillisUntilExpiry);
     }
 
@@ -146,7 +180,23 @@ export class AuthService {
         this.token$.set(this.token);
     }
 
-    signout() {
+    signIn(): void {
+        // Navigate to the login endpoint which triggers OIDC authentication
+        // This is a BROWSER navigation (not XHR), so Quarkus OIDC can redirect properly
+        // Flow:
+        // 1. Browser navigates to /api/auth/login
+        // 2. Quarkus OIDC returns 302 to https://auth.abstratium.dev/oauth2/authorize (with PKCE)
+        // 3. User authenticates at auth server
+        // 4. Auth server redirects to /oauth/callback with authorization code
+        // 5. Quarkus exchanges code for tokens and creates session cookie
+        // 6. Quarkus redirects back to /api/auth/login (restore-path-after-redirect)
+        // 7. LoginResource redirects to /signed-in (Angular route)
+        // 8. SignedInComponent restores lastRoute from localStorage
+        // 9. AuthService fetches user info, user is authenticated
+        this.window.location.href = '/api/auth/login';
+    }
+
+    signOut() {
         console.debug('[AUTH] signout() called');
         this.resetToken();
         console.debug('[AUTH] Calling logout endpoint to invalidate session');

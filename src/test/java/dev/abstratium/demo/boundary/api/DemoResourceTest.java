@@ -3,16 +3,103 @@ package dev.abstratium.demo.boundary.api;
 import dev.abstratium.demo.Roles;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.*;
 
 /**
- * Test for DemoResource error handling with RFC 7807 Problem Details.
+ * Tests for DemoResource covering CRUD operations and error handling.
  */
 @QuarkusTest
 class DemoResourceTest {
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testGetAllReturnsListOfDemos() {
+        given()
+            .when()
+            .get("/api/demo")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("$", notNullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testCreateDemo() {
+        String id = given()
+            .contentType(ContentType.JSON)
+            .body("{}")
+            .when()
+            .post("/api/demo")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("id", notNullValue())
+            .extract()
+            .path("id");
+
+        // cleanup
+        given()
+            .when()
+            .delete("/api/demo/" + id)
+            .then()
+            .statusCode(204);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testUpdateDemo() {
+        // Create first
+        String id = given()
+            .contentType(ContentType.JSON)
+            .body("{}")
+            .when()
+            .post("/api/demo")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("id");
+
+        // Update it
+        given()
+            .contentType(ContentType.JSON)
+            .body("{\"id\": \"" + id + "\"}")
+            .when()
+            .put("/api/demo")
+            .then()
+            .statusCode(200)
+            .body("id", is(id));
+
+        // cleanup
+        given()
+            .when()
+            .delete("/api/demo/" + id)
+            .then()
+            .statusCode(204);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    void testDeleteNonExistentDemoIsIdempotent() {
+        given()
+            .when()
+            .delete("/api/demo/non-existent-id-that-does-not-exist")
+            .then()
+            .statusCode(204);
+    }
+
+    @Test
+    void testGetAllRequiresAuthentication() {
+        given()
+            .when()
+            .get("/api/demo")
+            .then()
+            .statusCode(400);
+    }
 
     @Test
     @TestSecurity(user = "testuser", roles = {Roles.USER})
@@ -21,8 +108,8 @@ class DemoResourceTest {
             .when()
             .get("/api/demo/error")
             .then()
-            .statusCode(400) // Bad Request
-            .contentType("application/problem+json") // RFC 7807 content type
+            .statusCode(400)
+            .contentType("application/problem+json")
             .body("type", notNullValue())
             .body("title", is("Demo error for testing"))
             .body("status", is(400))
@@ -30,24 +117,7 @@ class DemoResourceTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
-    void testErrorEndpointStructure() {
-        // Verify the error response has the correct RFC 7807 structure
-        given()
-            .when()
-            .get("/api/demo/error")
-            .then()
-            .statusCode(400)
-            .body("type", notNullValue())
-            .body("title", notNullValue())
-            .body("status", notNullValue())
-            .body("detail", notNullValue());
-    }
-
-    @Test
     void testErrorEndpointRequiresAuthentication() {
-        // Without authentication, should get 400 (in test mode without OIDC setup)
-        // In production with proper OIDC, this would be a redirect to login
         given()
             .when()
             .get("/api/demo/error")

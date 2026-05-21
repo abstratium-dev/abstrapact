@@ -144,4 +144,86 @@ class ConstraintViolationExceptionMapperTest {
             .body("title", is("Database operation failed"))
             .body("detail", is("A resource with the provided value already exists. Please choose a different value."));
     }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"user"})
+    void testFkParentViolationWithReferencesStyleMessage() {
+        given()
+            .when()
+            .get("/api/test/constraint/fk-parent-references-style")
+            .then()
+            .statusCode(409)
+            .contentType(containsString("problem+json"))
+            .body("status", is(409))
+            .body("title", is("Resource is still referenced by other data"))
+            .body("detail", containsString("example"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"user"})
+    void testFkParentViolationWithTUnderscoreFallback() {
+        given()
+            .when()
+            .get("/api/test/constraint/fk-parent-t-fallback")
+            .then()
+            .statusCode(409)
+            .contentType(containsString("problem+json"))
+            .body("status", is(409))
+            .body("title", is("Resource is still referenced by other data"))
+            .body("detail", containsString("example"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"user"})
+    void testFkParentViolationResolvesEntityFromConstraintName() {
+        given()
+            .when()
+            .get("/api/test/constraint/fk-constraint-name-only")
+            .then()
+            .statusCode(409)
+            .contentType(containsString("problem+json"))
+            .body("status", is(409))
+            .body("title", is("Resource is still referenced by other data"))
+            .body("detail", containsString("order"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"user"})
+    void testFkChildViolationFromCauseMessage() {
+        given()
+            .when()
+            .get("/api/test/constraint/fk-cause-message")
+            .then()
+            .statusCode(409)
+            .contentType(containsString("problem+json"))
+            .body("status", is(409))
+            .body("title", is("Resource is still referenced by other data"))
+            .body("detail", is("The referenced resource does not exist. Please ensure all related resources are created first."));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"user"})
+    void testDuplicateEntryWithoutKeyPartReturnsValueDetail() {
+        given()
+            .when()
+            .get("/api/test/constraint/duplicate-no-key")
+            .then()
+            .statusCode(409)
+            .contentType(containsString("problem+json"))
+            .body("status", is(409))
+            .body("detail", is("The value 'abc' already exists. Please choose a different value."));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"user"})
+    void testH2UniqueViolationWithNullConstraintName() {
+        given()
+            .when()
+            .get("/api/test/constraint/h2-unique-null-constraint")
+            .then()
+            .statusCode(409)
+            .contentType(containsString("problem+json"))
+            .body("status", is(409))
+            .body("detail", is("A resource with the provided value already exists. Please choose a different value."));
+    }
 }

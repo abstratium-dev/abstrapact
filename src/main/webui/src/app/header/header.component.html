@@ -17,13 +17,18 @@
             }
         </button>
         <a href="https://abstratium.dev/docs/legal">Legal</a>
+        &nbsp;|&nbsp;
+        <a id="public-link" routerLink="/public" routerLinkActive="inactive-link">Public</a>
+        &nbsp;|&nbsp;
+        <a id="home-link" routerLink="/demo" routerLinkActive="inactive-link">🏠</a>
         @if(isSignedIn) {
-            &nbsp;|&nbsp;
-            <a id="home-link" routerLink="/" routerLinkActive="inactive-link">🏠</a>
             &nbsp;|&nbsp;
             <a id="TODO-link" routerLink="/TODO" routerLinkActive="inactive-link">TODO</a>
             &nbsp;|&nbsp;
-            <a id="signout-link" class="alink" (click)="signout()">Sign out</a>
+            <a id="signout-link" class="alink" (click)="signOut()">Sign out</a>
+        }@else {
+            &nbsp;|&nbsp;
+            <a id="signin-link" class="alink" (click)="signIn()">Sign in</a>
         }
     </div>
 </div>

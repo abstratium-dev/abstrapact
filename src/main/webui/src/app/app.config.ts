@@ -6,6 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { routes } from './app.routes';
 import { AuthService } from './core/auth.service';
 import { Controller } from './controller';
+import { RouteTrackingService } from './core/route-tracking.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -26,6 +27,11 @@ export const appConfig: ApplicationConfig = {
       const authService = inject(AuthService);
       // Convert Observable to Promise so Angular waits for initialization
       return firstValueFrom(authService.initialize());
+    }),
+    provideAppInitializer(() => {
+      const routeTracking = inject(RouteTrackingService);
+      // Start persisting route changes to localStorage after app is initialised
+      routeTracking.start();
     }),
   ]
 };

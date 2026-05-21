@@ -8,10 +8,10 @@
       </svg>
     </div>
     
-    <h1>Sign In Required</h1>
-    <p class="description">You need to sign in to access this application.</p>
+    <h1 data-testid="signed-out-heading">Sign In Required</h1>
+    <p class="description">You need to sign in to access this page.</p>
     
-    <button class="btn-primary" (click)="signIn()" style="width: 100%; margin-bottom: 1rem;">
+    <button data-testid="sign-in-btn" class="btn-primary" (click)="signIn()" style="width: 100%; margin-bottom: 1rem;">
       Sign In
     </button>
     

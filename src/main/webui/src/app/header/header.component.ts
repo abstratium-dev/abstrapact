@@ -32,7 +32,11 @@ export class HeaderComponent implements OnInit {
         this.themeService.toggleTheme();
     }
 
-    signout() {
-        this.authService.signout();
+    signOut() {
+        this.authService.signOut();
+    }
+
+    signIn() {
+        this.authService.signIn();
     }
 }

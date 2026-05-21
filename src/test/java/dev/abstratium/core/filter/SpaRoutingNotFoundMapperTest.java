@@ -5,14 +5,16 @@ import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 
 /**
  * Test for SpaRoutingNotFoundMapper to verify:
- * 1. Non-API paths serve HTML redirect to root for SPA routing
+ * 1. Non-API paths serve HTML redirect to /?_spa=<encoded-path> for SPA routing
  * 2. The mapper correctly handles different path types
  * 
  * Note: The mapper intercepts NotFoundException and decides whether to:
- * - Return HTML redirect for SPA routes (non-API paths)
+ * - Return HTML redirect for SPA routes (non-API paths), encoding the original
+ *   path into the _spa query parameter so Angular can restore navigation
  * - Delegate to resteasy-problem for API paths (by returning null)
  */
 @QuarkusTest
@@ -21,7 +23,7 @@ class SpaRoutingNotFoundMapperTest {
     @Test
     void testNonApiPathReturnsHtmlRedirect() {
         // Non-API paths should return HTML with redirect meta tag for SPA routing
-        // This simulates accessing an Angular route directly in the browser
+        // The redirect encodes the original path into the _spa query parameter
         given()
             .when()
             .get("/addresses")
@@ -29,7 +31,8 @@ class SpaRoutingNotFoundMapperTest {
             .statusCode(200)
             .contentType("text/html")
             .body(containsString("<!DOCTYPE html>"))
-            .body(containsString("<meta http-equiv=\"refresh\" content=\"0;url=/\">"));
+            .body(containsString("url=/?_spa="))
+            .body(containsString("%2Faddresses"));
     }
 
     @Test
@@ -42,7 +45,8 @@ class SpaRoutingNotFoundMapperTest {
             .statusCode(200)
             .contentType("text/html")
             .body(containsString("<!DOCTYPE html>"))
-            .body(containsString("<meta http-equiv=\"refresh\" content=\"0;url=/\">"));
+            .body(containsString("url=/?_spa="))
+            .body(containsString("%2Fsome-angular-route"));
     }
 
     @Test
@@ -57,7 +61,8 @@ class SpaRoutingNotFoundMapperTest {
             .statusCode(200)
             .contentType("text/html")
             .body(containsString("<!DOCTYPE html>"))
-            .body(containsString("<meta http-equiv=\"refresh\" content=\"0;url=/\">"));
+            .body(containsString("url=/?_spa="))
+            .body(containsString("%2Fsome-route"));
     }
 
     @Test
@@ -71,7 +76,8 @@ class SpaRoutingNotFoundMapperTest {
             .statusCode(200)
             .contentType("text/html")
             .body(containsString("<!DOCTYPE html>"))
-            .body(containsString("<meta http-equiv=\"refresh\" content=\"0;url=/\">"));
+            .body(containsString("url=/?_spa="))
+            .body(containsString("%2Faddresses%2F123%2Fedit"));
     }
 
     @Test
@@ -84,7 +90,8 @@ class SpaRoutingNotFoundMapperTest {
             .statusCode(200)
             .contentType("text/html")
             .body(containsString("<!DOCTYPE html>"))
-            .body(containsString("<meta http-equiv=\"refresh\" content=\"0;url=/\">"));
+            .body(containsString("url=/?_spa="))
+            .body(containsString("%2Ffeature%2Fsub-feature%2Fitem%2F123"));
     }
 
     @Test
@@ -97,7 +104,8 @@ class SpaRoutingNotFoundMapperTest {
             .statusCode(200)
             .contentType("text/html")
             .body(containsString("<!DOCTYPE html>"))
-            .body(containsString("<meta http-equiv=\"refresh\" content=\"0;url=/\">"));
+            .body(containsString("url=/?_spa="))
+            .body(containsString("%2Froute-with-dashes"));
     }
 
     // ========== API Path Tests - These verify the bug fix ==========
@@ -269,7 +277,8 @@ class SpaRoutingNotFoundMapperTest {
             .statusCode(200)
             .contentType("text/html")
             .body(containsString("<!DOCTYPE html>"))
-            .body(containsString("<meta http-equiv=\"refresh\" content=\"0;url=/\">"));
+            .body(containsString("url=/?_spa="))
+            .body(containsString("%2Fdashboard"));
     }
 
     @Test
@@ -283,7 +292,8 @@ class SpaRoutingNotFoundMapperTest {
             .statusCode(200)
             .contentType("text/html")
             .body(containsString("<!DOCTYPE html>"))
-            .body(containsString("<meta http-equiv=\"refresh\" content=\"0;url=/\">"));
+            .body(containsString("url=/?_spa="))
+            .body(containsString("%2Fprofile"));
     }
 
     @Test
@@ -297,6 +307,23 @@ class SpaRoutingNotFoundMapperTest {
             .statusCode(200)
             .contentType("text/html")
             .body(containsString("<!DOCTYPE html>"))
-            .body(containsString("<meta http-equiv=\"refresh\" content=\"0;url=/\">"));
+            .body(containsString("url=/?_spa="))
+            .body(containsString("%2Fnonexistent-root-level-path"));
+    }
+
+    @Test
+    void testNoDoubleSlashInSpaParamWhenPathHasLeadingSlash() {
+        // Regression: when the path reported by UriInfo already has a leading slash
+        // (e.g. after a server-side redirect to /signed-in), the _spa value must be
+        // %2Fsigned-in, NOT %2F%2Fsigned-in (which would decode to //signed-in).
+        given()
+            .when()
+            .get("/signed-in")
+            .then()
+            .statusCode(200)
+            .contentType("text/html")
+            .body(containsString("url=/?_spa="))
+            .body(containsString("%2Fsigned-in"))
+            .body(not(containsString("%2F%2F")));
     }
 }
