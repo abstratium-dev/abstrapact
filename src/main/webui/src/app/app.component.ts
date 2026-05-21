@@ -16,6 +16,7 @@ export class AppComponent {
   title = 'TODO';
   copyrightYear: any;
   protected warningMessage$ = inject(ModelService).warningMessage$;
+  protected warningBgColor$ = inject(ModelService).warningBgColor$;
 
   constructor() {
     this.copyrightYear = new Date().getFullYear();

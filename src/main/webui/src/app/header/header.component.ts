@@ -3,6 +3,7 @@ import { Component, effect, inject, OnInit } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService, Token } from '../core/auth.service';
 import { ThemeService } from '../core/theme.service';
+import { ModelService } from '../model.service';
 
 @Component({
     selector: 'header',
@@ -13,6 +14,10 @@ import { ThemeService } from '../core/theme.service';
 export class HeaderComponent implements OnInit {
     private authService = inject(AuthService);
     themeService = inject(ThemeService);
+    private modelService = inject(ModelService);
+    protected brandLogoUrl$ = this.modelService.brandLogoUrl$;
+    protected brandLogoAlt$ = this.modelService.brandLogoAlt$;
+    protected brandName$ = this.modelService.brandName$;
 
     token!: Token;
     isSignedIn = false;

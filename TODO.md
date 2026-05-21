@@ -18,21 +18,13 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 # TODOs for Abstracore (to be deleted downstream)
 
-- fix refresh url bug
-
-- add an application title next to the abstratium logo
-
 - add toggles client
 
 - add "down for maintenance page"
   - actually, nginx needs to use that
-  - "going down for maintenance at..." message of the day?
+  - "going down for maintenance at..." message of the day? it comes out of the toggle
 
 - create build script for maven similar to the one for angular which output the test errors, so the LLM doesn't need to use maven and can optimise token usage. then update the skills and rules to use those scripts
-
-- banner / message - we should be able to configure the colour of it so each stage can have a different colour
-
-- fix tracking of the url in the auth service, so that if the user clicks or enters a link, they are redirected, regardless of whether they are already signed in, or need to sign in
 
 - allow other addresses than localhost to read management/metrics. need to also expose it in docker file?
 

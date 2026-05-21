@@ -1,8 +1,8 @@
 
 <!-- Environment Warning Banner -->
 @if (warningMessage$()) {
-  <div class="alert-warning environment-warning">
-    <strong>⚠️ {{ warningMessage$() }}</strong>
+  <div class="alert-warning environment-warning" [style.background-color]="warningBgColor$()">
+    <strong>{{ warningMessage$() }}</strong>
   </div>
 }
 

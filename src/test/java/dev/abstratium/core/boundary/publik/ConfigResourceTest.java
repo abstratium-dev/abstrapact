@@ -109,4 +109,33 @@ class ConfigResourceTest {
             .body("stage", notNullValue())
             .body("stage", is("test")); // Test profile uses "test"
     }
+
+    @Test
+    void testConfigEndpointReturnsWarningBgColor() {
+        // Verify that warningBgColor is returned (default value from application.properties)
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("warningBgColor", notNullValue())
+            .body("warningBgColor", is("#fff3cd")); // Default from application.properties
+    }
+
+    @Test
+    void testConfigEndpointReturnsBrandFields() {
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("brandLogoUrl", notNullValue())
+            .body("brandLogoUrl", is("https://abstratium.dev/abstratium-logo-small.png"))
+            .body("brandLogoAlt", notNullValue())
+            .body("brandLogoAlt", is("Abstratium Logo"))
+            .body("brandName", notNullValue())
+            .body("brandName", is("ABSTRATIUM"));
+    }
 }
