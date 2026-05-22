@@ -18,6 +18,8 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 # TODOs for Abstracore (to be deleted downstream)
 
+- sign out timer from abstraccount
+
 - add toggles client
 
 - add "down for maintenance page"

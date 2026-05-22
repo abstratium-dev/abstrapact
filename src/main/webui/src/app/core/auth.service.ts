@@ -51,8 +51,11 @@ export class AuthService {
     private routeTracking = inject(RouteTrackingService);
 
     token$ = signal<Token>(ANONYMOUS);
+    sessionFraction$ = signal<number>(1);
+    sessionMinutesRemaining$ = signal<number>(0);
     private token = ANONYMOUS;
     private initialized = false;
+    private sessionInterval: ReturnType<typeof setInterval> | null = null;
 
 
     /**
@@ -142,6 +145,53 @@ export class AuthService {
             console.info("Session expired, redirecting to sign-out");
             this.signOut();
         }, oneMinLessThanMillisUntilExpiry);
+
+        // Start session countdown for UI
+        this.startSessionCountdown(exp);
+    }
+
+    /**
+     * Start an interval to update session fraction and minutes remaining.
+     * Updates every 10 seconds for smooth UI updates.
+     */
+    private startSessionCountdown(exp: number): void {
+        const updateSessionState = () => {
+            const now = Date.now();
+            const expiry = new Date(exp * 1000);
+            const totalDuration = (exp - this.token.iat) * 1000;
+            const millisUntilExpiry = expiry.getTime() - now;
+            const millisElapsed = totalDuration - millisUntilExpiry;
+
+            const fraction = Math.max(0, Math.min(1, millisUntilExpiry / totalDuration));
+            const minutesRemaining = Math.max(0, Math.ceil(millisUntilExpiry / (60 * 1000)));
+
+            this.sessionFraction$.set(fraction);
+            this.sessionMinutesRemaining$.set(minutesRemaining);
+        };
+
+        // Initial update
+        updateSessionState();
+
+        // Clear any existing interval
+        if (this.sessionInterval) {
+            clearInterval(this.sessionInterval);
+        }
+
+        // Update every 10 seconds
+        this.sessionInterval = setInterval(updateSessionState, 10000);
+    }
+
+    /**
+     * Stop the session countdown interval.
+     * Called when signing out.
+     */
+    private stopSessionCountdown(): void {
+        if (this.sessionInterval) {
+            clearInterval(this.sessionInterval);
+            this.sessionInterval = null;
+        }
+        this.sessionFraction$.set(1);
+        this.sessionMinutesRemaining$.set(0);
     }
 
     getAccessToken() {
@@ -178,6 +228,7 @@ export class AuthService {
         this.token = ANONYMOUS;
         this.token.isAuthenticated = false;
         this.token$.set(this.token);
+        this.stopSessionCountdown();
     }
 
     signIn(): void {

@@ -24,9 +24,13 @@ export class ModelService {
   private config = signal<Config | null>(null);
   private warningMessage = signal<string>('');
   private warningBgColor = signal<string>('#fff3cd');
-  private brandLogoUrl = signal<string>('');
-  private brandLogoAlt = signal<string>('');
-  private brandName = signal<string>('');
+  private readonly defaultBrandLogoUrl = 'https://abstratium.dev/abstratium-logo-small.png';
+  private readonly defaultBrandLogoAlt = 'Abstratium Logo';
+  private readonly defaultBrandName = 'ABSTRATIUM';
+
+  private brandLogoUrl = signal<string>(this.defaultBrandLogoUrl);
+  private brandLogoAlt = signal<string>(this.defaultBrandLogoAlt);
+  private brandName = signal<string>(this.defaultBrandName);
 
   demos$: Signal<Demo[]> = this.demos.asReadonly();
   demosLoading$: Signal<boolean> = this.demosLoading.asReadonly();
@@ -58,8 +62,8 @@ export class ModelService {
       this.warningMessage.set(config.warningMessage);
     }
     this.warningBgColor.set(config.warningBgColor);
-    this.brandLogoUrl.set(config.brandLogoUrl);
-    this.brandLogoAlt.set(config.brandLogoAlt);
-    this.brandName.set(config.brandName);
+    this.brandLogoUrl.set(config.brandLogoUrl || this.defaultBrandLogoUrl);
+    this.brandLogoAlt.set(config.brandLogoAlt || this.defaultBrandLogoAlt);
+    this.brandName.set(config.brandName || this.defaultBrandName);
   }
 }

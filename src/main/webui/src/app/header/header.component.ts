@@ -21,11 +21,18 @@ export class HeaderComponent implements OnInit {
 
     token!: Token;
     isSignedIn = false;
+    sessionFraction = 1;
+    sessionMinutesRemaining = 0;
 
     constructor() {
         effect(() => {
             this.token = this.authService.token$();
             this.isSignedIn = this.token.isAuthenticated;
+        });
+
+        effect(() => {
+            this.sessionFraction = this.authService.sessionFraction$();
+            this.sessionMinutesRemaining = this.authService.sessionMinutesRemaining$();
         });
     }
 
@@ -43,5 +50,10 @@ export class HeaderComponent implements OnInit {
 
     signIn() {
         this.authService.signIn();
+    }
+
+    get sessionClockDashoffset(): number {
+        const circumference = 2 * Math.PI * 7;
+        return circumference * (1 - this.sessionFraction);
     }
 }

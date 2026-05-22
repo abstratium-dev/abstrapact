@@ -25,7 +25,15 @@
             &nbsp;|&nbsp;
             <a id="TODO-link" routerLink="/TODO" routerLinkActive="inactive-link">TODO</a>
             &nbsp;|&nbsp;
-            <a id="signout-link" class="alink" (click)="signOut()">Sign out</a>
+            <span class="signout-wrapper">
+                <svg class="session-clock" viewBox="0 0 18 18" [attr.aria-label]="sessionMinutesRemaining + ' minutes until sign-out'">
+                    <title>{{ sessionMinutesRemaining }} min until sign-out</title>
+                    <circle class="session-clock-bg" cx="9" cy="9" r="7"/>
+                    <circle class="session-clock-fill" cx="9" cy="9" r="7"
+                        [style.stroke-dashoffset]="sessionClockDashoffset"/>
+                </svg>
+                <a id="signout-link" class="alink" (click)="signOut()">Sign out</a>
+            </span>
         }@else {
             &nbsp;|&nbsp;
             <a id="signin-link" class="alink" (click)="signIn()">Sign in</a>
