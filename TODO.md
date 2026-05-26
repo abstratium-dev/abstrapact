@@ -18,8 +18,6 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 # TODOs for Abstracore (to be deleted downstream)
 
-- modify run-java so that it can run a single test
-
 - allow other addresses than localhost to read management/metrics. need to also expose it in docker file?
 
 - add a link to the sbom in readme: e.g. https://github.com/abstratium-dev/abnemo/dependency-graph/sbom. although a copy needs adding to the release! what does the law say?
