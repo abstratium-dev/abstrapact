@@ -2,8 +2,6 @@ package dev.abstratium.core.service;
 
 import org.junit.jupiter.api.Test;
 
-import dev.abstratium.core.service.JwtOrgResolver;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
