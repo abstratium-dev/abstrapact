@@ -1,4 +1,4 @@
-package dev.abstratium.abstratium.core.service;
+package dev.abstratium.core.service;
 
 import io.quarkus.hibernate.orm.PersistenceUnitExtension;
 import io.quarkus.hibernate.orm.runtime.tenant.TenantResolver;
