@@ -1,5 +1,6 @@
-package dev.abstratium.abstratium.core.service;
+package dev.abstratium.core;
 
+import dev.abstratium.abstratium.core.service.JwtOrgResolver;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
