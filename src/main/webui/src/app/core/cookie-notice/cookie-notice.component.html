@@ -1,0 +1,17 @@
+@if (visible) {
+  <div class="cookie-notice-overlay">
+    <div class="cookie-notice">
+      <h3>Cookie Notice</h3>
+      <p>
+        This website only uses essential cookies to ensure standard site functionality and security.
+        <b>We do not use tracking, profiling, or marketing cookies</b>; meaning no consent is required.
+        By continuing to browse, you agree to these technical necessities.
+        Learn more in our <a routerLink="/legal">Privacy Policy</a>.
+      </p>
+      <div class="cookie-notice-actions">
+        <button class="btn-primary" (click)="accept()">Got it!</button>
+        <button class="btn-secondary" (click)="decline()">Leave site</button>
+      </div>
+    </div>
+  </div>
+}

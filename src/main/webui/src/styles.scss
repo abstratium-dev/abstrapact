@@ -632,6 +632,20 @@ h2 {
   }
 }
 
+/* Global anchor base - excludes button-styled anchors */
+a:not(.btn-primary):not(.btn-secondary):not(.btn-add):not(.btn-danger):not(.btn-icon):not(.btn-icon-danger):not(.btn-add-small) {
+  color: var(--color-link);
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--color-link-hover);
+  }
+
+  &:visited {
+    color: var(--color-link-light);
+  }
+}
+
 /* ===== DIVIDER ===== */
 .divider {
   display: flex;

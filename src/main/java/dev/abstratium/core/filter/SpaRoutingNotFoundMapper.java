@@ -69,12 +69,16 @@ public class SpaRoutingNotFoundMapper implements ExceptionMapper<NotFoundExcepti
                 .build();
         }
 
-        // For non-API paths, redirect to root to let Angular handle routing
-        LOG.debugf("Non-API path 404, redirecting to root for SPA routing: %s", path);
-        
-        // Return 200 OK with a redirect meta tag to let the browser load the Angular app
-        // The Angular app will then handle the routing based on the URL
-        String html = "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"0;url=/\"></head><body></body></html>";
+        // For non-API paths, redirect to root to let Angular handle routing.
+        // Encode the original path into a query parameter so the Angular app
+        // can restore navigation to the intended route.
+        LOG.debugf("Non-API path 404, redirecting for SPA routing: %s", path);
+
+        String query = uriInfo.getRequestUri().getRawQuery();
+        String normalizedPath = path.startsWith("/") ? path : "/" + path;
+        String fullPath = normalizedPath + (query != null && !query.isEmpty() ? "?" + query : "");
+        String encoded = java.net.URLEncoder.encode(fullPath, java.nio.charset.StandardCharsets.UTF_8);
+        String html = "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"0;url=/?_spa=" + encoded + "\"></head><body></body></html>";
         return Response.ok(html, MediaType.TEXT_HTML).build();
     }
 

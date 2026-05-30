@@ -1,10 +1,12 @@
 
 <!-- Environment Warning Banner -->
 @if (warningMessage$()) {
-  <div class="alert-warning environment-warning">
-    <strong>⚠️ {{ warningMessage$() }}</strong>
+  <div class="alert-warning environment-warning" [style.background-color]="warningBgColor$()">
+    <strong>{{ warningMessage$() }}</strong>
   </div>
 }
+
+<app-maintenance></app-maintenance>
 
 <header></header>
 
@@ -12,6 +14,7 @@
 
 <ux-toast></ux-toast>
 <ux-confirm-dialog></ux-confirm-dialog>
+<cookie-notice></cookie-notice>
 
 <hr>
 <p class="footer">

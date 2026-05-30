@@ -1,6 +1,5 @@
 package dev.abstratium.core.filter;
 
-import dev.abstratium.demo.Roles;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.junit.jupiter.api.Test;
@@ -22,7 +21,7 @@ import static org.hamcrest.CoreMatchers.is;
 class DuplicateEntryExceptionMapperTest {
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testWrappedMySqlDuplicateReturnsConflict() {
         given()
             .when()
@@ -35,7 +34,7 @@ class DuplicateEntryExceptionMapperTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testWrappedH2UniqueReturnsConflict() {
         given()
             .when()
@@ -48,7 +47,7 @@ class DuplicateEntryExceptionMapperTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testWrappedFkViolationReturnsInternalServerError() {
         given()
             .when()
@@ -61,7 +60,7 @@ class DuplicateEntryExceptionMapperTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testPlainExceptionReturnsInternalServerError() {
         given()
             .when()
@@ -75,7 +74,7 @@ class DuplicateEntryExceptionMapperTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testWrappedNullMessageReturnsConflict() {
         given()
             .when()
@@ -85,6 +84,6 @@ class DuplicateEntryExceptionMapperTest {
             .contentType(containsString("problem+json"))
             .body("status", is(409))
             .body("title", is("Duplicate entry detected"))
-            .body("detail", containsString("Duplicate entry"));
+            .body("detail", is("A test with name 'x' already exists. Please choose a different name."));
     }
 }

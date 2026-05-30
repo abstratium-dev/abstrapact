@@ -98,14 +98,68 @@ public class DuplicateEntryExceptionMapper implements ExceptionMapper<Exception>
     }
 
     private String extractDuplicateDetail(ConstraintViolationException exception) {
-        String message = exception.getMessage();
-        if (message != null && !message.isBlank()) {
-            return message;
+        String raw = exception.getMessage();
+        if (raw == null || raw.isBlank()) {
+            Throwable cause = exception.getCause();
+            if (cause != null && cause.getMessage() != null) {
+                raw = cause.getMessage();
+            }
         }
-        Throwable cause = exception.getCause();
-        if (cause != null && cause.getMessage() != null) {
-            return cause.getMessage();
+
+        if (raw != null) {
+            int start = raw.indexOf("Duplicate entry '");
+            if (start != -1) {
+                start += "Duplicate entry ".length();
+                int valueEnd = raw.indexOf('\'', start + 1);
+                if (valueEnd != -1) {
+                    String duplicateValue = raw.substring(start + 1, valueEnd);
+
+                    int keyStart = raw.indexOf("for key '", valueEnd);
+                    if (keyStart != -1) {
+                        keyStart += "for key ".length();
+                        int keyEnd = raw.indexOf('\'', keyStart + 1);
+                        if (keyEnd != -1) {
+                            String fullKey = raw.substring(keyStart + 1, keyEnd);
+                            String tableName = fullKey;
+                            int dot = fullKey.indexOf('.');
+                            if (dot != -1) {
+                                tableName = fullKey.substring(0, dot);
+                            }
+                            String entity = toFriendlyEntityName(tableName);
+                            return "A " + entity + " with name '" + duplicateValue + "' already exists. Please choose a different name.";
+                        }
+                    }
+
+                    return "The value '" + duplicateValue + "' already exists. Please choose a different value.";
+                }
+            }
+
+            if (raw.contains("Unique index or primary key violation")) {
+                String constraint = exception.getConstraintName();
+                String entity = constraint != null ? toFriendlyEntityName(constraint) : "resource";
+                return "A " + entity + " with the provided value already exists. Please choose a different value.";
+            }
         }
-        return "A database constraint was violated.";
+
+        return "A resource with the provided value already exists. Please choose a different value.";
+    }
+
+    private String toFriendlyEntityName(String raw) {
+        if (raw == null) {
+            return "resource";
+        }
+        String name = raw;
+        int dot = name.lastIndexOf('.');
+        if (dot != -1) {
+            name = name.substring(dot + 1);
+        }
+        if (name.toUpperCase().startsWith("UQ_")) {
+            name = name.substring(3);
+        }
+        if (name.toUpperCase().startsWith("T_")) {
+            name = name.substring(2);
+        }
+        name = name.replace('_', ' ').toLowerCase();
+        return name;
     }
 }

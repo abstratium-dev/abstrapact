@@ -1,6 +1,5 @@
 package dev.abstratium.core.filter;
 
-import dev.abstratium.demo.Roles;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.junit.jupiter.api.Test;
@@ -17,11 +16,11 @@ import static org.hamcrest.CoreMatchers.is;
 class IllegalArgumentExceptionMapperTest {
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testIllegalArgumentExceptionReturnsBadRequest() {
         given()
             .when()
-            .get("/api/demo/illegal-argument?value=bad")
+            .get("/api/test/illegal-argument?value=bad")
             .then()
             .statusCode(400)
             .contentType(containsString("problem+json"))
@@ -31,11 +30,11 @@ class IllegalArgumentExceptionMapperTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {Roles.USER})
+    @TestSecurity(user = "testuser", roles = {"user"})
     void testIllegalArgumentExceptionDetailContainsMessage() {
         given()
             .when()
-            .get("/api/demo/illegal-argument?value=foo")
+            .get("/api/test/illegal-argument?value=foo")
             .then()
             .statusCode(400)
             .body("detail", containsString("foo"));
