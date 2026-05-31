@@ -6,6 +6,7 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 - upgrade all and check security issues in github
 - update docs to describe the changes
+- audit that all JPQL and SQL is multi-tenant conform
 
 ## Today
 
