@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Integration tests verifying that JwtOrgResolver.resolveTenantId() correctly
@@ -34,59 +34,59 @@ class JwtOrgResolverIntegrationTest {
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    @TestSecurity(user = "testuser", roles = {"jwt-test-user"})
     void resolveTenantId_withOrgIdInBearer_usesOrgId() {
         String token = buildBearerToken(
-                "{\"sub\":\"testuser\",\"orgId\":\"" + ORG_ID + "\",\"groups\":[\"abstratium-abstrapact_user\"]}");
+                "{\"sub\":\"testuser\",\"orgId\":\"" + ORG_ID + "\",\"groups\":[\"jwt-test-user\"]}");
 
         given()
             .header("Authorization", "Bearer " + token)
             .when()
-            .get("/api/v1/product-definitions")
+            .get("/api/test/jwt-org")
             .then()
             .statusCode(200)
-            .body(notNullValue());
+            .body(is("\"" + ORG_ID + "\""));
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    @TestSecurity(user = "testuser", roles = {"jwt-test-user"})
     void resolveTenantId_withNoOrgIdInBearer_usesDefault() {
         String token = buildBearerToken(
-                "{\"sub\":\"testuser\",\"groups\":[\"abstratium-abstrapact_user\"]}");
+                "{\"sub\":\"testuser\",\"groups\":[\"jwt-test-user\"]}");
 
         given()
             .header("Authorization", "Bearer " + token)
             .when()
-            .get("/api/v1/product-definitions")
+            .get("/api/test/jwt-org")
             .then()
             .statusCode(200)
-            .body(notNullValue());
+            .body(is("\"" + JwtOrgResolver.DEFAULT_ORG_ID + "\""));
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    @TestSecurity(user = "testuser", roles = {"jwt-test-user"})
     void resolveTenantId_withMalformedBearer_usesDefault() {
         given()
             .header("Authorization", "Bearer not.a.valid.jwt.with.too.many.parts.here")
             .when()
-            .get("/api/v1/product-definitions")
+            .get("/api/test/jwt-org")
             .then()
             .statusCode(200)
-            .body(notNullValue());
+            .body(is("\"" + JwtOrgResolver.DEFAULT_ORG_ID + "\""));
     }
 
     @Test
-    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    @TestSecurity(user = "testuser", roles = {"jwt-test-user"})
     void resolveTenantId_withBearerHavingBlankOrgId_usesDefault() {
         String token = buildBearerToken(
-                "{\"sub\":\"testuser\",\"orgId\":\"\",\"groups\":[\"abstratium-abstrapact_user\"]}");
+                "{\"sub\":\"testuser\",\"orgId\":\"\",\"groups\":[\"jwt-test-user\"]}");
 
         given()
             .header("Authorization", "Bearer " + token)
             .when()
-            .get("/api/v1/product-definitions")
+            .get("/api/test/jwt-org")
             .then()
             .statusCode(200)
-            .body(notNullValue());
+            .body(is("\"" + JwtOrgResolver.DEFAULT_ORG_ID + "\""));
     }
 }

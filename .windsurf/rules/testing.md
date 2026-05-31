@@ -5,8 +5,8 @@ globs: src/test/java/**/.*,src/main/webui/**/*.spec.ts
 ---
 
 - Run all backend java tests using `./scripts/run-java-tests.py` which gives you a summary of the errors so that you do not have to use tail! do not use `mvn test` or `mvn verify`.
-  - To run a single test class: `./scripts/run-java-test.py MyTestClass`
-  - To run a single test method: `./scripts/run-java-test.py MyTestClass#testMethod`
+  - To run a single test class: `./scripts/run-java-tests.py MyTestClass`
+  - To run a single test method: `./scripts/run-java-tests.py MyTestClass#testMethod`
 - Run angular tests with `./scripts/run-ng-tests.py` which gives a summary of the errors so that you do not have to use tail!
 - Do NOT use `ng test` as it hangs.
 - Fix tests which fail due to transactional errors last - those can be side effects of other tests failing. Fix the other failing tests first.
@@ -21,7 +21,7 @@ Do not write senseless tests just to increase the coverage. Instead, make sure t
 
 It is EXTREMELY IMPORTANT that this project be tested using unit and integration tests.
 
-Java Coverage can be measured using `./scripts/run-java-test.py`. After it completes, run `./scripts/show-java-coverage.py` to display an LLM-friendly summary of the backend coverage results. It reads the JaCoCo XML from `target/jacoco-report/jacoco.xml`, shows overall and per-package coverage, highlights classes below the 80% statement / 70% branch thresholds, and includes instructions for drilling into specific packages or classes with grep if more detail is needed.
+Java Coverage can be measured using `./scripts/run-java-tests.py`. After it completes, run `./scripts/show-java-coverage.py` to display an LLM-friendly summary of the backend coverage results. It reads the JaCoCo XML from `target/jacoco-report/jacoco.xml`, shows overall and per-package coverage, highlights classes below the 80% statement / 70% branch thresholds, and includes instructions for drilling into specific packages or classes with grep if more detail is needed.
 
 Front end coverage results are part of the output which is written when `./scripts/run-ng-tests.py` executes the Angular tests.
 
