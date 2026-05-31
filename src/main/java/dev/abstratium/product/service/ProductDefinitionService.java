@@ -1,20 +1,21 @@
 package dev.abstratium.product.service;
 
-import dev.abstratium.product.entity.ProductDefinition;
+import dev.abstratium.product.boundary.dto.*;
+import dev.abstratium.product.entity.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @ApplicationScoped
 public class ProductDefinitionService {
 
     @Inject
     EntityManager em;
+
+    // ==================== Product Definition ====================
 
     @Transactional
     public ProductDefinition createProductDefinition(ProductDefinition definition) {
@@ -74,5 +75,294 @@ public class ProductDefinitionService {
             .setParameter("productCode", productCode)
             .getSingleResult();
         return count > 0;
+    }
+
+    // ==================== Complete Product with Parts ====================
+
+    @Transactional
+    public ProductDefinition createCompleteProduct(ProductDefinitionRequest request) {
+        ProductDefinition product = new ProductDefinition();
+        product.setId(UUID.randomUUID().toString());
+        product.setProductCode(request.getProductCode());
+        product.setDescription(request.getDescription());
+        product.setBillingModel(request.getBillingModel());
+        product.setProductValidFrom(request.getProductValidFrom());
+        product.setProductValidUntil(request.getProductValidUntil());
+        em.persist(product);
+
+        if (request.getParts() != null) {
+            for (PartRequest partRequest : request.getParts()) {
+                createPartRecursive(product, partRequest, null);
+            }
+        }
+
+        return product;
+    }
+
+    @Transactional
+    public ProductDefinition updateCompleteProduct(String id, ProductDefinitionRequest request) {
+        ProductDefinition product = em.find(ProductDefinition.class, id);
+        if (product == null) {
+            throw new IllegalArgumentException("Product not found: " + id);
+        }
+
+        product.setProductCode(request.getProductCode());
+        product.setDescription(request.getDescription());
+        product.setBillingModel(request.getBillingModel());
+        product.setProductValidFrom(request.getProductValidFrom());
+        product.setProductValidUntil(request.getProductValidUntil());
+        product = em.merge(product);
+
+        // Delete existing parts and recreate
+        deletePartsForProduct(product);
+
+        if (request.getParts() != null) {
+            for (PartRequest partRequest : request.getParts()) {
+                createPartRecursive(product, partRequest, null);
+            }
+        }
+
+        return product;
+    }
+
+    @Transactional
+    public void deleteCompleteProduct(String id) {
+        ProductDefinition product = em.find(ProductDefinition.class, id);
+        if (product != null) {
+            deletePartsForProduct(product);
+            em.remove(product);
+            em.flush();
+        }
+    }
+
+    public Optional<ProductDefinition> findCompleteById(String id) {
+        return Optional.ofNullable(em.find(ProductDefinition.class, id));
+    }
+
+    public List<PartDefinition> findPartsByProductId(String productId) {
+        return em.createQuery(
+                "SELECT p FROM PartDefinition p WHERE p.productDefinition.id = :productId AND p.parentPart IS NULL ORDER BY p.displayOrder",
+                PartDefinition.class)
+            .setParameter("productId", productId)
+            .getResultList();
+    }
+
+    @Transactional
+    public CompleteProductResponse findCompleteProduct(String productId) {
+        ProductDefinition product = em.find(ProductDefinition.class, productId);
+        if (product == null) {
+            return null;
+        }
+
+        CompleteProductResponse response = new CompleteProductResponse();
+        response.setId(product.getId());
+        response.setProductCode(product.getProductCode());
+        response.setDescription(product.getDescription());
+        response.setBillingModel(product.getBillingModel());
+        response.setProductValidFrom(product.getProductValidFrom());
+        response.setProductValidUntil(product.getProductValidUntil());
+
+        List<PartDefinition> rootParts = findPartsByProductId(productId);
+        response.setParts(rootParts.stream()
+            .map(this::mapPartToResponse)
+            .toList());
+
+        return response;
+    }
+
+    private PartResponse mapPartToResponse(PartDefinition part) {
+        PartResponse response = new PartResponse();
+        response.setId(part.getId());
+        response.setPartCode(part.getPartCode());
+        response.setDescription(part.getDescription());
+        response.setUnitPrice(part.getUnitPrice());
+        response.setDisplayOrder(part.getDisplayOrder());
+
+        // Force initialization of lazy collections within transaction
+        response.setAttributes(part.getAttributes().stream()
+            .map(this::mapAttributeToResponse)
+            .toList());
+
+        response.setChildParts(part.getChildParts().stream()
+            .map(this::mapPartToResponse)
+            .toList());
+
+        return response;
+    }
+
+    private PartAttributeResponse mapAttributeToResponse(PartAttributeDefinition attr) {
+        PartAttributeResponse response = new PartAttributeResponse();
+        response.setId(attr.getId());
+        response.setAttributeName(attr.getAttributeName());
+        response.setDataType(attr.getDataType());
+        response.setIsRequired(attr.getIsRequired());
+        response.setDefaultValue(attr.getDefaultValue());
+
+        response.setAllowedValues(attr.getAllowedValues().stream()
+            .map(this::mapAllowedValueToResponse)
+            .toList());
+
+        return response;
+    }
+
+    private AllowedValueResponse mapAllowedValueToResponse(PartAttributeAllowedValue val) {
+        AllowedValueResponse response = new AllowedValueResponse();
+        response.setId(val.getId());
+        response.setAllowedValue(val.getAllowedValue());
+        return response;
+    }
+
+    // ==================== Part Management ====================
+
+    private PartDefinition createPartRecursive(ProductDefinition product, PartRequest request, PartDefinition parentPart) {
+        PartDefinition part = new PartDefinition();
+        part.setId(request.getId() != null ? request.getId() : UUID.randomUUID().toString());
+        part.setPartCode(request.getPartCode());
+        part.setDescription(request.getDescription());
+        part.setUnitPrice(request.getUnitPrice() != null ? request.getUnitPrice() : java.math.BigDecimal.ZERO);
+        part.setDisplayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0);
+        part.setProductDefinition(product);
+        part.setParentPart(parentPart);
+        em.persist(part);
+
+        // Create attributes
+        if (request.getAttributes() != null) {
+            for (PartAttributeRequest attrRequest : request.getAttributes()) {
+                createAttribute(part, attrRequest);
+            }
+        }
+
+        // Create child parts recursively
+        if (request.getChildParts() != null) {
+            for (PartRequest childRequest : request.getChildParts()) {
+                createPartRecursive(product, childRequest, part);
+            }
+        }
+
+        return part;
+    }
+
+    private PartAttributeDefinition createAttribute(PartDefinition part, PartAttributeRequest request) {
+        PartAttributeDefinition attr = new PartAttributeDefinition();
+        attr.setId(request.getId() != null ? request.getId() : UUID.randomUUID().toString());
+        attr.setAttributeName(request.getAttributeName());
+        attr.setDataType(request.getDataType());
+        attr.setIsRequired(request.getIsRequired() != null ? request.getIsRequired() : false);
+        attr.setDefaultValue(request.getDefaultValue());
+        attr.setPartDefinition(part);
+        em.persist(attr);
+
+        // Create allowed values
+        if (request.getAllowedValues() != null) {
+            for (PartAttributeAllowedValueRequest valRequest : request.getAllowedValues()) {
+                createAllowedValue(attr, valRequest);
+            }
+        }
+
+        return attr;
+    }
+
+    private PartAttributeAllowedValue createAllowedValue(PartAttributeDefinition attribute, PartAttributeAllowedValueRequest request) {
+        PartAttributeAllowedValue value = new PartAttributeAllowedValue();
+        value.setId(request.getId() != null ? request.getId() : UUID.randomUUID().toString());
+        value.setAllowedValue(request.getAllowedValue());
+        value.setAttributeDefinition(attribute);
+        em.persist(value);
+        return value;
+    }
+
+    private void deletePartsForProduct(ProductDefinition product) {
+        // First delete child parts (those with a parent)
+        List<PartDefinition> childParts = em.createQuery(
+                "SELECT p FROM PartDefinition p WHERE p.productDefinition.id = :productId AND p.parentPart IS NOT NULL",
+                PartDefinition.class)
+            .setParameter("productId", product.getId())
+            .getResultList();
+
+        for (PartDefinition part : childParts) {
+            em.remove(part);
+        }
+
+        // Then delete parent parts (those without a parent)
+        List<PartDefinition> parentParts = em.createQuery(
+                "SELECT p FROM PartDefinition p WHERE p.productDefinition.id = :productId AND p.parentPart IS NULL",
+                PartDefinition.class)
+            .setParameter("productId", product.getId())
+            .getResultList();
+
+        for (PartDefinition part : parentParts) {
+            em.remove(part);
+        }
+
+        em.flush();
+    }
+
+    // ==================== Individual Entity Operations ====================
+
+    public Optional<PartDefinition> findPartById(String id) {
+        return em.createQuery(
+                "SELECT p FROM PartDefinition p WHERE p.id = :id",
+                PartDefinition.class)
+            .setParameter("id", id)
+            .getResultStream()
+            .findFirst();
+    }
+
+    @Transactional
+    public PartDefinition createPart(PartDefinition part) {
+        if (part.getId() == null) {
+            part.setId(UUID.randomUUID().toString());
+        }
+        em.persist(part);
+        return part;
+    }
+
+    @Transactional
+    public PartDefinition updatePart(PartDefinition part) {
+        return em.merge(part);
+    }
+
+    @Transactional
+    public void deletePart(String id) {
+        PartDefinition part = em.find(PartDefinition.class, id);
+        if (part != null) {
+            em.remove(part);
+            em.flush();
+        }
+    }
+
+    public Optional<PartAttributeDefinition> findAttributeById(String id) {
+        return Optional.ofNullable(em.find(PartAttributeDefinition.class, id));
+    }
+
+    @Transactional
+    public PartAttributeDefinition createAttribute(PartAttributeDefinition attribute) {
+        if (attribute.getId() == null) {
+            attribute.setId(UUID.randomUUID().toString());
+        }
+        em.persist(attribute);
+        return attribute;
+    }
+
+    @Transactional
+    public PartAttributeDefinition updateAttribute(PartAttributeDefinition attribute) {
+        return em.merge(attribute);
+    }
+
+    @Transactional
+    public void deleteAttribute(String id) {
+        PartAttributeDefinition attribute = em.find(PartAttributeDefinition.class, id);
+        if (attribute != null) {
+            em.remove(attribute);
+            em.flush();
+        }
+    }
+
+    public List<PartAttributeDefinition> findAttributesByPartId(String partId) {
+        return em.createQuery(
+                "SELECT a FROM PartAttributeDefinition a WHERE a.partDefinition.id = :partId",
+                PartAttributeDefinition.class)
+            .setParameter("partId", partId)
+            .getResultList();
     }
 }

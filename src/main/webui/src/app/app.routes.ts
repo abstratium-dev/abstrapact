@@ -7,6 +7,7 @@ import { LegalComponent } from './core/legal/legal.component';
 import { ProductDefinitionsListComponent } from './product-definitions/product-definitions-list/product-definitions-list.component';
 import { ProductDefinitionFormComponent } from './product-definitions/product-definition-form/product-definition-form.component';
 import { ProductDefinitionDetailComponent } from './product-definitions/product-definition-detail/product-definition-detail.component';
+import { ProductSimulatorComponent } from './product-definitions/product-simulator/product-simulator.component';
 
 export const routes: Routes = [
   { path: 'legal',      component: LegalComponent },
@@ -20,6 +21,7 @@ export const routes: Routes = [
   { path: 'product-definitions/new',          component: ProductDefinitionFormComponent,  canActivate: [authGuard] },
   { path: 'product-definitions/:id',          component: ProductDefinitionDetailComponent, canActivate: [authGuard] },
   { path: 'product-definitions/:id/edit',     component: ProductDefinitionFormComponent,  canActivate: [authGuard] },
+  { path: 'product-definitions/:id/simulate', component: ProductSimulatorComponent, canActivate: [authGuard] },
 
   { path: '**',         component: NotFoundComponent }
 ];

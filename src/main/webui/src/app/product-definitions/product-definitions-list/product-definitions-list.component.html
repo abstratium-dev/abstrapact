@@ -42,6 +42,12 @@
           </div>
         </div>
         <div class="tile-actions">
+          <button class="btn-icon" (click)="onViewDetail(definition, $event)" title="View product details">
+            👁️
+          </button>
+          <button class="btn-icon" (click)="onSimulate(definition, $event)" title="Simulate product instance">
+            🔬
+          </button>
           <button class="btn-icon" (click)="onEdit(definition, $event)" title="Edit product definition">
             ✏️
           </button>

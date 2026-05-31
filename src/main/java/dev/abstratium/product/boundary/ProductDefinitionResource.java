@@ -1,6 +1,10 @@
 package dev.abstratium.product.boundary;
 
 import dev.abstratium.core.service.JwtOrgResolver;
+import dev.abstratium.product.boundary.dto.CompleteProductResponse;
+import dev.abstratium.product.boundary.dto.ProductDefinitionRequest;
+import dev.abstratium.product.entity.PartAttributeDefinition;
+import dev.abstratium.product.entity.PartDefinition;
 import dev.abstratium.product.entity.ProductDefinition;
 import dev.abstratium.product.service.ProductDefinitionService;
 import jakarta.annotation.security.RolesAllowed;
@@ -90,6 +94,192 @@ public class ProductDefinitionResource {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
         service.deleteProductDefinition(id);
+        return Response.noContent().build();
+    }
+
+    // ==================== Complete Product with Parts ====================
+
+    @POST
+    @Path("/complete")
+    @Operation(summary = "Create a complete product definition with parts, attributes, and allowed values")
+    public Response createComplete(ProductDefinitionRequest request) {
+        if (request.getProductCode() == null || request.getProductCode().isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity("Product code is required").build();
+        }
+        if (service.existsByProductCode(request.getProductCode())) {
+            return Response.status(Response.Status.CONFLICT)
+                .entity("Product code already exists").build();
+        }
+        ProductDefinition created = service.createCompleteProduct(request);
+        return Response.status(Response.Status.CREATED).entity(created).build();
+    }
+
+    @PUT
+    @Path("/{id}/complete")
+    @Operation(summary = "Update a complete product definition with parts, attributes, and allowed values")
+    public Response updateComplete(@PathParam("id") String id, ProductDefinitionRequest request) {
+        Optional<ProductDefinition> existing = service.findById(id);
+        if (existing.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        try {
+            ProductDefinition updated = service.updateCompleteProduct(id, request);
+            return Response.ok(updated).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
+        }
+    }
+
+    @DELETE
+    @Path("/{id}/complete")
+    @Operation(summary = "Delete a complete product definition with all its parts")
+    public Response deleteComplete(@PathParam("id") String id) {
+        Optional<ProductDefinition> existing = service.findById(id);
+        if (existing.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        service.deleteCompleteProduct(id);
+        return Response.noContent().build();
+    }
+
+    @GET
+    @Path("/{id}/complete")
+    @Operation(summary = "Get the complete product definition with full part tree and attributes")
+    public Response getComplete(@PathParam("id") String id) {
+        Optional<ProductDefinition> existing = service.findById(id);
+        if (existing.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        CompleteProductResponse response = service.findCompleteProduct(id);
+        return Response.ok(response).build();
+    }
+
+    @GET
+    @Path("/{id}/parts")
+    @Operation(summary = "Get all parts for a product definition")
+    public Response getPartsByProductId(@PathParam("id") String id) {
+        Optional<ProductDefinition> product = service.findById(id);
+        if (product.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        List<PartDefinition> parts = service.findPartsByProductId(id);
+        return Response.ok(parts).build();
+    }
+
+    // ==================== Part Management ====================
+
+    @GET
+    @Path("/parts/{partId}")
+    @Operation(summary = "Get a part by ID")
+    public Response getPartById(@PathParam("partId") String partId) {
+        Optional<PartDefinition> part = service.findPartById(partId);
+        if (part.isPresent()) {
+            return Response.ok(part.get()).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
+    }
+
+    @POST
+    @Path("/{id}/parts")
+    @Operation(summary = "Add a part to a product definition")
+    public Response addPart(@PathParam("id") String id, PartDefinition part) {
+        Optional<ProductDefinition> product = service.findById(id);
+        if (product.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        part.setProductDefinition(product.get());
+        PartDefinition created = service.createPart(part);
+        return Response.status(Response.Status.CREATED).entity(created).build();
+    }
+
+    @PUT
+    @Path("/parts/{partId}")
+    @Operation(summary = "Update a part")
+    public Response updatePart(@PathParam("partId") String partId, PartDefinition part) {
+        Optional<PartDefinition> existing = service.findPartById(partId);
+        if (existing.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        part.setId(partId);
+        // Preserve the product definition reference from the existing part
+        part.setProductDefinition(existing.get().getProductDefinition());
+        PartDefinition updated = service.updatePart(part);
+        return Response.ok(updated).build();
+    }
+
+    @DELETE
+    @Path("/parts/{partId}")
+    @Operation(summary = "Delete a part")
+    public Response deletePart(@PathParam("partId") String partId) {
+        Optional<PartDefinition> existing = service.findPartById(partId);
+        if (existing.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        service.deletePart(partId);
+        return Response.noContent().build();
+    }
+
+    // ==================== Part Attribute Management ====================
+
+    @GET
+    @Path("/parts/{partId}/attributes")
+    @Operation(summary = "Get all attributes for a part")
+    public Response getAttributesByPartId(@PathParam("partId") String partId) {
+        Optional<PartDefinition> part = service.findPartById(partId);
+        if (part.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        List<PartAttributeDefinition> attributes = service.findAttributesByPartId(partId);
+        return Response.ok(attributes).build();
+    }
+
+    @GET
+    @Path("/attributes/{attributeId}")
+    @Operation(summary = "Get an attribute by ID")
+    public Response getAttributeById(@PathParam("attributeId") String attributeId) {
+        Optional<PartAttributeDefinition> attribute = service.findAttributeById(attributeId);
+        if (attribute.isPresent()) {
+            return Response.ok(attribute.get()).build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
+    }
+
+    @POST
+    @Path("/parts/{partId}/attributes")
+    @Operation(summary = "Add an attribute to a part")
+    public Response addAttribute(@PathParam("partId") String partId, PartAttributeDefinition attribute) {
+        Optional<PartDefinition> part = service.findPartById(partId);
+        if (part.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        attribute.setPartDefinition(part.get());
+        PartAttributeDefinition created = service.createAttribute(attribute);
+        return Response.status(Response.Status.CREATED).entity(created).build();
+    }
+
+    @PUT
+    @Path("/attributes/{attributeId}")
+    @Operation(summary = "Update an attribute")
+    public Response updateAttribute(@PathParam("attributeId") String attributeId, PartAttributeDefinition attribute) {
+        Optional<PartAttributeDefinition> existing = service.findAttributeById(attributeId);
+        if (existing.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        attribute.setId(attributeId);
+        PartAttributeDefinition updated = service.updateAttribute(attribute);
+        return Response.ok(updated).build();
+    }
+
+    @DELETE
+    @Path("/attributes/{attributeId}")
+    @Operation(summary = "Delete an attribute")
+    public Response deleteAttribute(@PathParam("attributeId") String attributeId) {
+        Optional<PartAttributeDefinition> existing = service.findAttributeById(attributeId);
+        if (existing.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        service.deleteAttribute(attributeId);
         return Response.noContent().build();
     }
 

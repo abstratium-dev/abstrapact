@@ -1,1 +1,31 @@
 /* Using global styles from styles.scss */
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.structure-section {
+  margin-top: 1rem;
+}
+
+.structure-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.structure-column,
+.attributes-column {
+  min-width: 0;
+}
+
+.form-panel {
+  margin-top: 1.5rem;
+  max-width: 600px;
+}

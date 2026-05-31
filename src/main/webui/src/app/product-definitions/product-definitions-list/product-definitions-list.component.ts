@@ -39,6 +39,16 @@ export class ProductDefinitionsListComponent implements OnInit {
     this.router.navigate(['/product-definitions', definition.id]);
   }
 
+  onViewDetail(definition: ProductDefinition, event: Event): void {
+    event.stopPropagation();
+    this.router.navigate(['/product-definitions', definition.id]);
+  }
+
+  onSimulate(definition: ProductDefinition, event: Event): void {
+    event.stopPropagation();
+    this.router.navigate(['/product-definitions', definition.id, 'simulate']);
+  }
+
   onEdit(definition: ProductDefinition, event: Event): void {
     event.stopPropagation();
     this.router.navigate(['/product-definitions', definition.id, 'edit']);

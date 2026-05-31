@@ -20,6 +20,8 @@
         <a id="legal-link" routerLink="/legal" routerLinkActive="inactive-link">legal</a>
         @if(isSignedIn) {
             &nbsp;|&nbsp;
+            <a id="products-link" routerLink="/product-definitions" routerLinkActive="inactive-link">product definitions</a>
+            &nbsp;|&nbsp;
             <span class="signout-wrapper">
                 <svg class="session-clock" viewBox="0 0 18 18" [attr.aria-label]="sessionMinutesRemaining + ' minutes until sign-out'">
                     <title>{{ sessionMinutesRemaining }} min until sign-out</title>

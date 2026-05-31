@@ -1,0 +1,91 @@
+<div class="part-attributes-list" data-testid="part-attributes-list">
+  <div class="attributes-header">
+    <h4>
+      Attributes
+      <span *ngIf="part" class="part-name">for {{ part.partCode }}</span>
+    </h4>
+    <div class="header-actions" *ngIf="!readOnly && part">
+      <button class="btn-add" (click)="onAddAttribute()" title="Add attribute">
+        + Add Attribute
+      </button>
+      <button class="btn-secondary" (click)="loadAttributes()" title="Refresh attributes">
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="!part" class="info-message">
+    <p>Select a part to view its attributes.</p>
+  </div>
+
+  <div *ngIf="part && loading()" class="loading">
+    <p>Loading attributes...</p>
+  </div>
+
+  <div *ngIf="part && error()" class="error-box">
+    <p>{{ error() }}</p>
+    <button (click)="loadAttributes()">Retry</button>
+  </div>
+
+  <div *ngIf="part && !loading() && !error() && attributes().length === 0" class="info-message">
+    <p>No attributes defined for this part.</p>
+    <p *ngIf="!readOnly">Click "Add Attribute" to create the first attribute.</p>
+  </div>
+
+  <div *ngIf="part && !loading() && !error() && attributes().length > 0" class="attributes-list">
+    <div
+      *ngFor="let attribute of attributes()"
+      class="attribute-item"
+      [class.selected]="isSelected(attribute.id)"
+      (click)="selectAttribute(attribute)"
+      [attr.data-testid]="'attribute-item-' + attribute.id"
+    >
+      <div class="attribute-content">
+        <div class="attribute-header">
+          <span class="attribute-name">{{ attribute.attributeName }}</span>
+          <span
+            class="badge"
+            [class.badge-primary]="attribute.dataType === 'STRING'"
+            [class.badge-secondary]="attribute.dataType === 'INTEGER'"
+            [class.badge-info]="attribute.dataType === 'DECIMAL'"
+            [class.badge-warning]="attribute.dataType === 'BOOLEAN'"
+            [class.badge-success]="attribute.dataType === 'DATE'"
+          >
+            {{ getDataTypeLabel(attribute.dataType) }}
+          </span>
+          <span *ngIf="attribute.isRequired" class="badge badge-danger">Required</span>
+        </div>
+
+        <div class="attribute-details">
+          <div class="detail-row" *ngIf="attribute.defaultValue">
+            <span class="label">Default:</span>
+            <span class="value">{{ attribute.defaultValue }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Allowed Values:</span>
+            <span class="value">{{ getAllowedValuesText(attribute) }}</span>
+          </div>
+        </div>
+
+        <div class="attribute-actions" *ngIf="!readOnly" (click)="$event.stopPropagation()">
+          <button
+            class="btn-icon"
+            (click)="onEditAttribute(attribute, $event)"
+            title="Edit attribute"
+            [attr.data-testid]="'edit-attr-btn-' + attribute.id"
+          >
+            ✏️
+          </button>
+          <button
+            class="btn-icon btn-icon-danger"
+            (click)="onDeleteAttribute(attribute, $event)"
+            title="Delete attribute"
+            [attr.data-testid]="'delete-attr-btn-' + attribute.id"
+          >
+            🗑️
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

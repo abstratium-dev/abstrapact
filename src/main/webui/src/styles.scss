@@ -1065,7 +1065,8 @@ button {
   padding: 1.5rem;
   box-shadow: 0 2px 4px var(--shadow-sm);
   transition: all 0.3s ease;
-  
+  cursor: pointer;
+
   &:hover {
     box-shadow: 0 4px 12px var(--shadow-md);
     transform: translateY(-2px);

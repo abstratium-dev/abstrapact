@@ -1,14 +1,18 @@
 import { Component, inject, OnInit, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ProductDefinition, ModelService } from '../../model.service';
+import { ProductDefinition, PartDefinition, PartAttributeDefinition, ModelService } from '../../model.service';
 import { Controller } from '../../controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
+import { ProductStructureComponent } from '../product-structure/product-structure.component';
+import { PartAttributesListComponent } from '../part-attributes-list/part-attributes-list.component';
+import { PartFormComponent } from '../part-form/part-form.component';
+import { AttributeFormComponent } from '../attribute-form/attribute-form.component';
 
 @Component({
   selector: 'app-product-definition-detail',
-  imports: [CommonModule],
+  imports: [CommonModule, ProductStructureComponent, PartAttributesListComponent, PartFormComponent, AttributeFormComponent],
   templateUrl: './product-definition-detail.component.html',
   styleUrl: './product-definition-detail.component.scss'
 })
@@ -21,10 +25,17 @@ export class ProductDefinitionDetailComponent implements OnInit {
   private confirmService = inject(ConfirmDialogService);
 
   selectedProduct: Signal<ProductDefinition | null> = this.modelService.selectedProductDefinition$;
+  selectedPart: Signal<PartDefinition | null> = this.modelService.selectedPart$;
 
   loading = true;
   error: string | null = null;
   productId: string | null = null;
+
+  // Form visibility state
+  showPartForm = false;
+  showAttributeForm = false;
+  editingPart: PartDefinition | null = null;
+  editingAttribute: PartAttributeDefinition | null = null;
 
   ngOnInit(): void {
     this.productId = this.route.snapshot.paramMap.get('id');
@@ -56,6 +67,12 @@ export class ProductDefinitionDetailComponent implements OnInit {
   onEdit(): void {
     if (this.productId) {
       this.router.navigate(['/product-definitions', this.productId, 'edit']);
+    }
+  }
+
+  onSimulate(): void {
+    if (this.productId) {
+      this.router.navigate(['/product-definitions', this.productId, 'simulate']);
     }
   }
 
@@ -91,5 +108,60 @@ export class ProductDefinitionDetailComponent implements OnInit {
   formatDate(date: string | null): string {
     if (!date) return 'Not set';
     return new Date(date).toLocaleDateString();
+  }
+
+  // ==================== Part Form Handling ====================
+
+  onAddPart(): void {
+    this.editingPart = null;
+    this.showPartForm = true;
+    this.showAttributeForm = false;
+  }
+
+  onEditPart(part: PartDefinition): void {
+    this.editingPart = part;
+    this.showPartForm = true;
+    this.showAttributeForm = false;
+  }
+
+  onPartSaved(): void {
+    this.showPartForm = false;
+    this.editingPart = null;
+    if (this.productId) {
+      this.controller.loadProductParts(this.productId);
+    }
+  }
+
+  onPartCancelled(): void {
+    this.showPartForm = false;
+    this.editingPart = null;
+  }
+
+  // ==================== Attribute Form Handling ====================
+
+  onAddAttribute(): void {
+    this.editingAttribute = null;
+    this.showAttributeForm = true;
+    this.showPartForm = false;
+  }
+
+  onEditAttribute(attribute: PartAttributeDefinition): void {
+    this.editingAttribute = attribute;
+    this.showAttributeForm = true;
+    this.showPartForm = false;
+  }
+
+  onAttributeSaved(): void {
+    this.showAttributeForm = false;
+    this.editingAttribute = null;
+    const part = this.selectedPart();
+    if (part) {
+      this.controller.loadPartAttributes(part.id);
+    }
+  }
+
+  onAttributeCancelled(): void {
+    this.showAttributeForm = false;
+    this.editingAttribute = null;
   }
 }

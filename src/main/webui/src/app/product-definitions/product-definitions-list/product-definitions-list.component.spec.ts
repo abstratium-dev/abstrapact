@@ -121,6 +121,15 @@ describe('ProductDefinitionsListComponent', () => {
       expect(event.stopPropagation).toHaveBeenCalled();
       expect(router.navigate).toHaveBeenCalledWith(['/product-definitions', product.id, 'edit']);
     });
+
+    it('should navigate to detail page via view button', () => {
+      const product = mockProductDefinitions[0];
+      const event = new MouseEvent('click');
+      spyOn(event, 'stopPropagation');
+      component.onViewDetail(product, event);
+      expect(event.stopPropagation).toHaveBeenCalled();
+      expect(router.navigate).toHaveBeenCalledWith(['/product-definitions', product.id]);
+    });
   });
 
   describe('Delete', () => {

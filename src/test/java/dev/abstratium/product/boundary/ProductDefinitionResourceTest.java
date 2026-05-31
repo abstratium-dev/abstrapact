@@ -1,6 +1,9 @@
 package dev.abstratium.product.boundary;
 
 import dev.abstratium.core.service.JwtOrgResolver;
+import dev.abstratium.product.boundary.dto.*;
+import dev.abstratium.product.entity.PartAttributeDefinition;
+import dev.abstratium.product.entity.PartDefinition;
 import dev.abstratium.product.entity.ProductDefinition;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -9,7 +12,10 @@ import io.restassured.config.EncoderConfig;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.*;
@@ -431,5 +437,565 @@ class ProductDefinitionResourceTest {
             .get("/api/v1/product-definitions")
             .then()
             .statusCode(403);
+    }
+
+    // ==================== Complete Product with Parts Tests ====================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldCreateCompleteProductWithParts() {
+        String productCode = "COMPLETE-REST-" + System.currentTimeMillis();
+
+        ProductDefinitionRequest request = new ProductDefinitionRequest();
+        request.setProductCode(productCode);
+        request.setDescription("Complete Product via REST");
+        request.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        request.setProductValidFrom(LocalDate.now());
+        request.setProductValidUntil(LocalDate.now().plusYears(1));
+
+        // Add a part with attributes
+        List<PartRequest> parts = new ArrayList<>();
+        PartRequest part = new PartRequest();
+        part.setPartCode("REST-PART-001");
+        part.setDescription("REST Part");
+        part.setUnitPrice(new BigDecimal("99.99"));
+        part.setDisplayOrder(1);
+
+        List<PartAttributeRequest> attrs = new ArrayList<>();
+        PartAttributeRequest attr = new PartAttributeRequest();
+        attr.setAttributeName("COLOR");
+        attr.setDataType(PartAttributeDefinition.DataType.STRING);
+        attr.setIsRequired(true);
+
+        List<PartAttributeAllowedValueRequest> values = new ArrayList<>();
+        PartAttributeAllowedValueRequest val1 = new PartAttributeAllowedValueRequest();
+        val1.setAllowedValue("RED");
+        values.add(val1);
+        attr.setAllowedValues(values);
+        attrs.add(attr);
+        part.setAttributes(attrs);
+        parts.add(part);
+        request.setParts(parts);
+
+        String id = given()
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .post("/api/v1/product-definitions/complete")
+            .then()
+            .statusCode(201)
+            .body("productCode", equalTo(productCode))
+            .body("description", equalTo("Complete Product via REST"))
+            .body("id", notNullValue())
+            .extract()
+            .path("id");
+
+        // Verify parts were created
+        given()
+            .when()
+            .get("/api/v1/product-definitions/" + id + "/parts")
+            .then()
+            .statusCode(200)
+            .body("$", hasSize(1))
+            .body("[0].partCode", equalTo("REST-PART-001"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldUpdateCompleteProductWithParts() {
+        // First create a product
+        String productCode = "UPDATE-COMPLETE-REST-" + System.currentTimeMillis();
+
+        ProductDefinitionRequest createRequest = new ProductDefinitionRequest();
+        createRequest.setProductCode(productCode);
+        createRequest.setDescription("Original");
+        createRequest.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        createRequest.setProductValidFrom(LocalDate.now());
+
+        List<PartRequest> parts = new ArrayList<>();
+        PartRequest part = new PartRequest();
+        part.setPartCode("ORIGINAL-PART");
+        part.setDescription("Original");
+        part.setUnitPrice(new BigDecimal("50.00"));
+        part.setDisplayOrder(1);
+        parts.add(part);
+        createRequest.setParts(parts);
+
+        String id = given()
+            .contentType(ContentType.JSON)
+            .body(createRequest)
+            .when()
+            .post("/api/v1/product-definitions/complete")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        // Now update with new parts
+        ProductDefinitionRequest updateRequest = new ProductDefinitionRequest();
+        updateRequest.setProductCode(productCode);
+        updateRequest.setDescription("Updated");
+        updateRequest.setBillingModel(ProductDefinition.BillingModel.SUBSCRIPTION);
+        updateRequest.setProductValidFrom(LocalDate.now());
+
+        List<PartRequest> newParts = new ArrayList<>();
+        PartRequest newPart = new PartRequest();
+        newPart.setPartCode("UPDATED-PART");
+        newPart.setDescription("Updated");
+        newPart.setUnitPrice(new BigDecimal("75.00"));
+        newPart.setDisplayOrder(1);
+        newParts.add(newPart);
+        updateRequest.setParts(newParts);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(updateRequest)
+            .when()
+            .put("/api/v1/product-definitions/" + id + "/complete")
+            .then()
+            .statusCode(200)
+            .body("description", equalTo("Updated"))
+            .body("billingModel", equalTo("SUBSCRIPTION"));
+
+        // Verify parts were replaced
+        given()
+            .when()
+            .get("/api/v1/product-definitions/" + id + "/parts")
+            .then()
+            .statusCode(200)
+            .body("$", hasSize(1))
+            .body("[0].partCode", equalTo("UPDATED-PART"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldDeleteCompleteProductWithParts() {
+        // Create product with parts
+        String productCode = "DELETE-COMPLETE-REST-" + System.currentTimeMillis();
+
+        ProductDefinitionRequest request = new ProductDefinitionRequest();
+        request.setProductCode(productCode);
+        request.setDescription("To be deleted");
+        request.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        request.setProductValidFrom(LocalDate.now());
+
+        List<PartRequest> parts = new ArrayList<>();
+        PartRequest part = new PartRequest();
+        part.setPartCode("DELETE-PART");
+        part.setDescription("Part to delete");
+        part.setUnitPrice(new BigDecimal("100.00"));
+        part.setDisplayOrder(1);
+        parts.add(part);
+        request.setParts(parts);
+
+        String id = given()
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .post("/api/v1/product-definitions/complete")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        // Get the part ID
+        String partId = given()
+            .when()
+            .get("/api/v1/product-definitions/" + id + "/parts")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("[0].id");
+
+        // Delete the complete product
+        given()
+            .when()
+            .delete("/api/v1/product-definitions/" + id + "/complete")
+            .then()
+            .statusCode(204);
+
+        // Verify product is gone
+        given()
+            .when()
+            .get("/api/v1/product-definitions/" + id)
+            .then()
+            .statusCode(404);
+
+        // Verify part is also gone (cascade)
+        given()
+            .when()
+            .get("/api/v1/product-definitions/parts/" + partId)
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404WhenUpdatingNonExistentCompleteProduct() {
+        ProductDefinitionRequest request = new ProductDefinitionRequest();
+        request.setProductCode("NON-EXISTENT");
+        request.setDescription("Does not exist");
+        request.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        request.setProductValidFrom(LocalDate.now());
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .put("/api/v1/product-definitions/non-existent-id-xyz/complete")
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldRejectDuplicateProductCodeForCompleteProduct() {
+        String productCode = "DUP-COMPLETE-" + System.currentTimeMillis();
+
+        ProductDefinitionRequest request = new ProductDefinitionRequest();
+        request.setProductCode(productCode);
+        request.setDescription("First");
+        request.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        request.setProductValidFrom(LocalDate.now());
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .post("/api/v1/product-definitions/complete")
+            .then()
+            .statusCode(201);
+
+        // Try to create duplicate
+        given()
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .post("/api/v1/product-definitions/complete")
+            .then()
+            .statusCode(409);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldRejectCompleteProductWithoutProductCode() {
+        ProductDefinitionRequest request = new ProductDefinitionRequest();
+        request.setDescription("No code");
+        request.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        request.setProductValidFrom(LocalDate.now());
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .post("/api/v1/product-definitions/complete")
+            .then()
+            .statusCode(400);
+    }
+
+    // ==================== Part Management REST Tests ====================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldAddPartToExistingProduct() {
+        // Create a product first
+        String productCode = "PART-ADD-TEST-" + System.currentTimeMillis();
+
+        ProductDefinition definition = new ProductDefinition();
+        definition.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        definition.setProductCode(productCode);
+        definition.setDescription("Test Product for Part");
+        definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        definition.setProductValidFrom(LocalDate.now());
+
+        String productId = given()
+            .contentType(ContentType.JSON)
+            .body(definition)
+            .when()
+            .post("/api/v1/product-definitions")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        // Add a part
+        PartDefinition part = new PartDefinition();
+        part.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        part.setPartCode("ADDED-PART");
+        part.setDescription("Added Part");
+        part.setUnitPrice(new BigDecimal("25.00"));
+        part.setDisplayOrder(1);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(part)
+            .when()
+            .post("/api/v1/product-definitions/" + productId + "/parts")
+            .then()
+            .statusCode(201)
+            .body("partCode", equalTo("ADDED-PART"))
+            .body("id", notNullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404WhenAddingPartToNonExistentProduct() {
+        PartDefinition part = new PartDefinition();
+        part.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        part.setPartCode("ORPHAN-PART");
+        part.setDescription("Orphan Part");
+        part.setUnitPrice(new BigDecimal("10.00"));
+        part.setDisplayOrder(1);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(part)
+            .when()
+            .post("/api/v1/product-definitions/non-existent-id/parts")
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldUpdatePart() {
+        // Create product with part
+        String productCode = "PART-UPDATE-REST-" + System.currentTimeMillis();
+
+        ProductDefinitionRequest request = new ProductDefinitionRequest();
+        request.setProductCode(productCode);
+        request.setDescription("Test");
+        request.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        request.setProductValidFrom(LocalDate.now());
+
+        List<PartRequest> parts = new ArrayList<>();
+        PartRequest part = new PartRequest();
+        part.setPartCode("UPDATE-ME");
+        part.setDescription("Original");
+        part.setUnitPrice(new BigDecimal("50.00"));
+        part.setDisplayOrder(1);
+        parts.add(part);
+        request.setParts(parts);
+
+        String productId = given()
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .post("/api/v1/product-definitions/complete")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        String partId = given()
+            .when()
+            .get("/api/v1/product-definitions/" + productId + "/parts")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("[0].id");
+
+        // Update the part
+        PartDefinition update = new PartDefinition();
+        update.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        update.setPartCode("UPDATE-ME");
+        update.setDescription("Updated via REST");
+        update.setUnitPrice(new BigDecimal("75.00"));
+        update.setDisplayOrder(1);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(update)
+            .when()
+            .put("/api/v1/product-definitions/parts/" + partId)
+            .then()
+            .statusCode(200)
+            .body("description", equalTo("Updated via REST"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldDeletePart() {
+        // Create product with part
+        String productCode = "PART-DELETE-REST-" + System.currentTimeMillis();
+
+        ProductDefinitionRequest request = new ProductDefinitionRequest();
+        request.setProductCode(productCode);
+        request.setDescription("Test");
+        request.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        request.setProductValidFrom(LocalDate.now());
+
+        List<PartRequest> parts = new ArrayList<>();
+        PartRequest part = new PartRequest();
+        part.setPartCode("DELETE-ME");
+        part.setDescription("To be deleted");
+        part.setUnitPrice(new BigDecimal("50.00"));
+        part.setDisplayOrder(1);
+        parts.add(part);
+        request.setParts(parts);
+
+        String productId = given()
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .post("/api/v1/product-definitions/complete")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        String partId = given()
+            .when()
+            .get("/api/v1/product-definitions/" + productId + "/parts")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("[0].id");
+
+        // Delete the part
+        given()
+            .when()
+            .delete("/api/v1/product-definitions/parts/" + partId)
+            .then()
+            .statusCode(204);
+
+        // Verify it's gone
+        given()
+            .when()
+            .get("/api/v1/product-definitions/parts/" + partId)
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404ForNonExistentPart() {
+        given()
+            .when()
+            .get("/api/v1/product-definitions/parts/non-existent-part-id")
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404WhenUpdatingNonExistentPart() {
+        PartDefinition part = new PartDefinition();
+        part.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        part.setPartCode("NO-SUCH-PART");
+        part.setDescription("Does not exist");
+        part.setUnitPrice(new BigDecimal("10.00"));
+        part.setDisplayOrder(1);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(part)
+            .when()
+            .put("/api/v1/product-definitions/parts/non-existent-id")
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404WhenDeletingNonExistentPart() {
+        given()
+            .when()
+            .delete("/api/v1/product-definitions/parts/non-existent-id")
+            .then()
+            .statusCode(404);
+    }
+
+    // ==================== Get Complete Product Tests ====================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldGetCompleteProductWithFullTree() {
+        String productCode = "GET-COMPLETE-" + System.currentTimeMillis();
+
+        ProductDefinitionRequest request = new ProductDefinitionRequest();
+        request.setProductCode(productCode);
+        request.setDescription("Complete Product Test");
+        request.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        request.setProductValidFrom(LocalDate.now());
+
+        // Build a tree: root -> child -> grandchild
+        List<PartRequest> parts = new ArrayList<>();
+        PartRequest rootPart = new PartRequest();
+        rootPart.setPartCode("ROOT-PART");
+        rootPart.setDescription("Root");
+        rootPart.setUnitPrice(new BigDecimal("100.00"));
+        rootPart.setDisplayOrder(1);
+
+        // Add attribute with allowed values
+        List<PartAttributeRequest> attrs = new ArrayList<>();
+        PartAttributeRequest attr = new PartAttributeRequest();
+        attr.setAttributeName("COLOR");
+        attr.setDataType(PartAttributeDefinition.DataType.STRING);
+        attr.setIsRequired(true);
+        attr.setDefaultValue("RED");
+
+        List<PartAttributeAllowedValueRequest> values = new ArrayList<>();
+        PartAttributeAllowedValueRequest red = new PartAttributeAllowedValueRequest();
+        red.setAllowedValue("RED");
+        values.add(red);
+        PartAttributeAllowedValueRequest blue = new PartAttributeAllowedValueRequest();
+        blue.setAllowedValue("BLUE");
+        values.add(blue);
+        attr.setAllowedValues(values);
+        attrs.add(attr);
+        rootPart.setAttributes(attrs);
+
+        // Add child part
+        List<PartRequest> childParts = new ArrayList<>();
+        PartRequest childPart = new PartRequest();
+        childPart.setPartCode("CHILD-PART");
+        childPart.setDescription("Child");
+        childPart.setUnitPrice(new BigDecimal("50.00"));
+        childPart.setDisplayOrder(1);
+        childParts.add(childPart);
+        rootPart.setChildParts(childParts);
+
+        parts.add(rootPart);
+        request.setParts(parts);
+
+        String id = given()
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .post("/api/v1/product-definitions/complete")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        // Get complete product
+        given()
+            .when()
+            .get("/api/v1/product-definitions/" + id + "/complete")
+            .then()
+            .statusCode(200)
+            .body("productCode", equalTo(productCode))
+            .body("description", equalTo("Complete Product Test"))
+            .body("parts", hasSize(1))
+            .body("parts[0].partCode", equalTo("ROOT-PART"))
+            .body("parts[0].unitPrice", equalTo(100.00f))
+            .body("parts[0].attributes", hasSize(1))
+            .body("parts[0].attributes[0].attributeName", equalTo("COLOR"))
+            .body("parts[0].attributes[0].allowedValues", hasSize(2))
+            .body("parts[0].attributes[0].allowedValues[0].allowedValue", equalTo("RED"))
+            .body("parts[0].childParts", hasSize(1))
+            .body("parts[0].childParts[0].partCode", equalTo("CHILD-PART"))
+            .body("parts[0].childParts[0].unitPrice", equalTo(50.00f));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404ForNonExistentCompleteProduct() {
+        given()
+            .when()
+            .get("/api/v1/product-definitions/non-existent-id-xyz/complete")
+            .then()
+            .statusCode(404);
     }
 }

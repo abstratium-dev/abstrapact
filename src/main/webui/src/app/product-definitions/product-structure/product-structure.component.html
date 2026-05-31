@@ -1,0 +1,117 @@
+<div class="product-structure" data-testid="product-structure">
+  <div class="structure-header">
+    <h3>Product Structure</h3>
+    <div class="header-actions" *ngIf="!readOnly">
+      <button class="btn-add" (click)="onAddPart()" title="Add root part">
+        + Add Part
+      </button>
+      <button class="btn-secondary" (click)="onRefresh()" title="Refresh parts">
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading()" class="loading">
+    <p>Loading product structure...</p>
+  </div>
+
+  <div *ngIf="error()" class="error-box">
+    <p>{{ error() }}</p>
+    <button (click)="onRefresh()">Retry</button>
+  </div>
+
+  <div *ngIf="!loading() && !error() && parts().length === 0" class="info-message">
+    <p>No parts defined for this product.</p>
+    <p *ngIf="!readOnly">Click "Add Part" to create the first part.</p>
+  </div>
+
+  <div *ngIf="!loading() && !error() && parts().length > 0" class="part-tree">
+    <ng-container *ngTemplateOutlet="partList; context: { $implicit: parts(), level: 0 }"></ng-container>
+  </div>
+</div>
+
+<ng-template #partList let-parts let-level="level">
+  <div class="part-list" [style.marginLeft]="getIndentLevel(level)">
+    <div
+      *ngFor="let part of parts"
+      class="part-item"
+      [class.selected]="isSelected(part.id)"
+      [class.has-children]="hasChildren(part)"
+      (click)="selectPart(part)"
+      [attr.data-testid]="'part-item-' + part.id"
+    >
+      <div class="part-content">
+        <button
+          *ngIf="hasChildren(part)"
+          class="expand-btn"
+          (click)="toggleExpand(part.id); $event.stopPropagation()"
+          [attr.data-testid]="'expand-btn-' + part.id"
+        >
+          {{ isExpanded(part.id) ? '▼' : '▶' }}
+        </button>
+        <span *ngIf="!hasChildren(part)" class="expand-placeholder"></span>
+
+        <div class="part-info">
+          <div class="part-header">
+            <span class="part-code">{{ part.partCode }}</span>
+            <span class="part-price">{{ formatPrice(part.unitPrice) }}</span>
+          </div>
+          <div class="part-details" *ngIf="part.description">
+            <span class="part-description">{{ part.description }}</span>
+          </div>
+          <div class="part-meta">
+            <span class="badge badge-info" *ngIf="hasAttributes(part)">
+              {{ getAttributeCount(part) }} attribute(s)
+            </span>
+            <span class="badge badge-secondary" *ngIf="hasChildren(part)">
+              {{ getChildCount(part) }} child(ren)
+            </span>
+          </div>
+        </div>
+
+        <div class="part-actions" *ngIf="!readOnly" (click)="$event.stopPropagation()">
+          <button
+            class="btn-icon"
+            (click)="onAddChildPart(part, $event)"
+            title="Add child part"
+            [attr.data-testid]="'add-child-btn-' + part.id"
+          >
+            ➕
+          </button>
+          <button
+            class="btn-icon"
+            (click)="onViewAttributes(part, $event)"
+            title="View attributes"
+            [attr.data-testid]="'view-attrs-btn-' + part.id"
+          >
+            🏷️
+          </button>
+          <button
+            class="btn-icon"
+            (click)="onEditPart(part, $event)"
+            title="Edit part"
+            [attr.data-testid]="'edit-btn-' + part.id"
+          >
+            ✏️
+          </button>
+          <button
+            class="btn-icon btn-icon-danger"
+            (click)="onDeletePart(part, $event)"
+            title="Delete part"
+            [attr.data-testid]="'delete-btn-' + part.id"
+          >
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      <div
+        *ngIf="hasChildren(part) && isExpanded(part.id)"
+        class="part-children"
+        [attr.data-testid]="'part-children-' + part.id"
+      >
+        <ng-container *ngTemplateOutlet="partList; context: { $implicit: part.childParts, level: level + 1 }"></ng-container>
+      </div>
+    </div>
+  </div>
+</ng-template>

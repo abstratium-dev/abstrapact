@@ -7,6 +7,9 @@
 
 ## Today
 
+- do not allow products or their parts or attributes to be modified or deleted if instances exist for the product definition.
+
+
 
 ## Tomorrow
 

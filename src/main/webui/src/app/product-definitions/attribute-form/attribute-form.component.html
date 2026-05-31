@@ -1,0 +1,149 @@
+<div class="attribute-form-container" data-testid="attribute-form">
+  <h3>{{ getPageTitle() }}</h3>
+
+  <form (ngSubmit)="onSubmit()">
+    <div *ngIf="formError" class="error-box" data-testid="form-error">
+      {{ formError }}
+    </div>
+
+    <div class="form-group">
+      <label for="attributeName">Attribute Name *</label>
+      <input
+        type="text"
+        id="attributeName"
+        name="attributeName"
+        [(ngModel)]="attributeName"
+        [disabled]="submitting"
+        maxlength="50"
+        required
+        data-testid="attribute-name-input"
+      />
+      <span class="form-hint">The name of the attribute (e.g., color, size)</span>
+      <div *ngIf="fieldErrors['attributeName']" class="error" data-testid="attribute-name-error">
+        {{ fieldErrors['attributeName'] }}
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="dataType">Data Type *</label>
+      <select
+        id="dataType"
+        name="dataType"
+        [(ngModel)]="dataType"
+        [disabled]="submitting"
+        required
+        data-testid="data-type-select"
+      >
+        <option *ngFor="let type of dataTypes" [value]="type.value">
+          {{ type.label }}
+        </option>
+      </select>
+      <span class="form-hint">The data type for this attribute</span>
+      <div *ngIf="fieldErrors['dataType']" class="error" data-testid="data-type-error">
+        {{ fieldErrors['dataType'] }}
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="defaultValue">Default Value</label>
+      <input
+        type="text"
+        id="defaultValue"
+        name="defaultValue"
+        [(ngModel)]="defaultValue"
+        [disabled]="submitting"
+        maxlength="255"
+        data-testid="default-value-input"
+      />
+      <span class="form-hint">Optional default value for this attribute</span>
+      <div *ngIf="fieldErrors['defaultValue']" class="error" data-testid="default-value-error">
+        {{ fieldErrors['defaultValue'] }}
+      </div>
+    </div>
+
+    <div class="form-group checkbox-group">
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          id="isRequired"
+          name="isRequired"
+          [(ngModel)]="isRequired"
+          [disabled]="submitting"
+          data-testid="is-required-checkbox"
+        />
+        <span>Required Attribute</span>
+      </label>
+      <span class="form-hint">Check if this attribute must have a value</span>
+    </div>
+
+    <div class="form-group">
+      <label>Allowed Values</label>
+      <div class="allowed-values-section">
+        <div class="add-value-row">
+          <input
+            type="text"
+            [(ngModel)]="newAllowedValue"
+            name="newAllowedValue"
+            [disabled]="submitting"
+            placeholder="Enter a value and press Enter"
+            (keydown)="onAllowedValueKeydown($event)"
+            data-testid="new-allowed-value-input"
+          />
+          <button
+            type="button"
+            class="btn-secondary"
+            (click)="addAllowedValue()"
+            [disabled]="submitting || !newAllowedValue.trim()"
+            data-testid="add-allowed-value-btn"
+          >
+            Add
+          </button>
+        </div>
+
+        <div *ngIf="allowedValues.length === 0" class="info-message">
+          No allowed values defined. Leave empty to allow any value.
+        </div>
+
+        <div *ngIf="allowedValues.length > 0" class="allowed-values-list">
+          <div
+            *ngFor="let value of allowedValues; let i = index"
+            class="allowed-value-item"
+            [attr.data-testid]="'allowed-value-' + i"
+          >
+            <span class="value-text">{{ value.allowedValue }}</span>
+            <button
+              type="button"
+              class="btn-icon btn-icon-danger"
+              (click)="removeAllowedValue(i)"
+              [disabled]="submitting"
+              title="Remove value"
+              [attr.data-testid]="'remove-allowed-value-' + i"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button
+        type="submit"
+        class="btn-primary"
+        [disabled]="submitting"
+        data-testid="submit-button"
+      >
+        {{ submitting ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update' : 'Create') }}
+      </button>
+      <button
+        type="button"
+        class="btn-secondary"
+        (click)="onCancel()"
+        [disabled]="submitting"
+        data-testid="cancel-button"
+      >
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>

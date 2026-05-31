@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { Config, ModelService, ProductDefinition } from './model.service';
+import {
+  Config, ModelService, ProductDefinition,
+  PartDefinition, PartAttributeDefinition, DataType
+} from './model.service';
 
 describe('ModelService', () => {
   let service: ModelService;
@@ -224,6 +227,213 @@ describe('ModelService', () => {
       expect(service.productDefinitionsLoading$()).toBe(false);
       expect(service.productDefinitionsError$()).toBeNull();
       expect(service.selectedProductDefinition$()).toBeNull();
+    });
+  });
+
+  describe('Parts - Initial State', () => {
+    it('should have empty parts initially', () => {
+      expect(service.productParts$()).toEqual([]);
+    });
+
+    it('should not be loading parts initially', () => {
+      expect(service.productPartsLoading$()).toBe(false);
+    });
+
+    it('should have no parts error initially', () => {
+      expect(service.productPartsError$()).toBeNull();
+    });
+
+    it('should have no selected part initially', () => {
+      expect(service.selectedPart$()).toBeNull();
+    });
+  });
+
+  describe('Parts - State Management', () => {
+    const mockPart: PartDefinition = {
+      id: 'part-1',
+      organisationId: 'org-1',
+      partCode: 'PART-001',
+      description: 'Test Part',
+      unitPrice: 99.99,
+      displayOrder: 1,
+      childParts: [],
+      attributes: []
+    };
+
+    const mockChildPart: PartDefinition = {
+      id: 'part-2',
+      organisationId: 'org-1',
+      partCode: 'PART-002',
+      description: 'Child Part',
+      unitPrice: 49.99,
+      displayOrder: 2,
+      childParts: [],
+      attributes: []
+    };
+
+    it('should set product parts', () => {
+      service.setProductParts([mockPart]);
+      expect(service.productParts$()).toEqual([mockPart]);
+    });
+
+    it('should update product parts', () => {
+      service.setProductParts([mockPart]);
+      service.setProductParts([{ ...mockPart, childParts: [mockChildPart] }]);
+      expect(service.productParts$()[0].childParts).toEqual([mockChildPart]);
+    });
+
+    it('should handle nested parts', () => {
+      const nestedPart: PartDefinition = {
+        ...mockPart,
+        childParts: [mockChildPart]
+      };
+      service.setProductParts([nestedPart]);
+      expect(service.productParts$()[0].childParts.length).toBe(1);
+      expect(service.productParts$()[0].childParts[0].partCode).toBe('PART-002');
+    });
+
+    it('should set parts loading state', () => {
+      service.setProductPartsLoading(true);
+      expect(service.productPartsLoading$()).toBe(true);
+    });
+
+    it('should set parts error', () => {
+      service.setProductPartsError('Failed to load parts');
+      expect(service.productPartsError$()).toBe('Failed to load parts');
+    });
+
+    it('should set selected part', () => {
+      service.setSelectedPart(mockPart);
+      expect(service.selectedPart$()).toEqual(mockPart);
+    });
+
+    it('should clear selected part', () => {
+      service.setSelectedPart(mockPart);
+      service.setSelectedPart(null);
+      expect(service.selectedPart$()).toBeNull();
+    });
+  });
+
+  describe('Attributes - Initial State', () => {
+    it('should have empty attributes initially', () => {
+      expect(service.partAttributes$()).toEqual([]);
+    });
+
+    it('should not be loading attributes initially', () => {
+      expect(service.partAttributesLoading$()).toBe(false);
+    });
+
+    it('should have no attributes error initially', () => {
+      expect(service.partAttributesError$()).toBeNull();
+    });
+
+    it('should have no selected attribute initially', () => {
+      expect(service.selectedAttribute$()).toBeNull();
+    });
+  });
+
+  describe('Attributes - State Management', () => {
+    const mockAttribute: PartAttributeDefinition = {
+      id: 'attr-1',
+      organisationId: 'org-1',
+      attributeName: 'color',
+      dataType: 'STRING' as DataType,
+      isRequired: true,
+      defaultValue: 'red',
+      allowedValues: [
+        { id: 'val-1', organisationId: 'org-1', allowedValue: 'red' },
+        { id: 'val-2', organisationId: 'org-1', allowedValue: 'blue' }
+      ]
+    };
+
+    it('should set part attributes', () => {
+      service.setPartAttributes([mockAttribute]);
+      expect(service.partAttributes$()).toEqual([mockAttribute]);
+    });
+
+    it('should handle attributes with allowed values', () => {
+      service.setPartAttributes([mockAttribute]);
+      expect(service.partAttributes$()[0].allowedValues.length).toBe(2);
+      expect(service.partAttributes$()[0].allowedValues[0].allowedValue).toBe('red');
+    });
+
+    it('should set attributes loading state', () => {
+      service.setPartAttributesLoading(true);
+      expect(service.partAttributesLoading$()).toBe(true);
+    });
+
+    it('should set attributes error', () => {
+      service.setPartAttributesError('Failed to load attributes');
+      expect(service.partAttributesError$()).toBe('Failed to load attributes');
+    });
+
+    it('should set selected attribute', () => {
+      service.setSelectedAttribute(mockAttribute);
+      expect(service.selectedAttribute$()).toEqual(mockAttribute);
+    });
+
+    it('should clear selected attribute', () => {
+      service.setSelectedAttribute(mockAttribute);
+      service.setSelectedAttribute(null);
+      expect(service.selectedAttribute$()).toBeNull();
+    });
+
+    it('should handle different data types', () => {
+      const types: DataType[] = ['STRING', 'INTEGER', 'DECIMAL', 'BOOLEAN', 'DATE'];
+      types.forEach(dataType => {
+        const attr: PartAttributeDefinition = { ...mockAttribute, id: `attr-${dataType}`, dataType };
+        service.setPartAttributes([attr]);
+        expect(service.partAttributes$()[0].dataType).toBe(dataType);
+      });
+    });
+  });
+
+  describe('Combined State Management', () => {
+    it('should manage all states independently', () => {
+      const mockProduct: ProductDefinition = {
+        id: '1',
+        organisationId: 'org-1',
+        productCode: 'PROD-001',
+        description: 'Test',
+        billingModel: 'FIXED_PRICE',
+        productValidFrom: null,
+        productValidUntil: null
+      };
+
+      const mockPart: PartDefinition = {
+        id: 'part-1',
+        organisationId: 'org-1',
+        partCode: 'PART-001',
+        description: 'Test Part',
+        unitPrice: 99.99,
+        displayOrder: 1,
+        childParts: [],
+        attributes: []
+      };
+
+      const mockAttribute: PartAttributeDefinition = {
+        id: 'attr-1',
+        organisationId: 'org-1',
+        attributeName: 'color',
+        dataType: 'STRING' as DataType,
+        isRequired: false,
+        defaultValue: null,
+        allowedValues: []
+      };
+
+      service.setProductDefinitions([mockProduct]);
+      service.setProductParts([mockPart]);
+      service.setPartAttributes([mockAttribute]);
+      service.setProductDefinitionsLoading(true);
+      service.setProductPartsLoading(true);
+      service.setPartAttributesLoading(true);
+
+      expect(service.productDefinitions$()).toEqual([mockProduct]);
+      expect(service.productParts$()).toEqual([mockPart]);
+      expect(service.partAttributes$()).toEqual([mockAttribute]);
+      expect(service.productDefinitionsLoading$()).toBe(true);
+      expect(service.productPartsLoading$()).toBe(true);
+      expect(service.partAttributesLoading$()).toBe(true);
     });
   });
 });

@@ -1,0 +1,310 @@
+.simulator-container {
+  padding: 1.5rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+
+  h1 {
+    margin: 0;
+    color: var(--color-text-primary);
+  }
+}
+
+.simulator-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Configuration Panel */
+.configuration-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.product-info {
+  padding: 1rem;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 4px;
+
+  h2 {
+    margin: 0 0 0.5rem;
+    color: var(--color-text-primary);
+  }
+
+  p {
+    margin: 0 0 0.5rem;
+    color: var(--color-text-secondary);
+  }
+}
+
+.configuration-form {
+  h3 {
+    margin: 0 0 0.25rem;
+    color: var(--color-text-primary);
+  }
+
+  .form-hint {
+    color: var(--color-text-secondary);
+    margin-bottom: 1rem;
+  }
+}
+
+.parts-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.part-node {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.part-row {
+  padding: 0.75rem;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+
+  &.included {
+    border-left: 3px solid var(--color-primary);
+  }
+
+  &:not(.included) {
+    opacity: 0.7;
+  }
+}
+
+.part-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+  }
+
+  .part-name {
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+
+  .part-price-hint {
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+    margin-left: auto;
+  }
+}
+
+.part-desc {
+  margin-top: 0.25rem;
+  padding-left: 1.5rem;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.attributes-section {
+  padding: 0.75rem;
+  padding-left: 1.5rem;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.attribute-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-text-primary);
+    font-size: 0.875rem;
+
+    .data-type-badge {
+      font-size: 0.75rem;
+      padding: 0.125rem 0.375rem;
+      background-color: var(--color-bg-tertiary);
+      border-radius: 3px;
+      color: var(--color-text-secondary);
+    }
+  }
+
+  input, select {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+  }
+}
+
+.field-error {
+  color: var(--color-error);
+  font-size: 0.8125rem;
+}
+
+.children-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.configuration-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border-primary);
+}
+
+/* Result Panel */
+.result-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.result-header {
+  h2 {
+    margin: 0 0 0.5rem;
+    color: var(--color-text-primary);
+  }
+
+  .result-product-info {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+
+    .product-code {
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .product-desc {
+      color: var(--color-text-secondary);
+    }
+  }
+}
+
+.instance-summary {
+  h3 {
+    margin: 0 0 1rem;
+    color: var(--color-text-primary);
+  }
+}
+
+.instance-parts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.instance-part-item {
+  padding: 0.75rem;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 4px;
+
+  .part-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+
+    .part-code {
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .part-price {
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+  }
+
+  .part-description {
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .part-attributes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--color-border-primary);
+
+    .attribute-row {
+      display: flex;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+
+      .attr-name {
+        color: var(--color-text-secondary);
+        min-width: 120px;
+      }
+
+      .attr-value {
+        color: var(--color-text-primary);
+      }
+    }
+  }
+}
+
+.total-price-section {
+  padding: 1rem;
+  background-color: var(--color-bg-secondary);
+  border: 2px solid var(--color-primary);
+  border-radius: 4px;
+
+  .total-price {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .label {
+      font-size: 1.125rem;
+      color: var(--color-text-primary);
+    }
+
+    .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+  }
+}
+
+.result-actions {
+  display: flex;
+  gap: 0.75rem;
+}

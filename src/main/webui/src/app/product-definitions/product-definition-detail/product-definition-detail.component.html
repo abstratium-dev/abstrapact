@@ -17,52 +17,98 @@
     <button (click)="onBack()">Go Back</button>
   </div>
 
-  <div *ngIf="!loading && !error && selectedProduct()" class="card">
-    <div class="card-header">
-      <h2>{{ selectedProduct()?.productCode }}</h2>
-      <div class="card-actions">
-        <button class="btn-icon" (click)="onEdit()" title="Edit product definition">
-          ✏️
-        </button>
-        <button class="btn-icon btn-icon-danger" (click)="onDelete()" title="Delete product definition">
-          🗑️
-        </button>
+  <div *ngIf="!loading && !error && selectedProduct()" class="detail-content">
+    <div class="card">
+      <div class="card-header">
+        <h2>{{ selectedProduct()?.productCode }}</h2>
+        <div class="card-actions">
+          <button class="btn-icon" (click)="onSimulate()" title="Simulate product instance">
+            🔬
+          </button>
+          <button class="btn-icon" (click)="onEdit()" title="Edit product definition">
+            ✏️
+          </button>
+          <button class="btn-icon btn-icon-danger" (click)="onDelete()" title="Delete product definition">
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-row" *ngIf="selectedProduct()?.description">
+          <span class="label">Description</span>
+          <span class="value">{{ selectedProduct()?.description }}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">Billing Model</span>
+          <span class="value">
+            <span class="badge" [class.badge-primary]="selectedProduct()?.billingModel === 'FIXED_PRICE'" [class.badge-secondary]="selectedProduct()?.billingModel === 'SUBSCRIPTION'">
+              {{ getBillingModelLabel(selectedProduct()?.billingModel || '') }}
+            </span>
+          </span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">Valid From</span>
+          <span class="value">{{ formatDate(selectedProduct()?.productValidFrom || null) }}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">Valid Until</span>
+          <span class="value">{{ formatDate(selectedProduct()?.productValidUntil || null) }}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">Organisation ID</span>
+          <span class="value">{{ selectedProduct()?.organisationId }}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">Product ID</span>
+          <span class="value">{{ selectedProduct()?.id }}</span>
+        </div>
       </div>
     </div>
 
-    <div class="detail-section">
-      <div class="detail-row" *ngIf="selectedProduct()?.description">
-        <span class="label">Description</span>
-        <span class="value">{{ selectedProduct()?.description }}</span>
+    <div class="structure-section" *ngIf="productId">
+      <div class="structure-grid">
+        <div class="structure-column">
+          <app-product-structure
+            [productId]="productId"
+            [readOnly]="false"
+            (addPart)="onAddPart()"
+            (editPart)="onEditPart($event)">
+          </app-product-structure>
+        </div>
+        <div class="attributes-column">
+          <app-part-attributes-list
+            [part]="selectedPart()"
+            [readOnly]="false"
+            (addAttribute)="onAddAttribute()"
+            (editAttribute)="onEditAttribute($event)">
+          </app-part-attributes-list>
+        </div>
       </div>
 
-      <div class="detail-row">
-        <span class="label">Billing Model</span>
-        <span class="value">
-          <span class="badge" [class.badge-primary]="selectedProduct()?.billingModel === 'FIXED_PRICE'" [class.badge-secondary]="selectedProduct()?.billingModel === 'SUBSCRIPTION'">
-            {{ getBillingModelLabel(selectedProduct()?.billingModel || '') }}
-          </span>
-        </span>
+      <div *ngIf="showPartForm" class="form-panel">
+        <app-part-form
+          [productId]="productId"
+          [isEditMode]="!!editingPart"
+          [existingPart]="editingPart"
+          (saved)="onPartSaved()"
+          (cancelled)="onPartCancelled()">
+        </app-part-form>
       </div>
 
-      <div class="detail-row">
-        <span class="label">Valid From</span>
-        <span class="value">{{ formatDate(selectedProduct()?.productValidFrom || null) }}</span>
-      </div>
-
-      <div class="detail-row">
-        <span class="label">Valid Until</span>
-        <span class="value">{{ formatDate(selectedProduct()?.productValidUntil || null) }}</span>
-      </div>
-
-      <div class="detail-row">
-        <span class="label">Organisation ID</span>
-        <span class="value">{{ selectedProduct()?.organisationId }}</span>
-      </div>
-
-      <div class="detail-row">
-        <span class="label">Product ID</span>
-        <span class="value">{{ selectedProduct()?.id }}</span>
+      <div *ngIf="showAttributeForm" class="form-panel">
+        <app-attribute-form
+          [partId]="selectedPart()?.id!"
+          [isEditMode]="!!editingAttribute"
+          [existingAttribute]="editingAttribute"
+          (saved)="onAttributeSaved()"
+          (cancelled)="onAttributeCancelled()">
+        </app-attribute-form>
       </div>
     </div>
   </div>

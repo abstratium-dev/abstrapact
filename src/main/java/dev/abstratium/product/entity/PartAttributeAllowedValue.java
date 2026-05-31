@@ -1,5 +1,6 @@
 package dev.abstratium.product.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.TenantId;
 import org.hibernate.envers.Audited;
@@ -19,6 +20,7 @@ public class PartAttributeAllowedValue {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "part_attribute_definition_id", nullable = false)
+    @JsonIgnore
     private PartAttributeDefinition attributeDefinition;
 
     @Column(name = "allowed_value", length = 255, nullable = false)

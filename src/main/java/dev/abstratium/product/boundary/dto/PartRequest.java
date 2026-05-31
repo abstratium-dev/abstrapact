@@ -1,0 +1,85 @@
+package dev.abstratium.product.boundary.dto;
+
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+/**
+ * Request DTO for creating or updating a part definition.
+ */
+@RegisterForReflection
+public class PartRequest {
+    private String id;
+    private String partCode;
+    private String description;
+    private BigDecimal unitPrice;
+    private Integer displayOrder;
+    private String parentPartId;
+    private List<PartRequest> childParts;
+    private List<PartAttributeRequest> attributes;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getPartCode() {
+        return partCode;
+    }
+
+    public void setPartCode(String partCode) {
+        this.partCode = partCode;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public BigDecimal getUnitPrice() {
+        return unitPrice;
+    }
+
+    public void setUnitPrice(BigDecimal unitPrice) {
+        this.unitPrice = unitPrice;
+    }
+
+    public Integer getDisplayOrder() {
+        return displayOrder;
+    }
+
+    public void setDisplayOrder(Integer displayOrder) {
+        this.displayOrder = displayOrder;
+    }
+
+    public String getParentPartId() {
+        return parentPartId;
+    }
+
+    public void setParentPartId(String parentPartId) {
+        this.parentPartId = parentPartId;
+    }
+
+    public List<PartRequest> getChildParts() {
+        return childParts;
+    }
+
+    public void setChildParts(List<PartRequest> childParts) {
+        this.childParts = childParts;
+    }
+
+    public List<PartAttributeRequest> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(List<PartAttributeRequest> attributes) {
+        this.attributes = attributes;
+    }
+}

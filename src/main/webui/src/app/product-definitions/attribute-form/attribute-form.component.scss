@@ -1,0 +1,75 @@
+.attribute-form-container {
+  padding: 1rem;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 4px;
+
+  h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--color-text-primary);
+  }
+}
+
+.checkbox-group {
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    margin-bottom: 0.25rem;
+
+    input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+
+    span {
+      color: var(--color-text-primary);
+    }
+  }
+}
+
+.allowed-values-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.add-value-row {
+  display: flex;
+  gap: 0.5rem;
+
+  input {
+    flex: 1;
+  }
+
+  button {
+    white-space: nowrap;
+  }
+}
+
+.allowed-values-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.allowed-value-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 4px;
+
+  .value-text {
+    color: var(--color-text-primary);
+  }
+
+  .btn-icon {
+    padding: 0.25rem;
+    font-size: 0.875rem;
+  }
+}

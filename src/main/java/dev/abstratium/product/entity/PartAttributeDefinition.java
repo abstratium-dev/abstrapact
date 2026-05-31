@@ -1,5 +1,6 @@
 package dev.abstratium.product.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.TenantId;
 import org.hibernate.envers.Audited;
@@ -22,6 +23,7 @@ public class PartAttributeDefinition {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "part_definition_id", nullable = false)
+    @JsonIgnore
     private PartDefinition partDefinition;
 
     @Column(name = "attribute_name", length = 50, nullable = false)
@@ -38,6 +40,7 @@ public class PartAttributeDefinition {
     private String defaultValue;
 
     @OneToMany(mappedBy = "attributeDefinition", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<PartAttributeAllowedValue> allowedValues = new ArrayList<>();
 
     public PartAttributeDefinition() {

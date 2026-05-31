@@ -1,0 +1,177 @@
+<div class="simulator-container" data-testid="product-simulator">
+  <div class="page-header">
+    <h1>Product Simulator</h1>
+    <div class="header-actions">
+      <button class="btn-secondary" (click)="onBack()">
+        ← Back to Product
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading">
+    <p>Loading product definition...</p>
+  </div>
+
+  <div *ngIf="error" class="error-box">
+    <p>{{ error }}</p>
+    <button (click)="onBack()">Go Back</button>
+  </div>
+
+  <div *ngIf="!loading && !error && completeProduct" class="simulator-content">
+    <!-- Configuration View -->
+    <div *ngIf="!showResult" class="configuration-panel">
+      <div class="product-info">
+        <h2>{{ completeProduct.productCode }}</h2>
+        <p *ngIf="completeProduct.description">{{ completeProduct.description }}</p>
+        <span class="badge" [class.badge-primary]="completeProduct.billingModel === 'FIXED_PRICE'" [class.badge-secondary]="completeProduct.billingModel === 'SUBSCRIPTION'">
+          {{ completeProduct.billingModel === 'FIXED_PRICE' ? 'Fixed Price' : 'Subscription' }}
+        </span>
+      </div>
+
+      <div class="configuration-form">
+        <h3>Configure Product Instance</h3>
+        <p class="form-hint">Select which parts to include and provide values for their attributes.</p>
+
+        <div class="parts-tree">
+          <ng-container *ngTemplateOutlet="partNode; context: { $implicit: simulatedParts, level: 0 }"></ng-container>
+        </div>
+      </div>
+
+      <div class="configuration-actions">
+        <button class="btn-primary" (click)="generateInstance()" [disabled]="!isConfigurationValid()">
+          Generate Instance
+        </button>
+        <button class="btn-secondary" (click)="resetSimulator()">
+          Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Result View -->
+    <div *ngIf="showResult && instanceResult" class="result-panel">
+      <div class="result-header">
+        <h2>Product Instance</h2>
+        <div class="result-product-info">
+          <span class="product-code">{{ instanceResult.productCode }}</span>
+          <span *ngIf="instanceResult.description" class="product-desc">{{ instanceResult.description }}</span>
+        </div>
+      </div>
+
+      <div class="instance-summary">
+        <h3>Included Parts</h3>
+        <div class="instance-parts-list">
+          <div *ngFor="let part of collectIncludedParts(instanceResult.parts); let i = index" class="instance-part-item">
+            <div class="part-header">
+              <span class="part-code">{{ part.definition.partCode }}</span>
+              <span class="part-price">{{ formatPrice(part.definition.unitPrice) }}</span>
+            </div>
+            <div *ngIf="part.definition.description" class="part-description">
+              {{ part.definition.description }}
+            </div>
+            <div *ngIf="part.definition.attributes.length > 0" class="part-attributes">
+              <div *ngFor="let attr of part.definition.attributes" class="attribute-row">
+                <span class="attr-name">{{ attr.attributeName }}:</span>
+                <span class="attr-value">{{ part.attributeValues[attr.id] || '-' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="total-price-section">
+        <div class="total-price">
+          <span class="label">Total Price:</span>
+          <span class="value">{{ formatPrice(instanceResult.totalPrice) }}</span>
+        </div>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn-primary" (click)="showResult = false">
+          Edit Configuration
+        </button>
+        <button class="btn-secondary" (click)="resetSimulator()">
+          Start Over
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recursive part node template -->
+<ng-template #partNode let-parts let-level="level">
+  <div *ngFor="let simulatedPart of parts" class="part-node" [style.margin-left.px]="level * 24">
+    <div class="part-row" [class.included]="simulatedPart.included">
+      <label class="part-checkbox-label">
+        <input
+          type="checkbox"
+          [(ngModel)]="simulatedPart.included"
+          [attr.data-testid]="'part-checkbox-' + simulatedPart.definition.id"
+        />
+        <span class="part-name">{{ simulatedPart.definition.partCode }}</span>
+        <span class="part-price-hint">{{ formatPrice(simulatedPart.definition.unitPrice) }}</span>
+      </label>
+      <div *ngIf="simulatedPart.definition.description" class="part-desc">
+        {{ simulatedPart.definition.description }}
+      </div>
+    </div>
+
+    <div *ngIf="simulatedPart.included && simulatedPart.definition.attributes?.length > 0" class="attributes-section">
+      <div *ngFor="let attr of simulatedPart.definition.attributes" class="attribute-field">
+        <label [for]="'attr-' + simulatedPart.definition.id + '-' + attr.id">
+          {{ getAttributeLabel(attr) }}
+          <span class="data-type-badge">{{ getDataTypeLabel(attr.dataType) }}</span>
+        </label>
+
+        <ng-container *ngIf="attr.allowedValues && attr.allowedValues.length > 0; else freeInput">
+          <select
+            [id]="'attr-' + simulatedPart.definition.id + '-' + attr.id"
+            [ngModel]="simulatedPart.attributeValues[attr.id]"
+            (ngModelChange)="setAttributeValue(simulatedPart, attr.id, $event)"
+            [required]="attr.isRequired"
+            [attr.data-testid]="'attr-select-' + simulatedPart.definition.id + '-' + attr.id"
+          >
+            <option value="" *ngIf="!attr.isRequired">-- Select --</option>
+            <option *ngFor="let av of attr.allowedValues" [value]="av.allowedValue">
+              {{ av.allowedValue }}
+            </option>
+          </select>
+        </ng-container>
+
+        <ng-template #freeInput>
+          <ng-container *ngIf="attr.dataType === 'BOOLEAN'; else textInput">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                [id]="'attr-' + simulatedPart.definition.id + '-' + attr.id"
+                [ngModel]="simulatedPart.attributeValues[attr.id] === 'true'"
+                (ngModelChange)="setAttributeValue(simulatedPart, attr.id, $event ? 'true' : 'false')"
+                [attr.data-testid]="'attr-checkbox-' + simulatedPart.definition.id + '-' + attr.id"
+              />
+              <span>{{ attr.attributeName }}</span>
+            </label>
+          </ng-container>
+
+          <ng-template #textInput>
+            <input
+              [type]="getAttributeInputType(attr.dataType)"
+              [id]="'attr-' + simulatedPart.definition.id + '-' + attr.id"
+              [ngModel]="simulatedPart.attributeValues[attr.id]"
+              (ngModelChange)="setAttributeValue(simulatedPart, attr.id, $event)"
+              [placeholder]="attr.defaultValue || ''"
+              [required]="attr.isRequired"
+              [attr.data-testid]="'attr-input-' + simulatedPart.definition.id + '-' + attr.id"
+            />
+          </ng-template>
+        </ng-template>
+
+        <div *ngIf="attr.isRequired && !isAttributeValid(simulatedPart, attr)" class="field-error">
+          This field is required
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="simulatedPart.children?.length > 0" class="children-section">
+      <ng-container *ngTemplateOutlet="partNode; context: { $implicit: simulatedPart.children, level: level + 1 }"></ng-container>
+    </div>
+  </div>
+</ng-template>

@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProductDefinitionDetailComponent } from './product-definition-detail.component';
 import { Controller } from '../../controller';
-import { ModelService, ProductDefinition } from '../../model.service';
+import { ModelService, ProductDefinition, PartDefinition } from '../../model.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
 import { signal } from '@angular/core';
@@ -18,6 +18,7 @@ describe('ProductDefinitionDetailComponent', () => {
   let activatedRoute: any;
 
   let selectedProductSignal: ReturnType<typeof signal<ProductDefinition | null>>;
+  let selectedPartSignal: ReturnType<typeof signal<PartDefinition | null>>;
 
   const mockProductDefinition: ProductDefinition = {
     id: '1',
@@ -29,31 +30,60 @@ describe('ProductDefinitionDetailComponent', () => {
     productValidUntil: '2024-12-31'
   };
 
+  const mockPart: PartDefinition = {
+    id: 'part-1',
+    organisationId: 'org-1',
+    partCode: 'ROOT-PART',
+    description: 'Root Part',
+    unitPrice: 100,
+    displayOrder: 1,
+    childParts: [],
+    attributes: []
+  };
+
   beforeEach(async () => {
-    // Reset the signal before each test to ensure clean state
+    // Reset the signals before each test to ensure clean state
     selectedProductSignal = signal<ProductDefinition | null>(null);
+    selectedPartSignal = signal<PartDefinition | null>(null);
 
     const modelServiceSpy = jasmine.createSpyObj('ModelService',
-      ['setSelectedProductDefinition'],
+      ['setSelectedProductDefinition', 'setSelectedPart'],
       {
-        selectedProductDefinition$: selectedProductSignal.asReadonly()
+        selectedProductDefinition$: selectedProductSignal.asReadonly(),
+        selectedPart$: selectedPartSignal.asReadonly()
       }
     );
     // Implement setSelectedProductDefinition to actually update the signal
     modelServiceSpy.setSelectedProductDefinition.and.callFake((product: ProductDefinition | null) => {
       selectedProductSignal.set(product);
     });
+    // Implement setSelectedPart to actually update the signal
+    modelServiceSpy.setSelectedPart.and.callFake((part: PartDefinition | null) => {
+      selectedPartSignal.set(part);
+    });
 
     // Create controller spy that also updates the model service like the real controller does
     const controllerSpy = jasmine.createSpyObj('Controller', [
       'getProductDefinition',
-      'deleteProductDefinition'
+      'deleteProductDefinition',
+      'loadProductParts'
     ]);
     // Make getProductDefinition update the model service like the real implementation
     controllerSpy.getProductDefinition.and.callFake((id: string) => {
       const product = id === '1' ? mockProductDefinition : null;
       modelServiceSpy.setSelectedProductDefinition(product);
       return Promise.resolve(product);
+    });
+
+    // Add mock signals for parts to support ProductStructureComponent
+    Object.defineProperty(modelServiceSpy, 'productParts$', {
+      get: () => signal([]).asReadonly()
+    });
+    Object.defineProperty(modelServiceSpy, 'productPartsLoading$', {
+      get: () => signal(false).asReadonly()
+    });
+    Object.defineProperty(modelServiceSpy, 'productPartsError$', {
+      get: () => signal(null).asReadonly()
     });
 
     const toastServiceSpy = jasmine.createSpyObj('ToastService', ['success', 'error']);
@@ -334,7 +364,7 @@ describe('ProductDefinitionDetailComponent', () => {
       expect(cardActions).toBeTruthy();
 
       const buttons = cardActions.querySelectorAll('button');
-      expect(buttons.length).toBe(2); // Edit and Delete
+      expect(buttons.length).toBe(3); // Simulate, Edit and Delete
     });
   });
 });
