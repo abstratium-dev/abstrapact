@@ -28,6 +28,8 @@ describe('ProductSimulatorComponent', () => {
         description: 'Laptop Base',
         unitPrice: 999,
         displayOrder: 1,
+        minCardinality: 1,
+        maxCardinality: 3,
         attributes: [
           {
             id: 'attr-1',
@@ -50,6 +52,8 @@ describe('ProductSimulatorComponent', () => {
             description: 'Processor Choice',
             unitPrice: 0,
             displayOrder: 1,
+            minCardinality: 1,
+            maxCardinality: 1,
             attributes: [],
             childParts: [
               {
@@ -59,6 +63,8 @@ describe('ProductSimulatorComponent', () => {
                 description: 'Intel i7',
                 unitPrice: 200,
                 displayOrder: 1,
+                minCardinality: 1,
+                maxCardinality: 1,
                 attributes: [],
                 childParts: []
               },
@@ -69,6 +75,8 @@ describe('ProductSimulatorComponent', () => {
                 description: 'Intel i5',
                 unitPrice: 0,
                 displayOrder: 2,
+                minCardinality: 1,
+                maxCardinality: 1,
                 attributes: [],
                 childParts: []
               }
@@ -153,38 +161,32 @@ describe('ProductSimulatorComponent', () => {
       await fixture.whenStable();
     });
 
-    it('should create simulated parts from definition', () => {
+    it('should create simulated parts from definition with min instances', () => {
       expect(component.simulatedParts.length).toBe(1);
       expect(component.simulatedParts[0].definition.partCode).toBe('LAPTOP');
-      expect(component.simulatedParts[0].included).toBe(true);
+      expect(component.simulatedParts[0].instances.length).toBe(1);
     });
 
-    it('should set default attribute values', () => {
+    it('should set default attribute values on each instance', () => {
       const laptop = component.simulatedParts[0];
-      expect(laptop.attributeValues['attr-1']).toBe('silver');
+      expect(laptop.instances[0].attributeValues['attr-1']).toBe('silver');
     });
 
-    it('should toggle part inclusion', () => {
+    it('should set attribute value on instance', () => {
       const laptop = component.simulatedParts[0];
-      laptop.included = false;
-      expect(laptop.included).toBe(false);
-    });
-
-    it('should set attribute value', () => {
-      const laptop = component.simulatedParts[0];
-      component.setAttributeValue(laptop, 'attr-1', 'black');
-      expect(laptop.attributeValues['attr-1']).toBe('black');
+      component.setAttributeValue(laptop.instances[0], 'attr-1', 'black');
+      expect(laptop.instances[0].attributeValues['attr-1']).toBe('black');
     });
 
     it('should detect required attribute validation', () => {
       const laptop = component.simulatedParts[0];
-      laptop.attributeValues['attr-1'] = '';
-      expect(component.areAllRequiredAttributesFilled(laptop)).toBe(false);
+      laptop.instances[0].attributeValues['attr-1'] = '';
+      expect(component.areAllRequiredAttributesFilled(laptop.instances[0], laptop.definition)).toBe(false);
     });
 
     it('should pass validation with filled required attributes', () => {
       const laptop = component.simulatedParts[0];
-      expect(component.areAllRequiredAttributesFilled(laptop)).toBe(true);
+      expect(component.areAllRequiredAttributesFilled(laptop.instances[0], laptop.definition)).toBe(true);
     });
 
     it('should be valid when all required attributes are filled', () => {
@@ -192,8 +194,42 @@ describe('ProductSimulatorComponent', () => {
     });
 
     it('should be invalid when required attribute is empty', () => {
-      component.simulatedParts[0].attributeValues['attr-1'] = '';
+      component.simulatedParts[0].instances[0].attributeValues['attr-1'] = '';
       expect(component.isConfigurationValid()).toBe(false);
+    });
+
+    it('should add instance when under max cardinality', () => {
+      const laptop = component.simulatedParts[0];
+      expect(component.canAddInstance(laptop)).toBe(true);
+      component.addInstance(laptop);
+      expect(laptop.instances.length).toBe(2);
+    });
+
+    it('should not add instance when at max cardinality', () => {
+      const laptop = component.simulatedParts[0];
+      component.addInstance(laptop);
+      component.addInstance(laptop);
+      expect(laptop.instances.length).toBe(3);
+      expect(component.canAddInstance(laptop)).toBe(false);
+      component.addInstance(laptop);
+      expect(laptop.instances.length).toBe(3);
+    });
+
+    it('should remove instance when above min cardinality', () => {
+      const laptop = component.simulatedParts[0];
+      component.addInstance(laptop);
+      expect(laptop.instances.length).toBe(2);
+      expect(component.canRemoveInstance(laptop)).toBe(true);
+      component.removeInstance(laptop, 1);
+      expect(laptop.instances.length).toBe(1);
+    });
+
+    it('should not remove instance when at min cardinality', () => {
+      const laptop = component.simulatedParts[0];
+      expect(laptop.instances.length).toBe(1);
+      expect(component.canRemoveInstance(laptop)).toBe(false);
+      component.removeInstance(laptop, 0);
+      expect(laptop.instances.length).toBe(1);
     });
   });
 
@@ -204,28 +240,24 @@ describe('ProductSimulatorComponent', () => {
       await fixture.whenStable();
     });
 
-    it('should calculate total price with all parts included', () => {
+    it('should calculate total price with default instances', () => {
       // LAPTOP: 999 + I7: 200 = 1199
       const total = component.calculateTotalPrice(component.simulatedParts);
       expect(total).toBe(1199);
     });
 
-    it('should exclude unchecked parts from price', () => {
+    it('should calculate total price with multiple instances', () => {
       const laptop = component.simulatedParts[0];
-      const processor = laptop.children[0];
-      const i7 = processor.children[0];
-      i7.included = false;
-      i7.children.forEach(c => c.included = false);
-
-      // LAPTOP: 999 + I5: 0 = 999
+      component.addInstance(laptop);
+      // 2 x (LAPTOP: 999 + I7: 200) = 2398
       const total = component.calculateTotalPrice(component.simulatedParts);
-      expect(total).toBe(999);
+      expect(total).toBe(2398);
     });
 
-    it('should exclude parent when unchecked', () => {
+    it('should remove all instances to exclude part from price', () => {
       const laptop = component.simulatedParts[0];
-      laptop.included = false;
-
+      // Cannot remove below min=1, so set instances to empty array manually for test
+      laptop.instances = [];
       const total = component.calculateTotalPrice(component.simulatedParts);
       expect(total).toBe(0);
     });
@@ -248,17 +280,25 @@ describe('ProductSimulatorComponent', () => {
     });
 
     it('should show error toast when invalid', () => {
-      component.simulatedParts[0].attributeValues['attr-1'] = '';
+      component.simulatedParts[0].instances[0].attributeValues['attr-1'] = '';
       component.generateInstance();
 
       expect(component.showResult).toBe(false);
       expect(toastService.error).toHaveBeenCalledWith('Please fill in all required attributes before generating the instance.');
     });
 
-    it('should collect only included parts', () => {
+    it('should collect all instances', () => {
       component.generateInstance();
-      const included = component.collectIncludedParts(component.instanceResult!.parts);
+      const included = component.collectIncludedInstances(component.instanceResult!.parts);
       expect(included.length).toBe(4); // LAPTOP, PROCESSOR, I7, I5
+    });
+
+    it('should collect instances with multiple copies', () => {
+      component.addInstance(component.simulatedParts[0]);
+      component.generateInstance();
+      const included = component.collectIncludedInstances(component.instanceResult!.parts);
+      // 2 x LAPTOP + 2 x PROCESSOR + 2 x I7 + 2 x I5 = 8
+      expect(included.length).toBe(8);
     });
 
     it('should reset simulator', () => {
@@ -269,6 +309,7 @@ describe('ProductSimulatorComponent', () => {
       expect(component.showResult).toBe(false);
       expect(component.instanceResult).toBeNull();
       expect(component.simulatedParts.length).toBe(1);
+      expect(component.simulatedParts[0].instances.length).toBe(1);
     });
   });
 

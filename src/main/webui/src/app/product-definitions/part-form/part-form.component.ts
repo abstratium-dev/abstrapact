@@ -29,6 +29,8 @@ export class PartFormComponent implements OnInit {
   description = '';
   unitPrice = 0;
   displayOrder = 0;
+  minCardinality = 1;
+  maxCardinality = 1;
 
   // Form state
   submitting = false;
@@ -46,6 +48,8 @@ export class PartFormComponent implements OnInit {
     this.description = part.description || '';
     this.unitPrice = part.unitPrice || 0;
     this.displayOrder = part.displayOrder || 0;
+    this.minCardinality = part.minCardinality || 1;
+    this.maxCardinality = part.maxCardinality || 1;
   }
 
   validateForm(): boolean {
@@ -69,6 +73,18 @@ export class PartFormComponent implements OnInit {
       this.fieldErrors['displayOrder'] = 'Display order cannot be negative';
     }
 
+    if (this.minCardinality < 1) {
+      this.fieldErrors['minCardinality'] = 'Minimum cardinality must be at least 1';
+    }
+
+    if (this.maxCardinality < 1) {
+      this.fieldErrors['maxCardinality'] = 'Maximum cardinality must be at least 1';
+    }
+
+    if (this.minCardinality > this.maxCardinality) {
+      this.fieldErrors['maxCardinality'] = 'Maximum cardinality must be greater than or equal to minimum cardinality';
+    }
+
     return Object.keys(this.fieldErrors).length === 0;
   }
 
@@ -86,6 +102,8 @@ export class PartFormComponent implements OnInit {
       description: this.description.trim(),
       unitPrice: this.unitPrice,
       displayOrder: this.displayOrder,
+      minCardinality: this.minCardinality,
+      maxCardinality: this.maxCardinality,
       childParts: this.existingPart?.childParts || [],
       attributes: this.existingPart?.attributes || []
     };

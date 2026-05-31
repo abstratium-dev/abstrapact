@@ -15,6 +15,8 @@ public class PartRequest {
     private String description;
     private BigDecimal unitPrice;
     private Integer displayOrder;
+    private Integer minCardinality;
+    private Integer maxCardinality;
     private String parentPartId;
     private List<PartRequest> childParts;
     private List<PartAttributeRequest> attributes;
@@ -57,6 +59,22 @@ public class PartRequest {
 
     public void setDisplayOrder(Integer displayOrder) {
         this.displayOrder = displayOrder;
+    }
+
+    public Integer getMinCardinality() {
+        return minCardinality;
+    }
+
+    public void setMinCardinality(Integer minCardinality) {
+        this.minCardinality = minCardinality;
+    }
+
+    public Integer getMaxCardinality() {
+        return maxCardinality;
+    }
+
+    public void setMaxCardinality(Integer maxCardinality) {
+        this.maxCardinality = maxCardinality;
     }
 
     public String getParentPartId() {

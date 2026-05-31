@@ -70,62 +70,129 @@
   gap: 0.5rem;
 }
 
-.part-row {
+.part-group-header {
   padding: 0.75rem;
   background-color: var(--color-bg-primary);
   border: 1px solid var(--color-border-primary);
   border-radius: 4px;
-  transition: background-color 0.2s ease;
+  border-left: 3px solid var(--color-primary);
 
-  &.included {
-    border-left: 3px solid var(--color-primary);
+  .part-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+
+    .part-name {
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .part-price-hint {
+      color: var(--color-text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .cardinality-badge {
+      font-size: 0.75rem;
+      padding: 0.125rem 0.375rem;
+      background-color: var(--color-bg-tertiary);
+      border-radius: 3px;
+      color: var(--color-text-secondary);
+      margin-left: 0.5rem;
+    }
   }
 
-  &:not(.included) {
-    opacity: 0.7;
-  }
-}
-
-.part-checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-
-  input[type="checkbox"] {
-    width: auto;
-    margin: 0;
-  }
-
-  .part-name {
-    font-weight: 600;
-    color: var(--color-text-primary);
-  }
-
-  .part-price-hint {
+  .part-desc {
+    margin-top: 0.25rem;
     color: var(--color-text-secondary);
     font-size: 0.875rem;
-    margin-left: auto;
+  }
+
+  .instance-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+
+    .instance-count {
+      font-weight: 600;
+      color: var(--color-text-primary);
+      min-width: 1.5rem;
+      text-align: center;
+    }
   }
 }
 
-.part-desc {
-  margin-top: 0.25rem;
-  padding-left: 1.5rem;
-  color: var(--color-text-secondary);
+.instance-panel {
+  padding: 0.75rem;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  margin-bottom: 0.5rem;
+
+  .instance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border-primary);
+
+    .instance-label {
+      font-weight: 600;
+      color: var(--color-text-primary);
+      font-size: 0.875rem;
+    }
+  }
+}
+
+.btn-icon-sm {
+  padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
+  line-height: 1;
+  border: 1px solid var(--color-border-primary);
+  border-radius: 3px;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-bg-secondary);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.btn-icon-danger {
+  color: var(--color-error);
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-error-bg);
+  }
 }
 
 .attributes-section {
   padding: 0.75rem;
   padding-left: 1.5rem;
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-tertiary);
   border: 1px solid var(--color-border-primary);
   border-top: none;
   border-radius: 0 0 4px 4px;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.no-attributes {
+  padding: 0.5rem 0.75rem;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-style: italic;
 }
 
 .attribute-field {
@@ -143,7 +210,7 @@
     .data-type-badge {
       font-size: 0.75rem;
       padding: 0.125rem 0.375rem;
-      background-color: var(--color-bg-tertiary);
+      background-color: var(--color-bg-secondary);
       border-radius: 3px;
       color: var(--color-text-secondary);
     }
@@ -152,6 +219,15 @@
   input, select {
     padding: 0.5rem;
     font-size: 0.875rem;
+    border: 1px solid var(--color-border-secondary);
+    border-radius: 4px;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--color-primary);
   }
 
   .checkbox-label {

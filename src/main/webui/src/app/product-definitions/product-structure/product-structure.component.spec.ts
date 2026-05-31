@@ -23,6 +23,8 @@ describe('ProductStructureComponent', () => {
       description: 'Root Part',
       unitPrice: 100,
       displayOrder: 1,
+      minCardinality: 1,
+      maxCardinality: 1,
       childParts: [
         {
           id: 'part-2',
@@ -31,6 +33,8 @@ describe('ProductStructureComponent', () => {
           description: 'Child Part',
           unitPrice: 50,
           displayOrder: 2,
+          minCardinality: 1,
+          maxCardinality: 1,
           childParts: [],
           attributes: []
         }

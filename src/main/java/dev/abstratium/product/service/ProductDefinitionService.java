@@ -177,6 +177,8 @@ public class ProductDefinitionService {
         response.setDescription(part.getDescription());
         response.setUnitPrice(part.getUnitPrice());
         response.setDisplayOrder(part.getDisplayOrder());
+        response.setMinCardinality(part.getMinCardinality());
+        response.setMaxCardinality(part.getMaxCardinality());
 
         // Force initialization of lazy collections within transaction
         response.setAttributes(part.getAttributes().stream()
@@ -221,6 +223,8 @@ public class ProductDefinitionService {
         part.setDescription(request.getDescription());
         part.setUnitPrice(request.getUnitPrice() != null ? request.getUnitPrice() : java.math.BigDecimal.ZERO);
         part.setDisplayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0);
+        part.setMinCardinality(request.getMinCardinality() != null ? request.getMinCardinality() : 1);
+        part.setMaxCardinality(request.getMaxCardinality() != null ? request.getMaxCardinality() : 1);
         part.setProductDefinition(product);
         part.setParentPart(parentPart);
         em.persist(part);

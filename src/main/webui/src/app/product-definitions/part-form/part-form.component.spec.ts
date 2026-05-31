@@ -19,6 +19,8 @@ describe('PartFormComponent', () => {
     description: 'Test Part',
     unitPrice: 99.99,
     displayOrder: 1,
+    minCardinality: 1,
+    maxCardinality: 1,
     childParts: [],
     attributes: []
   };

@@ -68,6 +68,8 @@ export interface PartDefinition {
   description: string;
   unitPrice: number;
   displayOrder: number;
+  minCardinality: number;
+  maxCardinality: number;
   childParts: PartDefinition[];
   attributes: PartAttributeDefinition[];
 }
@@ -78,6 +80,8 @@ export interface PartRequest {
   description: string;
   unitPrice: number;
   displayOrder: number;
+  minCardinality: number;
+  maxCardinality: number;
   childParts: PartRequest[];
   attributes: PartAttributeRequest[];
 }

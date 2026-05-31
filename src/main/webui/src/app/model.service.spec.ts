@@ -256,6 +256,8 @@ describe('ModelService', () => {
       description: 'Test Part',
       unitPrice: 99.99,
       displayOrder: 1,
+      minCardinality: 1,
+      maxCardinality: 1,
       childParts: [],
       attributes: []
     };
@@ -267,6 +269,8 @@ describe('ModelService', () => {
       description: 'Child Part',
       unitPrice: 49.99,
       displayOrder: 2,
+      minCardinality: 1,
+      maxCardinality: 1,
       childParts: [],
       attributes: []
     };
@@ -407,6 +411,8 @@ describe('ModelService', () => {
         description: 'Test Part',
         unitPrice: 99.99,
         displayOrder: 1,
+        minCardinality: 1,
+        maxCardinality: 1,
         childParts: [],
         attributes: []
       };

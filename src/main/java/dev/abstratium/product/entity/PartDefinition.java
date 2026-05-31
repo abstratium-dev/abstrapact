@@ -48,6 +48,12 @@ public class PartDefinition {
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder = 0;
 
+    @Column(name = "min_cardinality", nullable = false)
+    private Integer minCardinality = 1;
+
+    @Column(name = "max_cardinality", nullable = false)
+    private Integer maxCardinality = 1;
+
     @OneToMany(mappedBy = "partDefinition", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<PartAttributeDefinition> attributes = new ArrayList<>();
@@ -125,6 +131,22 @@ public class PartDefinition {
 
     public void setDisplayOrder(Integer displayOrder) {
         this.displayOrder = displayOrder;
+    }
+
+    public Integer getMinCardinality() {
+        return minCardinality;
+    }
+
+    public void setMinCardinality(Integer minCardinality) {
+        this.minCardinality = minCardinality;
+    }
+
+    public Integer getMaxCardinality() {
+        return maxCardinality;
+    }
+
+    public void setMaxCardinality(Integer maxCardinality) {
+        this.maxCardinality = maxCardinality;
     }
 
     public List<PartAttributeDefinition> getAttributes() {

@@ -79,6 +79,46 @@
       </div>
     </div>
 
+    <div class="form-row">
+      <div class="form-group">
+        <label for="minCardinality">Minimum Cardinality *</label>
+        <input
+          type="number"
+          id="minCardinality"
+          name="minCardinality"
+          [(ngModel)]="minCardinality"
+          [disabled]="submitting"
+          min="1"
+          step="1"
+          required
+          data-testid="min-cardinality-input"
+        />
+        <span class="form-hint">Minimum number of instances (default: 1)</span>
+        <div *ngIf="fieldErrors['minCardinality']" class="error" data-testid="min-cardinality-error">
+          {{ fieldErrors['minCardinality'] }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="maxCardinality">Maximum Cardinality *</label>
+        <input
+          type="number"
+          id="maxCardinality"
+          name="maxCardinality"
+          [(ngModel)]="maxCardinality"
+          [disabled]="submitting"
+          min="1"
+          step="1"
+          required
+          data-testid="max-cardinality-input"
+        />
+        <span class="form-hint">Maximum number of instances (default: 1)</span>
+        <div *ngIf="fieldErrors['maxCardinality']" class="error" data-testid="max-cardinality-error">
+          {{ fieldErrors['maxCardinality'] }}
+        </div>
+      </div>
+    </div>
+
     <div class="form-actions">
       <button
         type="submit"

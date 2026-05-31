@@ -37,6 +37,8 @@ describe('ProductDefinitionDetailComponent', () => {
     description: 'Root Part',
     unitPrice: 100,
     displayOrder: 1,
+    minCardinality: 1,
+    maxCardinality: 1,
     childParts: [],
     attributes: []
   };

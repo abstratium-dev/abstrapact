@@ -11,11 +11,15 @@ import {
 import { Controller } from '../../controller';
 import { ToastService } from '../../core/toast/toast.service';
 
-interface SimulatedPart {
-  definition: PartDefinition;
-  included: boolean;
+interface SimulatedPartInstance {
+  instanceId: string;
   attributeValues: Record<string, string>;
   children: SimulatedPart[];
+}
+
+interface SimulatedPart {
+  definition: PartDefinition;
+  instances: SimulatedPartInstance[];
 }
 
 interface InstanceResult {
@@ -72,21 +76,55 @@ export class ProductSimulatorComponent implements OnInit {
   }
 
   private createSimulatedPart(part: PartDefinition): SimulatedPart {
+    const min = part.minCardinality || 1;
+    const instances: SimulatedPartInstance[] = [];
+    for (let i = 0; i < min; i++) {
+      instances.push(this.createInstance(part));
+    }
+    return {
+      definition: part,
+      instances: instances
+    };
+  }
+
+  private createInstance(part: PartDefinition): SimulatedPartInstance {
     const attrValues: Record<string, string> = {};
     for (const attr of part.attributes || []) {
       attrValues[attr.id] = attr.defaultValue || '';
     }
-
     return {
-      definition: part,
-      included: true,
+      instanceId: crypto.randomUUID(),
       attributeValues: attrValues,
       children: (part.childParts || []).map(child => this.createSimulatedPart(child))
     };
   }
 
-  setAttributeValue(simulatedPart: SimulatedPart, attrId: string, value: string): void {
-    simulatedPart.attributeValues[attrId] = value;
+  canAddInstance(simulatedPart: SimulatedPart): boolean {
+    const max = simulatedPart.definition.maxCardinality || 1;
+    return simulatedPart.instances.length < max;
+  }
+
+  canRemoveInstance(simulatedPart: SimulatedPart): boolean {
+    const min = simulatedPart.definition.minCardinality || 1;
+    return simulatedPart.instances.length > min;
+  }
+
+  addInstance(simulatedPart: SimulatedPart): void {
+    if (!this.canAddInstance(simulatedPart)) {
+      return;
+    }
+    simulatedPart.instances.push(this.createInstance(simulatedPart.definition));
+  }
+
+  removeInstance(simulatedPart: SimulatedPart, index: number): void {
+    if (!this.canRemoveInstance(simulatedPart)) {
+      return;
+    }
+    simulatedPart.instances.splice(index, 1);
+  }
+
+  setAttributeValue(instance: SimulatedPartInstance, attrId: string, value: string): void {
+    instance.attributeValues[attrId] = value;
   }
 
   getAttributeInputType(dataType: DataType): string {
@@ -107,21 +145,18 @@ export class ProductSimulatorComponent implements OnInit {
     return label;
   }
 
-  isAttributeValid(simulatedPart: SimulatedPart, attribute: PartAttributeDefinition): boolean {
+  isAttributeValid(instance: SimulatedPartInstance, attribute: PartAttributeDefinition): boolean {
     if (!attribute.isRequired) {
       return true;
     }
-    const value = simulatedPart.attributeValues[attribute.id];
+    const value = instance.attributeValues[attribute.id];
     return value !== undefined && value.trim().length > 0;
   }
 
-  areAllRequiredAttributesFilled(simulatedPart: SimulatedPart): boolean {
-    if (!simulatedPart.included) {
-      return true;
-    }
-    for (const attr of simulatedPart.definition.attributes || []) {
+  areAllRequiredAttributesFilled(instance: SimulatedPartInstance, definition: PartDefinition): boolean {
+    for (const attr of definition.attributes || []) {
       if (attr.isRequired) {
-        const value = simulatedPart.attributeValues[attr.id];
+        const value = instance.attributeValues[attr.id];
         if (!value || value.trim().length === 0) {
           return false;
         }
@@ -136,11 +171,16 @@ export class ProductSimulatorComponent implements OnInit {
 
   private validateSimulatedParts(parts: SimulatedPart[]): boolean {
     for (const part of parts) {
-      if (part.included) {
-        if (!this.areAllRequiredAttributesFilled(part)) {
+      const min = part.definition.minCardinality || 1;
+      const max = part.definition.maxCardinality || 1;
+      if (part.instances.length < min || part.instances.length > max) {
+        return false;
+      }
+      for (const instance of part.instances) {
+        if (!this.areAllRequiredAttributesFilled(instance, part.definition)) {
           return false;
         }
-        if (!this.validateSimulatedParts(part.children)) {
+        if (!this.validateSimulatedParts(instance.children)) {
           return false;
         }
       }
@@ -151,9 +191,9 @@ export class ProductSimulatorComponent implements OnInit {
   calculateTotalPrice(parts: SimulatedPart[]): number {
     let total = 0;
     for (const part of parts) {
-      if (part.included) {
+      for (const instance of part.instances) {
         total += part.definition.unitPrice || 0;
-        total += this.calculateTotalPrice(part.children);
+        total += this.calculateTotalPrice(instance.children);
       }
     }
     return total;
@@ -208,11 +248,17 @@ export class ProductSimulatorComponent implements OnInit {
     return labels[dataType] || dataType;
   }
 
-  collectIncludedParts(parts: SimulatedPart[], result: SimulatedPart[] = []): SimulatedPart[] {
+  getCardinalityLabel(definition: PartDefinition): string {
+    const min = definition.minCardinality || 1;
+    const max = definition.maxCardinality || 1;
+    return `${min}..${max}`;
+  }
+
+  collectIncludedInstances(parts: SimulatedPart[], result: { definition: PartDefinition; attributeValues: Record<string, string> }[] = []): { definition: PartDefinition; attributeValues: Record<string, string> }[] {
     for (const part of parts) {
-      if (part.included) {
-        result.push(part);
-        this.collectIncludedParts(part.children, result);
+      for (const instance of part.instances) {
+        result.push({ definition: part.definition, attributeValues: instance.attributeValues });
+        this.collectIncludedInstances(instance.children, result);
       }
     }
     return result;

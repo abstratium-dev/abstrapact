@@ -250,6 +250,8 @@ describe('Controller', () => {
         description: 'Test Part',
         unitPrice: 99.99,
         displayOrder: 1,
+        minCardinality: 1,
+        maxCardinality: 1,
         childParts: [],
         attributes: []
       }
@@ -297,6 +299,8 @@ describe('Controller', () => {
       description: 'Test Part',
       unitPrice: 99.99,
       displayOrder: 1,
+      minCardinality: 1,
+      maxCardinality: 1,
       childParts: [],
       attributes: []
     };
@@ -333,6 +337,8 @@ describe('Controller', () => {
       description: 'Test Part',
       unitPrice: 99.99,
       displayOrder: 1,
+      minCardinality: 1,
+      maxCardinality: 1,
       childParts: [],
       attributes: []
     };
@@ -342,6 +348,8 @@ describe('Controller', () => {
       description: 'Test Part',
       unitPrice: 99.99,
       displayOrder: 1,
+      minCardinality: 1,
+      maxCardinality: 1,
       childParts: [],
       attributes: []
     };
@@ -379,6 +387,8 @@ describe('Controller', () => {
       description: 'Updated Part',
       unitPrice: 149.99,
       displayOrder: 2,
+      minCardinality: 1,
+      maxCardinality: 1,
       childParts: [],
       attributes: []
     };
@@ -388,6 +398,8 @@ describe('Controller', () => {
       description: 'Updated Part',
       unitPrice: 149.99,
       displayOrder: 2,
+      minCardinality: 1,
+      maxCardinality: 1,
       childParts: [],
       attributes: []
     };
@@ -645,6 +657,8 @@ describe('Controller', () => {
           description: 'Test Part',
           unitPrice: 99.99,
           displayOrder: 1,
+          minCardinality: 1,
+          maxCardinality: 1,
           childParts: [],
           attributes: []
         }
