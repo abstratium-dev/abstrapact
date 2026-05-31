@@ -1,7 +1,9 @@
 package dev.abstratium.core.service;
 
+import io.quarkus.arc.Arc;
 import io.quarkus.hibernate.orm.PersistenceUnitExtension;
 import io.quarkus.hibernate.orm.runtime.tenant.TenantResolver;
+import io.quarkus.runtime.LaunchMode;
 import io.vertx.core.http.HttpServerRequest;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
@@ -37,6 +39,9 @@ public class JwtOrgResolver implements TenantResolver {
     @Override
     public String resolveTenantId() {
         try {
+            if (LaunchMode.current().isDevOrTest() && !Arc.container().requestContext().isActive()) {
+                return DEFAULT_ORG_ID;
+            }
             String authHeader = request.getHeader("Authorization");
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return DEFAULT_ORG_ID;
