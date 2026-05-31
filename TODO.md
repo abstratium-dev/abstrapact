@@ -11,6 +11,13 @@
 ## Today
 
 - do not allow products or their parts or attributes to be modified or deleted if instances exist for the product definition.
+
+- creating an instance creates a contract in an early status
+
+- contract t&c must state that the contract only comes into effect once the status reaches x and it is no longer in effect once status y is reached.
+
+- in order to create an instance, read "build directives" which allow the caller to see what values need to be set via placeholders. alternatively the b2c can simply send a map with paths and values and that can be merged with the build directives to create the instance.
+
 - when creating an instance, it needs to validate the attributes that they exist, the type is corrert and their values match the rules. cardinality must be ok too. the given date must match the product validity dates.
   - the simulator should call a validate backend
     - the price calculation should happen on the backend, and the validate method should return it
