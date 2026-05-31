@@ -1,0 +1,119 @@
+<div class="container" data-testid="product-definition-form-page">
+  <div class="page-header">
+    <h1>{{ getPageTitle() }}</h1>
+  </div>
+
+  <div class="form-container">
+    <form (ngSubmit)="onSubmit()">
+      <div *ngIf="formError" class="error-box" data-testid="form-error">
+        {{ formError }}
+      </div>
+
+      <div class="form-group">
+        <label for="productCode">Product Code *</label>
+        <input
+          type="text"
+          id="productCode"
+          name="productCode"
+          [(ngModel)]="productCode"
+          [disabled]="submitting"
+          maxlength="50"
+          required
+          data-testid="product-code-input"
+        />
+        <span class="form-hint">A unique identifier for this product (e.g., PROD-001)</span>
+        <div *ngIf="fieldErrors['productCode']" class="error" data-testid="product-code-error">
+          {{ fieldErrors['productCode'] }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea
+          id="description"
+          name="description"
+          [(ngModel)]="description"
+          [disabled]="submitting"
+          maxlength="255"
+          rows="3"
+          data-testid="description-input"
+        ></textarea>
+        <span class="form-hint">A brief description of the product</span>
+        <div *ngIf="fieldErrors['description']" class="error" data-testid="description-error">
+          {{ fieldErrors['description'] }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="billingModel">Billing Model *</label>
+        <select
+          id="billingModel"
+          name="billingModel"
+          [(ngModel)]="billingModel"
+          [disabled]="submitting"
+          required
+          data-testid="billing-model-select"
+        >
+          <option *ngFor="let model of billingModels" [value]="model.value">
+            {{ model.label }}
+          </option>
+        </select>
+        <span class="form-hint">Choose how customers will be billed for this product</span>
+        <div *ngIf="fieldErrors['billingModel']" class="error" data-testid="billing-model-error">
+          {{ fieldErrors['billingModel'] }}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="productValidFrom">Valid From</label>
+          <input
+            type="date"
+            id="productValidFrom"
+            name="productValidFrom"
+            [(ngModel)]="productValidFrom"
+            [disabled]="submitting"
+            data-testid="valid-from-input"
+          />
+          <span class="form-hint">Optional start date for product availability</span>
+        </div>
+
+        <div class="form-group">
+          <label for="productValidUntil">Valid Until</label>
+          <input
+            type="date"
+            id="productValidUntil"
+            name="productValidUntil"
+            [(ngModel)]="productValidUntil"
+            [disabled]="submitting"
+            data-testid="valid-until-input"
+          />
+          <span class="form-hint">Optional end date for product availability</span>
+          <div *ngIf="fieldErrors['productValidUntil']" class="error" data-testid="valid-until-error">
+            {{ fieldErrors['productValidUntil'] }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="btn-primary"
+          [disabled]="submitting"
+          data-testid="submit-button"
+        >
+          {{ submitting ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update' : 'Create') }}
+        </button>
+        <button
+          type="button"
+          class="btn-secondary"
+          (click)="onCancel()"
+          [disabled]="submitting"
+          data-testid="cancel-button"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -43,6 +43,7 @@ e2e tests will work against this running image. see dev readme for tips on how t
 Delete test accounts as follows (which cascade deletes other data like federated identities, roles, credentials, authorization codes, etc.):
 
 ```
+TODO
 delete from T_demo;
 ```
 

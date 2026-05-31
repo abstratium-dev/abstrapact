@@ -1,0 +1,69 @@
+<div class="container" data-testid="product-definition-detail-page">
+  <div class="page-header">
+    <h1>Product Definition Details</h1>
+    <div class="header-actions">
+      <button class="btn-secondary" (click)="onBack()">
+        ← Back to List
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading">
+    <p>Loading product definition...</p>
+  </div>
+
+  <div *ngIf="error" class="error-box">
+    <p>{{ error }}</p>
+    <button (click)="onBack()">Go Back</button>
+  </div>
+
+  <div *ngIf="!loading && !error && selectedProduct()" class="card">
+    <div class="card-header">
+      <h2>{{ selectedProduct()?.productCode }}</h2>
+      <div class="card-actions">
+        <button class="btn-icon" (click)="onEdit()" title="Edit product definition">
+          ✏️
+        </button>
+        <button class="btn-icon btn-icon-danger" (click)="onDelete()" title="Delete product definition">
+          🗑️
+        </button>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-row" *ngIf="selectedProduct()?.description">
+        <span class="label">Description</span>
+        <span class="value">{{ selectedProduct()?.description }}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="label">Billing Model</span>
+        <span class="value">
+          <span class="badge" [class.badge-primary]="selectedProduct()?.billingModel === 'FIXED_PRICE'" [class.badge-secondary]="selectedProduct()?.billingModel === 'SUBSCRIPTION'">
+            {{ getBillingModelLabel(selectedProduct()?.billingModel || '') }}
+          </span>
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <span class="label">Valid From</span>
+        <span class="value">{{ formatDate(selectedProduct()?.productValidFrom || null) }}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="label">Valid Until</span>
+        <span class="value">{{ formatDate(selectedProduct()?.productValidUntil || null) }}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="label">Organisation ID</span>
+        <span class="value">{{ selectedProduct()?.organisationId }}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="label">Product ID</span>
+        <span class="value">{{ selectedProduct()?.id }}</span>
+      </div>
+    </div>
+  </div>
+</div>

@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { Controller } from './controller';
-import { Demo, ModelService } from './model.service';
+import { ModelService, ProductDefinition, ProductDefinitionRequest } from './model.service';
 
 describe('Controller', () => {
   let controller: Controller;
@@ -29,255 +29,211 @@ describe('Controller', () => {
     expect(controller).toBeTruthy();
   });
 
-  describe('loadDemos', () => {
-    it('should load demos and update model service', () => {
-      const mockDemos: Demo[] = [{ id: '1' }, { id: '2' }];
+  describe('Product Definitions - loadProductDefinitions', () => {
+    it('should load product definitions and update model service', () => {
+      const mockDefinitions: ProductDefinition[] = [
+        {
+          id: '1',
+          organisationId: 'org-1',
+          productCode: 'PROD-001',
+          description: 'Test Product',
+          billingModel: 'FIXED_PRICE',
+          productValidFrom: null,
+          productValidUntil: null
+        }
+      ];
 
-      controller.loadDemos();
+      controller.loadProductDefinitions();
 
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/v1/product-definitions');
       expect(req.request.method).toBe('GET');
-      req.flush(mockDemos);
+      req.flush(mockDefinitions);
 
-      expect(modelService.demos$()).toEqual(mockDemos);
-      expect(modelService.demosLoading$()).toBe(false);
-      expect(modelService.demosError$()).toBeNull();
+      expect(modelService.productDefinitions$()).toEqual(mockDefinitions);
+      expect(modelService.productDefinitionsLoading$()).toBe(false);
+      expect(modelService.productDefinitionsError$()).toBeNull();
     });
 
     it('should set loading state before request', () => {
-      controller.loadDemos();
+      controller.loadProductDefinitions();
 
-      expect(modelService.demosLoading$()).toBe(true);
-      expect(modelService.demosError$()).toBeNull();
+      expect(modelService.productDefinitionsLoading$()).toBe(true);
+      expect(modelService.productDefinitionsError$()).toBeNull();
 
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/v1/product-definitions');
       req.flush([]);
-    });
-
-    it('should handle empty demos list', () => {
-      controller.loadDemos();
-
-      const req = httpMock.expectOne('/api/demo');
-      req.flush([]);
-
-      expect(modelService.demos$()).toEqual([]);
-      expect(modelService.demosLoading$()).toBe(false);
     });
 
     it('should handle error response', () => {
-      controller.loadDemos();
+      controller.loadProductDefinitions();
 
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/v1/product-definitions');
       req.error(new ProgressEvent('error'), { status: 500, statusText: 'Server Error' });
 
-      expect(modelService.demos$()).toEqual([]);
-      expect(modelService.demosLoading$()).toBe(false);
-      expect(modelService.demosError$()).toBe('Failed to load demos');
-    });
-
-    it('should handle network error', () => {
-      controller.loadDemos();
-
-      const req = httpMock.expectOne('/api/demo');
-      req.error(new ProgressEvent('error'));
-
-      expect(modelService.demosError$()).toBe('Failed to load demos');
+      expect(modelService.productDefinitions$()).toEqual([]);
+      expect(modelService.productDefinitionsLoading$()).toBe(false);
+      expect(modelService.productDefinitionsError$()).toBe('Failed to load product definitions');
     });
   });
 
-  describe('createDemo', () => {
-    it('should create demo and reload list', async () => {
-      const newDemo: Demo = { id: '123' };
-      const allDemos: Demo[] = [newDemo];
+  describe('Product Definitions - getProductDefinition', () => {
+    const mockDefinition: ProductDefinition = {
+      id: '1',
+      organisationId: 'org-1',
+      productCode: 'PROD-001',
+      description: 'Test Product',
+      billingModel: 'FIXED_PRICE',
+      productValidFrom: '2024-01-01',
+      productValidUntil: '2024-12-31'
+    };
 
-      const createPromise = controller.createDemo();
+    it('should get product definition by id', async () => {
+      const promise = controller.getProductDefinition('1');
 
-      const createReq = httpMock.expectOne('/api/demo');
-      expect(createReq.request.method).toBe('POST');
-      expect(createReq.request.body).toEqual({});
-      createReq.flush(newDemo);
+      const req = httpMock.expectOne('/api/v1/product-definitions/1');
+      expect(req.request.method).toBe('GET');
+      req.flush(mockDefinition);
 
-      const result = await createPromise;
-      expect(result).toEqual(newDemo);
-
-      // Verify reload was triggered
-      const loadReq = httpMock.expectOne('/api/demo');
-      expect(loadReq.request.method).toBe('GET');
-      loadReq.flush(allDemos);
-
-      expect(modelService.demos$()).toEqual(allDemos);
+      const result = await promise;
+      expect(result).toEqual(mockDefinition);
+      expect(modelService.selectedProductDefinition$()).toEqual(mockDefinition);
     });
 
-    it('should throw error on failed creation', async () => {
-      const createPromise = controller.createDemo();
+    it('should return null when product not found', async () => {
+      const promise = controller.getProductDefinition('999');
 
-      const req = httpMock.expectOne('/api/demo');
-      req.error(new ProgressEvent('error'), { status: 400, statusText: 'Bad Request' });
-
-      await expectAsync(createPromise).toBeRejected();
-    });
-
-    it('should handle server error during creation', async () => {
-      const createPromise = controller.createDemo();
-
-      const req = httpMock.expectOne('/api/demo');
-      req.error(new ProgressEvent('error'), { status: 500, statusText: 'Server Error' });
-
-      await expectAsync(createPromise).toBeRejected();
-    });
-  });
-
-  describe('updateDemo', () => {
-    it('should update demo and reload list', async () => {
-      const demoToUpdate: Demo = { id: '123' };
-      const updatedDemo: Demo = { id: '123' };
-      const allDemos: Demo[] = [updatedDemo];
-
-      const updatePromise = controller.updateDemo(demoToUpdate);
-
-      const updateReq = httpMock.expectOne('/api/demo');
-      expect(updateReq.request.method).toBe('PUT');
-      expect(updateReq.request.body).toEqual(demoToUpdate);
-      updateReq.flush(updatedDemo);
-
-      const result = await updatePromise;
-      expect(result).toEqual(updatedDemo);
-
-      // Verify reload was triggered
-      const loadReq = httpMock.expectOne('/api/demo');
-      expect(loadReq.request.method).toBe('GET');
-      loadReq.flush(allDemos);
-
-      expect(modelService.demos$()).toEqual(allDemos);
-    });
-
-    it('should throw error on failed update', async () => {
-      const demoToUpdate: Demo = { id: '123' };
-      const updatePromise = controller.updateDemo(demoToUpdate);
-
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/v1/product-definitions/999');
       req.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
-      await expectAsync(updatePromise).toBeRejected();
+      const result = await promise;
+      expect(result).toBeNull();
+      expect(modelService.selectedProductDefinition$()).toBeNull();
+    });
+  });
+
+  describe('Product Definitions - createProductDefinition', () => {
+    const mockDefinition: ProductDefinition = {
+      id: '1',
+      organisationId: 'org-1',
+      productCode: 'PROD-001',
+      description: 'Test Product',
+      billingModel: 'FIXED_PRICE',
+      productValidFrom: null,
+      productValidUntil: null
+    };
+
+    const request: ProductDefinitionRequest = {
+      productCode: 'PROD-001',
+      description: 'Test Product',
+      billingModel: 'FIXED_PRICE',
+      productValidFrom: null,
+      productValidUntil: null
+    };
+
+    it('should create product definition and reload list', async () => {
+      // Start the create operation
+      const createPromise = controller.createProductDefinition(request);
+
+      const createReq = httpMock.expectOne('/api/v1/product-definitions');
+      expect(createReq.request.method).toBe('POST');
+      expect(createReq.request.body).toEqual(request);
+      createReq.flush(mockDefinition);
+
+      // Await the create result first
+      const result = await createPromise;
+      expect(result).toEqual(mockDefinition);
+
+      // Now expect the reload request that happens after successful create
+      const loadReq = httpMock.expectOne('/api/v1/product-definitions');
+      expect(loadReq.request.method).toBe('GET');
+      loadReq.flush([mockDefinition]);
+
+      expect(modelService.productDefinitions$()).toEqual([mockDefinition]);
     });
 
-    it('should handle validation error during update', async () => {
-      const demoToUpdate: Demo = { id: '123' };
-      const updatePromise = controller.updateDemo(demoToUpdate);
+    it('should throw error on create failure', async () => {
+      const createPromise = controller.createProductDefinition(request);
 
-      const req = httpMock.expectOne('/api/demo');
-      req.error(new ProgressEvent('error'), { status: 400, statusText: 'Bad Request' });
+      const createReq = httpMock.expectOne('/api/v1/product-definitions');
+      createReq.error(new ProgressEvent('error'), { status: 409, statusText: 'Conflict' });
+
+      await expectAsync(createPromise).toBeRejected();
+    });
+  });
+
+  describe('Product Definitions - updateProductDefinition', () => {
+    const mockDefinition: ProductDefinition = {
+      id: '1',
+      organisationId: 'org-1',
+      productCode: 'PROD-001-UPDATED',
+      description: 'Updated Product',
+      billingModel: 'SUBSCRIPTION',
+      productValidFrom: '2024-01-01',
+      productValidUntil: '2024-12-31'
+    };
+
+    const request: ProductDefinitionRequest = {
+      productCode: 'PROD-001-UPDATED',
+      description: 'Updated Product',
+      billingModel: 'SUBSCRIPTION',
+      productValidFrom: '2024-01-01',
+      productValidUntil: '2024-12-31'
+    };
+
+    it('should update product definition and reload list', async () => {
+      const updatePromise = controller.updateProductDefinition('1', request);
+
+      const updateReq = httpMock.expectOne('/api/v1/product-definitions/1');
+      expect(updateReq.request.method).toBe('PUT');
+      expect(updateReq.request.body).toEqual(request);
+      updateReq.flush(mockDefinition);
+
+      // Await the update result first
+      const result = await updatePromise;
+      expect(result).toEqual(mockDefinition);
+
+      // Now expect the reload request that happens after successful update
+      const loadReq = httpMock.expectOne('/api/v1/product-definitions');
+      expect(loadReq.request.method).toBe('GET');
+      loadReq.flush([mockDefinition]);
+    });
+
+    it('should throw error on update failure', async () => {
+      const updatePromise = controller.updateProductDefinition('1', request);
+
+      const updateReq = httpMock.expectOne('/api/v1/product-definitions/1');
+      updateReq.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       await expectAsync(updatePromise).toBeRejected();
     });
   });
 
-  describe('deleteDemo', () => {
-    it('should delete demo and reload list', async () => {
-      const demoId = '123';
-      const remainingDemos: Demo[] = [{ id: '456' }];
+  describe('Product Definitions - deleteProductDefinition', () => {
+    it('should delete product definition and reload list', async () => {
+      const deletePromise = controller.deleteProductDefinition('1');
 
-      const deletePromise = controller.deleteDemo(demoId);
-
-      const deleteReq = httpMock.expectOne(`/api/demo/${demoId}`);
+      const deleteReq = httpMock.expectOne('/api/v1/product-definitions/1');
       expect(deleteReq.request.method).toBe('DELETE');
       deleteReq.flush(null);
 
+      // Await the delete result first
       await deletePromise;
 
-      // Verify reload was triggered
-      const loadReq = httpMock.expectOne('/api/demo');
+      // Now expect the reload request that happens after successful delete
+      const loadReq = httpMock.expectOne('/api/v1/product-definitions');
       expect(loadReq.request.method).toBe('GET');
-      loadReq.flush(remainingDemos);
+      loadReq.flush([]);
 
-      expect(modelService.demos$()).toEqual(remainingDemos);
+      expect(modelService.productDefinitions$()).toEqual([]);
     });
 
-    it('should throw error on failed deletion', async () => {
-      const demoId = '123';
-      const deletePromise = controller.deleteDemo(demoId);
+    it('should throw error on delete failure', async () => {
+      const deletePromise = controller.deleteProductDefinition('1');
 
-      const req = httpMock.expectOne(`/api/demo/${demoId}`);
-      req.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
+      const deleteReq = httpMock.expectOne('/api/v1/product-definitions/1');
+      deleteReq.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       await expectAsync(deletePromise).toBeRejected();
-    });
-
-    it('should handle permission error during deletion', async () => {
-      const demoId = '123';
-      const deletePromise = controller.deleteDemo(demoId);
-
-      const req = httpMock.expectOne(`/api/demo/${demoId}`);
-      req.error(new ProgressEvent('error'), { status: 403, statusText: 'Forbidden' });
-
-      await expectAsync(deletePromise).toBeRejected();
-    });
-
-    it('should handle server error during deletion', async () => {
-      const demoId = '123';
-      const deletePromise = controller.deleteDemo(demoId);
-
-      const req = httpMock.expectOne(`/api/demo/${demoId}`);
-      req.error(new ProgressEvent('error'), { status: 500, statusText: 'Server Error' });
-
-      await expectAsync(deletePromise).toBeRejected();
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should log errors to console', () => {
-      spyOn(console, 'error');
-
-      controller.loadDemos();
-
-      const req = httpMock.expectOne('/api/demo');
-      req.error(new ProgressEvent('error'));
-
-      expect(console.error).toHaveBeenCalledWith('Error loading demos:', jasmine.any(Object));
-    });
-
-    it('should log creation errors to console', async () => {
-      spyOn(console, 'error');
-
-      const createPromise = controller.createDemo();
-
-      const req = httpMock.expectOne('/api/demo');
-      req.error(new ProgressEvent('error'));
-
-      try {
-        await createPromise;
-      } catch (e) {
-        // Expected
-      }
-
-      expect(console.error).toHaveBeenCalledWith('Error creating demo:', jasmine.any(Object));
-    });
-  });
-
-  describe('Integration', () => {
-    it('should handle multiple operations in sequence', async () => {
-      // Load demos
-      controller.loadDemos();
-      const loadReq1 = httpMock.expectOne('/api/demo');
-      loadReq1.flush([{ id: '1' }]);
-
-      // Create demo
-      const createPromise = controller.createDemo();
-      const createReq = httpMock.expectOne('/api/demo');
-      createReq.flush({ id: '2' });
-      await createPromise;
-      const loadReq2 = httpMock.expectOne('/api/demo');
-      loadReq2.flush([{ id: '1' }, { id: '2' }]);
-
-      // Delete demo
-      const deletePromise = controller.deleteDemo('1');
-      const deleteReq = httpMock.expectOne('/api/demo/1');
-      deleteReq.flush(null);
-      await deletePromise;
-      const loadReq3 = httpMock.expectOne('/api/demo');
-      loadReq3.flush([{ id: '2' }]);
-
-      expect(modelService.demos$()).toEqual([{ id: '2' }]);
     });
   });
 });

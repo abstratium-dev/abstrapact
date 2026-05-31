@@ -312,6 +312,18 @@ class SpaRoutingNotFoundMapperTest {
     }
 
     @Test
+    void testNonApiPathWithQueryStringPreservesQuery() {
+        given()
+            .when()
+            .get("/some-route?foo=bar&baz=qux")
+            .then()
+            .statusCode(200)
+            .contentType("text/html")
+            .body(containsString("url=/?_spa="))
+            .body(containsString("%2Fsome-route%3F"));
+    }
+
+    @Test
     void testNoDoubleSlashInSpaParamWhenPathHasLeadingSlash() {
         // Regression: when the path reported by UriInfo already has a leading slash
         // (e.g. after a server-side redirect to /signed-in), the _spa value must be

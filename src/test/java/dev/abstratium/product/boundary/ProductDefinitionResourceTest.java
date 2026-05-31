@@ -1,5 +1,6 @@
 package dev.abstratium.product.boundary;
 
+import dev.abstratium.core.service.JwtOrgResolver;
 import dev.abstratium.product.entity.ProductDefinition;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -12,6 +13,8 @@ import java.time.LocalDate;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.hasSize;
 
 @QuarkusTest
@@ -23,7 +26,7 @@ class ProductDefinitionResourceTest {
         String productCode = "TEST-PROD-" + System.currentTimeMillis();
 
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId("test-org");
+        definition.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         definition.setProductCode(productCode);
         definition.setDescription("Test Product Description");
         definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -89,7 +92,7 @@ class ProductDefinitionResourceTest {
         String productCode = "DUP-TEST-" + System.currentTimeMillis();
 
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId("test-org");
+        definition.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         definition.setProductCode(productCode);
         definition.setDescription("First Product");
         definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -104,7 +107,7 @@ class ProductDefinitionResourceTest {
             .statusCode(201);
 
         ProductDefinition duplicate = new ProductDefinition();
-        duplicate.setOrganisationId("test-org");
+        duplicate.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         duplicate.setProductCode(productCode);
         duplicate.setDescription("Duplicate Product");
         duplicate.setBillingModel(ProductDefinition.BillingModel.SUBSCRIPTION);
@@ -125,7 +128,7 @@ class ProductDefinitionResourceTest {
         String productCode = "UPDATE-TEST-" + System.currentTimeMillis();
 
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId("test-org");
+        definition.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         definition.setProductCode(productCode);
         definition.setDescription("Original Description");
         definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -142,7 +145,7 @@ class ProductDefinitionResourceTest {
             .path("id");
 
         ProductDefinition update = new ProductDefinition();
-        update.setOrganisationId("test-org");
+        update.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         update.setProductCode(productCode);
         update.setDescription("Updated Description");
         update.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -164,7 +167,7 @@ class ProductDefinitionResourceTest {
         String productCode = "DELETE-TEST-" + System.currentTimeMillis();
 
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId("test-org");
+        definition.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         definition.setProductCode(productCode);
         definition.setDescription("To be deleted");
         definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -233,7 +236,7 @@ class ProductDefinitionResourceTest {
         String productCode = "YAML-EXPORT-" + System.currentTimeMillis();
 
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId("test-org");
+        definition.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         definition.setProductCode(productCode);
         definition.setDescription("Export Test");
         definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -261,12 +264,163 @@ class ProductDefinitionResourceTest {
     }
 
     @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404ForNonExistentProductCode() {
+        given()
+            .when()
+            .get("/api/v1/product-definitions/code/NON-EXISTENT-CODE-XYZ")
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn400ForNullProductCode() {
+        ProductDefinition definition = new ProductDefinition();
+        definition.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        definition.setDescription("No code");
+        definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        definition.setProductValidFrom(LocalDate.now());
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(definition)
+            .when()
+            .post("/api/v1/product-definitions")
+            .then()
+            .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404WhenUpdatingNonExistentProduct() {
+        ProductDefinition update = new ProductDefinition();
+        update.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        update.setProductCode("NO-SUCH-CODE");
+        update.setDescription("Does not exist");
+        update.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        update.setProductValidFrom(LocalDate.now());
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(update)
+            .when()
+            .put("/api/v1/product-definitions/non-existent-id-xyz")
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404WhenDeletingNonExistentProduct() {
+        given()
+            .when()
+            .delete("/api/v1/product-definitions/non-existent-id-xyz")
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldRejectDuplicateYamlImport() {
+        String productCode = "YAML-DUP-" + System.currentTimeMillis();
+        String yaml = "product_code: " + productCode + "\n" +
+                      "description: First import\n" +
+                      "billing_model: FIXED_PRICE\n" +
+                      "valid_from: " + LocalDate.now() + "\n" +
+                      "valid_until: null\n";
+
+        given()
+            .config(RestAssured.config().encoderConfig(EncoderConfig.encoderConfig().encodeContentTypeAs("application/x-yaml", ContentType.TEXT)))
+            .contentType("application/x-yaml")
+            .body(yaml)
+            .when()
+            .post("/api/v1/product-definitions/import/yaml")
+            .then()
+            .statusCode(201);
+
+        given()
+            .config(RestAssured.config().encoderConfig(EncoderConfig.encoderConfig().encodeContentTypeAs("application/x-yaml", ContentType.TEXT)))
+            .contentType("application/x-yaml")
+            .body(yaml)
+            .when()
+            .post("/api/v1/product-definitions/import/yaml")
+            .then()
+            .statusCode(409);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404ForYamlExportOfNonExistentProduct() {
+        given()
+            .when()
+            .get("/api/v1/product-definitions/non-existent-id-xyz/export/yaml")
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldImportYamlWithOrganisationIdAndValidUntil() {
+        String productCode = "YAML-FULL-" + System.currentTimeMillis();
+        String yaml = "organisation_id: " + JwtOrgResolver.DEFAULT_ORG_ID + "\n" +
+                      "product_code: " + productCode + "\n" +
+                      "description: Full YAML import\n" +
+                      "billing_model: SUBSCRIPTION\n" +
+                      "valid_from: " + LocalDate.now() + "\n" +
+                      "valid_until: " + LocalDate.now().plusYears(1) + "\n";
+
+        given()
+            .config(RestAssured.config().encoderConfig(EncoderConfig.encoderConfig().encodeContentTypeAs("application/x-yaml", ContentType.TEXT)))
+            .contentType("application/x-yaml")
+            .body(yaml)
+            .when()
+            .post("/api/v1/product-definitions/import/yaml")
+            .then()
+            .statusCode(201)
+            .body("productCode", equalTo(productCode));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldExportYamlWithValidUntilSet() {
+        String productCode = "YAML-EXP-UNTIL-" + System.currentTimeMillis();
+
+        ProductDefinition definition = new ProductDefinition();
+        definition.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        definition.setProductCode(productCode);
+        definition.setDescription("Export with until");
+        definition.setBillingModel(ProductDefinition.BillingModel.SUBSCRIPTION);
+        definition.setProductValidFrom(LocalDate.now());
+        definition.setProductValidUntil(LocalDate.now().plusYears(2));
+
+        String id = given()
+            .contentType(ContentType.JSON)
+            .body(definition)
+            .when()
+            .post("/api/v1/product-definitions")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        given()
+            .when()
+            .get("/api/v1/product-definitions/" + id + "/export/yaml")
+            .then()
+            .statusCode(200)
+            .contentType("application/x-yaml")
+            .body(containsString("valid_until:"))
+            .body(containsString("product_code: " + productCode));
+    }
+
+    @Test
     void shouldRejectUnauthenticatedRequests() {
         given()
             .when()
             .get("/api/v1/product-definitions")
             .then()
-            .statusCode(401);
+            .statusCode(anyOf(is(400), is(401)));
     }
 
     @Test

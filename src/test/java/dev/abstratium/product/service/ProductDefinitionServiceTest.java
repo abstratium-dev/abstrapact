@@ -1,6 +1,6 @@
 package dev.abstratium.product.service;
 
-import dev.abstratium.abstratium.core.service.JwtOrgResolver;
+import dev.abstratium.core.service.JwtOrgResolver;
 import dev.abstratium.product.entity.ProductDefinition;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -178,5 +178,27 @@ class ProductDefinitionServiceTest {
     void shouldReturnEmptyOptionalForNonExistentProductCode() {
         Optional<ProductDefinition> found = service.findByProductCode("NON-EXISTENT-CODE");
         assertFalse(found.isPresent());
+    }
+
+    @Test
+    void shouldPreservePreSetIdOnCreate() {
+        String preSetId = UUID.randomUUID().toString();
+        ProductDefinition product = new ProductDefinition();
+        product.setId(preSetId);
+        product.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        product.setProductCode("PRESET-ID-PROD");
+        product.setDescription("Product with pre-set ID");
+        product.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        product.setProductValidFrom(LocalDate.now());
+
+        ProductDefinition created = service.createProductDefinition(product);
+
+        assertEquals(preSetId, created.getId());
+    }
+
+    @Test
+    void shouldSilentlyHandleDeleteOfNonExistentId() {
+        service.deleteProductDefinition("non-existent-id-that-does-not-exist");
+        // No exception expected — delete of non-existent ID is a no-op
     }
 }

@@ -1,0 +1,55 @@
+<div class="container" data-testid="product-definitions-list-page">
+  <div class="page-header">
+    <h1>Product Definitions</h1>
+    <div class="header-actions">
+      <button class="btn-add" (click)="onCreate()">
+        + Add Product Definition
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading()" class="loading">
+    <p>Loading product definitions...</p>
+  </div>
+
+  <div *ngIf="error()" class="error-box">
+    <p>{{ error() }}</p>
+    <button (click)="onRetry()">Retry</button>
+  </div>
+
+  <div *ngIf="!loading() && !error() && productDefinitions().length === 0" class="info-message">
+    <p>No product definitions found. Click "Add Product Definition" to create one.</p>
+  </div>
+
+  <div *ngIf="!loading() && !error() && productDefinitions().length > 0">
+    <div class="tile-grid">
+      <div class="tile" *ngFor="let definition of productDefinitions()" (click)="onView(definition)">
+        <div class="tile-header">
+          <div class="tile-info">
+            <h3 class="tile-title">{{ definition.productCode }}</h3>
+            <p class="tile-subtitle" *ngIf="definition.description">{{ definition.description }}</p>
+          </div>
+          <div class="tile-badges">
+            <span class="badge" [class.badge-primary]="definition.billingModel === 'FIXED_PRICE'" [class.badge-secondary]="definition.billingModel === 'SUBSCRIPTION'">
+              {{ getBillingModelLabel(definition.billingModel) }}
+            </span>
+          </div>
+        </div>
+        <div class="tile-details">
+          <div class="tile-detail-item" *ngIf="definition.productValidFrom || definition.productValidUntil">
+            <span class="label">Valid:</span>
+            <span class="value">{{ formatDate(definition.productValidFrom) }} - {{ formatDate(definition.productValidUntil) }}</span>
+          </div>
+        </div>
+        <div class="tile-actions">
+          <button class="btn-icon" (click)="onEdit(definition, $event)" title="Edit product definition">
+            ✏️
+          </button>
+          <button class="btn-icon btn-icon-danger" (click)="onDelete(definition, $event)" title="Delete product definition">
+            🗑️
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

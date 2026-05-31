@@ -1,4 +1,4 @@
-package dev.abstratium.demo;
+package dev.abstratium.abstrapact;
 
 /**
  * Represents the standard roles for the service.

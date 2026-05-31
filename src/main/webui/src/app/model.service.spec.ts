@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Config, Demo, ModelService } from './model.service';
+import { Config, ModelService, ProductDefinition } from './model.service';
 
 describe('ModelService', () => {
   let service: ModelService;
@@ -13,162 +13,12 @@ describe('ModelService', () => {
     expect(service).toBeTruthy();
   });
 
-  describe('Initial State', () => {
-    it('should have empty demos initially', () => {
-      expect(service.demos$()).toEqual([]);
-    });
-
-    it('should not be loading initially', () => {
-      expect(service.demosLoading$()).toBe(false);
-    });
-
-    it('should have no error initially', () => {
-      expect(service.demosError$()).toBeNull();
-    });
-  });
-
-  describe('Demo Management', () => {
-    it('should set demos', () => {
-      const demos: Demo[] = [{ id: '1' }, { id: '2' }];
-      service.setDemos(demos);
-      expect(service.demos$()).toEqual(demos);
-    });
-
-    it('should update demos', () => {
-      const demos1: Demo[] = [{ id: '1' }];
-      const demos2: Demo[] = [{ id: '2' }, { id: '3' }];
-      
-      service.setDemos(demos1);
-      expect(service.demos$()).toEqual(demos1);
-      
-      service.setDemos(demos2);
-      expect(service.demos$()).toEqual(demos2);
-    });
-
-    it('should handle empty demos list', () => {
-      const demos: Demo[] = [{ id: '1' }];
-      service.setDemos(demos);
-      service.setDemos([]);
-      expect(service.demos$()).toEqual([]);
-    });
-
-    it('should handle large demos list', () => {
-      const demos: Demo[] = Array.from({ length: 100 }, (_, i) => ({ id: `${i}` }));
-      service.setDemos(demos);
-      expect(service.demos$()).toEqual(demos);
-      expect(service.demos$().length).toBe(100);
-    });
-  });
-
-  describe('Loading State Management', () => {
-    it('should set loading state', () => {
-      service.setDemosLoading(true);
-      expect(service.demosLoading$()).toBe(true);
-    });
-
-    it('should update loading state', () => {
-      service.setDemosLoading(true);
-      expect(service.demosLoading$()).toBe(true);
-      
-      service.setDemosLoading(false);
-      expect(service.demosLoading$()).toBe(false);
-    });
-
-    it('should toggle loading state multiple times', () => {
-      service.setDemosLoading(true);
-      service.setDemosLoading(false);
-      service.setDemosLoading(true);
-      expect(service.demosLoading$()).toBe(true);
-    });
-  });
-
-  describe('Error State Management', () => {
-    it('should set error', () => {
-      service.setDemosError('Failed to load demos');
-      expect(service.demosError$()).toBe('Failed to load demos');
-    });
-
-    it('should update error', () => {
-      service.setDemosError('Error 1');
-      expect(service.demosError$()).toBe('Error 1');
-      
-      service.setDemosError('Error 2');
-      expect(service.demosError$()).toBe('Error 2');
-    });
-
-    it('should clear error', () => {
-      service.setDemosError('Some error');
-      service.setDemosError(null);
-      expect(service.demosError$()).toBeNull();
-    });
-
-    it('should handle empty string error', () => {
-      service.setDemosError('');
-      expect(service.demosError$()).toBe('');
-    });
-  });
-
-  describe('Combined State Management', () => {
-    it('should manage all states independently', () => {
-      const demos: Demo[] = [{ id: '1' }];
-      service.setDemos(demos);
-      service.setDemosLoading(true);
-      service.setDemosError('Some error');
-
-      expect(service.demos$()).toEqual(demos);
-      expect(service.demosLoading$()).toBe(true);
-      expect(service.demosError$()).toBe('Some error');
-    });
-
-    it('should reset all states', () => {
-      service.setDemos([{ id: '1' }]);
-      service.setDemosLoading(true);
-      service.setDemosError('Error');
-
-      service.setDemos([]);
-      service.setDemosLoading(false);
-      service.setDemosError(null);
-
-      expect(service.demos$()).toEqual([]);
-      expect(service.demosLoading$()).toBe(false);
-      expect(service.demosError$()).toBeNull();
-    });
-  });
-
-  describe('Signal Reactivity', () => {
-    it('should emit signal updates for demos', () => {
-      const demos1: Demo[] = [{ id: '1' }];
-      const demos2: Demo[] = [{ id: '2' }];
-      
-      service.setDemos(demos1);
-      expect(service.demos$()).toEqual(demos1);
-      
-      service.setDemos(demos2);
-      expect(service.demos$()).toEqual(demos2);
-    });
-
-    it('should emit signal updates for loading', () => {
-      service.setDemosLoading(true);
-      expect(service.demosLoading$()).toBe(true);
-      
-      service.setDemosLoading(false);
-      expect(service.demosLoading$()).toBe(false);
-    });
-
-    it('should emit signal updates for error', () => {
-      service.setDemosError('Error 1');
-      expect(service.demosError$()).toBe('Error 1');
-      
-      service.setDemosError('Error 2');
-      expect(service.demosError$()).toBe('Error 2');
-    });
-  });
-
   describe('Service Singleton', () => {
     it('should be a singleton across injections', () => {
       const service2 = TestBed.inject(ModelService);
-      service.setDemos([{ id: '1' }]);
-      expect(service2.demos$()).toEqual([{ id: '1' }]);
+      const config: Config = { logLevel: 'INFO', warningMessage: 'Singleton test', warningBgColor: '#fff3cd', brandLogoUrl: 'https://example.com/logo.png', brandLogoAlt: 'Logo', brandName: 'Example' };
+      service.setConfig(config);
+      expect(service2.warningMessage$()).toBe('Singleton test');
     });
   });
 
@@ -228,6 +78,152 @@ describe('ModelService', () => {
       expect(service.brandLogoUrl$()).toBe('https://abstratium.dev/abstratium-logo-small.png');
       expect(service.brandLogoAlt$()).toBe('Abstratium Logo');
       expect(service.brandName$()).toBe('ABSTRATIUM');
+    });
+  });
+
+  describe('Product Definitions - Initial State', () => {
+    it('should have empty product definitions initially', () => {
+      expect(service.productDefinitions$()).toEqual([]);
+    });
+
+    it('should not be loading product definitions initially', () => {
+      expect(service.productDefinitionsLoading$()).toBe(false);
+    });
+
+    it('should have no product definitions error initially', () => {
+      expect(service.productDefinitionsError$()).toBeNull();
+    });
+
+    it('should have no selected product definition initially', () => {
+      expect(service.selectedProductDefinition$()).toBeNull();
+    });
+  });
+
+  describe('Product Definitions - State Management', () => {
+    const mockProductDefinitions: ProductDefinition[] = [
+      {
+        id: '1',
+        organisationId: 'org-1',
+        productCode: 'PROD-001',
+        description: 'Test Product 1',
+        billingModel: 'FIXED_PRICE',
+        productValidFrom: '2024-01-01',
+        productValidUntil: '2024-12-31'
+      },
+      {
+        id: '2',
+        organisationId: 'org-1',
+        productCode: 'PROD-002',
+        description: 'Test Product 2',
+        billingModel: 'SUBSCRIPTION',
+        productValidFrom: null,
+        productValidUntil: null
+      }
+    ];
+
+    it('should set product definitions', () => {
+      service.setProductDefinitions(mockProductDefinitions);
+      expect(service.productDefinitions$()).toEqual(mockProductDefinitions);
+    });
+
+    it('should update product definitions', () => {
+      service.setProductDefinitions([mockProductDefinitions[0]]);
+      expect(service.productDefinitions$()).toEqual([mockProductDefinitions[0]]);
+
+      service.setProductDefinitions([mockProductDefinitions[1]]);
+      expect(service.productDefinitions$()).toEqual([mockProductDefinitions[1]]);
+    });
+
+    it('should handle empty product definitions list', () => {
+      service.setProductDefinitions(mockProductDefinitions);
+      service.setProductDefinitions([]);
+      expect(service.productDefinitions$()).toEqual([]);
+    });
+
+    it('should set product definitions loading state', () => {
+      service.setProductDefinitionsLoading(true);
+      expect(service.productDefinitionsLoading$()).toBe(true);
+    });
+
+    it('should update product definitions loading state', () => {
+      service.setProductDefinitionsLoading(true);
+      expect(service.productDefinitionsLoading$()).toBe(true);
+
+      service.setProductDefinitionsLoading(false);
+      expect(service.productDefinitionsLoading$()).toBe(false);
+    });
+
+    it('should set product definitions error', () => {
+      service.setProductDefinitionsError('Failed to load');
+      expect(service.productDefinitionsError$()).toBe('Failed to load');
+    });
+
+    it('should clear product definitions error', () => {
+      service.setProductDefinitionsError('Some error');
+      service.setProductDefinitionsError(null);
+      expect(service.productDefinitionsError$()).toBeNull();
+    });
+
+    it('should set selected product definition', () => {
+      service.setSelectedProductDefinition(mockProductDefinitions[0]);
+      expect(service.selectedProductDefinition$()).toEqual(mockProductDefinitions[0]);
+    });
+
+    it('should clear selected product definition', () => {
+      service.setSelectedProductDefinition(mockProductDefinitions[0]);
+      service.setSelectedProductDefinition(null);
+      expect(service.selectedProductDefinition$()).toBeNull();
+    });
+  });
+
+  describe('Product Definitions - Combined State Management', () => {
+    it('should manage all product definition states independently', () => {
+      const mockProduct: ProductDefinition = {
+        id: '1',
+        organisationId: 'org-1',
+        productCode: 'PROD-001',
+        description: 'Test',
+        billingModel: 'FIXED_PRICE',
+        productValidFrom: null,
+        productValidUntil: null
+      };
+
+      service.setProductDefinitions([mockProduct]);
+      service.setProductDefinitionsLoading(true);
+      service.setProductDefinitionsError('Error');
+      service.setSelectedProductDefinition(mockProduct);
+
+      expect(service.productDefinitions$()).toEqual([mockProduct]);
+      expect(service.productDefinitionsLoading$()).toBe(true);
+      expect(service.productDefinitionsError$()).toBe('Error');
+      expect(service.selectedProductDefinition$()).toEqual(mockProduct);
+    });
+
+    it('should reset all product definition states', () => {
+      const mockProduct: ProductDefinition = {
+        id: '1',
+        organisationId: 'org-1',
+        productCode: 'PROD-001',
+        description: 'Test',
+        billingModel: 'FIXED_PRICE',
+        productValidFrom: null,
+        productValidUntil: null
+      };
+
+      service.setProductDefinitions([mockProduct]);
+      service.setProductDefinitionsLoading(true);
+      service.setProductDefinitionsError('Error');
+      service.setSelectedProductDefinition(mockProduct);
+
+      service.setProductDefinitions([]);
+      service.setProductDefinitionsLoading(false);
+      service.setProductDefinitionsError(null);
+      service.setSelectedProductDefinition(null);
+
+      expect(service.productDefinitions$()).toEqual([]);
+      expect(service.productDefinitionsLoading$()).toBe(false);
+      expect(service.productDefinitionsError$()).toBeNull();
+      expect(service.selectedProductDefinition$()).toBeNull();
     });
   });
 });

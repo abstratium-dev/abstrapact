@@ -18,13 +18,7 @@
         </button>
         &nbsp;|&nbsp;
         <a id="legal-link" routerLink="/legal" routerLinkActive="inactive-link">legal</a>
-        &nbsp;|&nbsp;
-        <a id="public-link" routerLink="/public" routerLinkActive="inactive-link">public</a>
-        &nbsp;|&nbsp;
-        <a id="home-link" routerLink="/demo" routerLinkActive="inactive-link">🏠</a>
         @if(isSignedIn) {
-            &nbsp;|&nbsp;
-            <a id="TODO-link" routerLink="/TODO" routerLinkActive="inactive-link">TODO</a>
             &nbsp;|&nbsp;
             <span class="signout-wrapper">
                 <svg class="session-clock" viewBox="0 0 18 18" [attr.aria-label]="sessionMinutesRemaining + ' minutes until sign-out'">

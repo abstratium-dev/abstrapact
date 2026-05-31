@@ -1,5 +1,6 @@
 package dev.abstratium.product.boundary;
 
+import dev.abstratium.core.service.JwtOrgResolver;
 import dev.abstratium.product.entity.ProductDefinition;
 import dev.abstratium.product.service.ProductDefinitionService;
 import jakarta.annotation.security.RolesAllowed;
@@ -132,7 +133,7 @@ public class ProductDefinitionResource {
 
     private ProductDefinition parseYamlToProductDefinition(String yamlContent) {
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId("imported");
+        definition.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         String[] lines = yamlContent.split("\n");
         for (String line : lines) {
             line = line.trim();

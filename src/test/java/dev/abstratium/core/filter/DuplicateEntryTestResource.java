@@ -66,4 +66,24 @@ public class DuplicateEntryTestResource {
         ConstraintViolationException cve = new ConstraintViolationException(null, sqlException, "UQ_test_name");
         throw new RuntimeException("transaction rolled back", cve);
     }
+
+    @GET
+    @Path("/h2-unique-null-constraint")
+    @Produces(MediaType.APPLICATION_JSON)
+    public void triggerH2UniqueWithNullConstraint() {
+        SQLException sqlException = new SQLException(
+            "Unique index or primary key violation: \"ON T_TEST(NAME)\"", "23505", 23505);
+        ConstraintViolationException cve = new ConstraintViolationException(
+            "Unique index or primary key violation", sqlException, null);
+        throw new RuntimeException("transaction rolled back", cve);
+    }
+
+    @GET
+    @Path("/uq-constraint-name-violation")
+    @Produces(MediaType.APPLICATION_JSON)
+    public void triggerUqConstraintNameViolation() {
+        ConstraintViolationException cve = new ConstraintViolationException(
+            "could not execute statement", null, "UQ_product_code");
+        throw new RuntimeException("transaction rolled back", cve);
+    }
 }

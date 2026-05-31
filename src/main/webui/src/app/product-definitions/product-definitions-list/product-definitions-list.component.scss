@@ -1,0 +1,8 @@
+.tile-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border-primary);
+  justify-content: flex-end;
+}

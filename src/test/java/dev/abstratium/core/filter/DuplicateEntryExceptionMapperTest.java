@@ -86,4 +86,31 @@ class DuplicateEntryExceptionMapperTest {
             .body("title", is("Duplicate entry detected"))
             .body("detail", is("A test with name 'x' already exists. Please choose a different name."));
     }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"user"})
+    void testH2UniqueWithNullConstraintNameReturnsConflict() {
+        given()
+            .when()
+            .get("/api/test/duplicate-entry/h2-unique-null-constraint")
+            .then()
+            .statusCode(409)
+            .contentType(containsString("problem+json"))
+            .body("status", is(409))
+            .body("title", is("Duplicate entry detected"))
+            .body("detail", containsString("resource"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"user"})
+    void testUqConstraintNameViolationReturnsConflict() {
+        given()
+            .when()
+            .get("/api/test/duplicate-entry/uq-constraint-name-violation")
+            .then()
+            .statusCode(409)
+            .contentType(containsString("problem+json"))
+            .body("status", is(409))
+            .body("title", is("Duplicate entry detected"));
+    }
 }

@@ -1,5 +1,6 @@
 package dev.abstratium.core.filter;
 
+import io.quarkus.test.junit.QuarkusTest;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.core.*;
@@ -15,9 +16,37 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+@QuarkusTest
 class SecurityHeadersFilterTest {
+
+    @Test
+    void testSecurityHeadersPresentOnPublicEndpoint() {
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .header("X-Content-Type-Options", is("nosniff"))
+            .header("X-Frame-Options", is("DENY"))
+            .header("X-XSS-Protection", is("1; mode=block"))
+            .header("Referrer-Policy", is("strict-origin-when-cross-origin"))
+            .header("Permissions-Policy", containsString("geolocation=()"))
+            .header("Content-Security-Policy", containsString("default-src"));
+    }
+
+    @Test
+    void testNoHstsHeaderByDefault() {
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .header("Strict-Transport-Security", nullValue());
+    }
 
     private SecurityHeadersFilter filter;
     private ContainerRequestContext request;
