@@ -12,3 +12,5 @@ The database follows strict naming conventions for consistency and clarity:
 - **Timestamps**: Use `created_at` and `expires_at` naming pattern
 
 SQL files must support MySQL (production) and H2 (testing).
+
+When creating DDL scripts, don't forget to check if there are also hibernate envers AUD tables that also need creating/updating.
