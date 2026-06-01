@@ -14,3 +14,6 @@ The database follows strict naming conventions for consistency and clarity:
 SQL files must support MySQL (production) and H2 (testing).
 
 When creating DDL scripts, don't forget to check if there are also hibernate envers AUD tables that also need creating/updating.
+
+If hibernate multi-tenancy is in use, remember to use the `@TenantId` on the discriminator column. If you are not sure, ask for help.
+

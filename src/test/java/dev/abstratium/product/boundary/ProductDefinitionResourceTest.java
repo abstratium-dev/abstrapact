@@ -43,7 +43,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(definition)
             .when()
-            .post("/api/v1/product-definitions")
+            .post("/api/product-definitions")
             .then()
             .statusCode(201)
             .body("productCode", equalTo(productCode))
@@ -55,7 +55,7 @@ class ProductDefinitionResourceTest {
 
         given()
             .when()
-            .get("/api/v1/product-definitions/" + id)
+            .get("/api/product-definitions/" + id)
             .then()
             .statusCode(200)
             .body("id", equalTo(id))
@@ -64,7 +64,7 @@ class ProductDefinitionResourceTest {
 
         given()
             .when()
-            .get("/api/v1/product-definitions/code/" + productCode)
+            .get("/api/product-definitions/code/" + productCode)
             .then()
             .statusCode(200)
             .body("id", equalTo(id))
@@ -76,7 +76,7 @@ class ProductDefinitionResourceTest {
     void shouldListAllProductDefinitions() {
         given()
             .when()
-            .get("/api/v1/product-definitions")
+            .get("/api/product-definitions")
             .then()
             .statusCode(200)
             .body("$", isA(java.util.List.class));
@@ -87,7 +87,7 @@ class ProductDefinitionResourceTest {
     void shouldReturn404ForNonExistentProduct() {
         given()
             .when()
-            .get("/api/v1/product-definitions/non-existent-id")
+            .get("/api/product-definitions/non-existent-id")
             .then()
             .statusCode(404);
     }
@@ -108,7 +108,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(definition)
             .when()
-            .post("/api/v1/product-definitions")
+            .post("/api/product-definitions")
             .then()
             .statusCode(201);
 
@@ -123,7 +123,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(duplicate)
             .when()
-            .post("/api/v1/product-definitions")
+            .post("/api/product-definitions")
             .then()
             .statusCode(409);
     }
@@ -144,7 +144,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(definition)
             .when()
-            .post("/api/v1/product-definitions")
+            .post("/api/product-definitions")
             .then()
             .statusCode(201)
             .extract()
@@ -161,7 +161,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(update)
             .when()
-            .put("/api/v1/product-definitions/" + id)
+            .put("/api/product-definitions/" + id)
             .then()
             .statusCode(200)
             .body("description", equalTo("Updated Description"));
@@ -183,7 +183,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(definition)
             .when()
-            .post("/api/v1/product-definitions")
+            .post("/api/product-definitions")
             .then()
             .statusCode(201)
             .extract()
@@ -191,13 +191,13 @@ class ProductDefinitionResourceTest {
 
         given()
             .when()
-            .delete("/api/v1/product-definitions/" + id)
+            .delete("/api/product-definitions/" + id)
             .then()
             .statusCode(204);
 
         given()
             .when()
-            .get("/api/v1/product-definitions/" + id)
+            .get("/api/product-definitions/" + id)
             .then()
             .statusCode(404);
     }
@@ -207,7 +207,7 @@ class ProductDefinitionResourceTest {
     void shouldFilterByBillingModel() {
         given()
             .when()
-            .get("/api/v1/product-definitions/billing-model/FIXED_PRICE")
+            .get("/api/product-definitions/billing-model/FIXED_PRICE")
             .then()
             .statusCode(200)
             .body("$", isA(java.util.List.class));
@@ -228,7 +228,7 @@ class ProductDefinitionResourceTest {
             .contentType("application/x-yaml")
             .body(yaml)
             .when()
-            .post("/api/v1/product-definitions/import/yaml")
+            .post("/api/product-definitions/import/yaml")
             .then()
             .statusCode(201)
             .body("productCode", equalTo(productCode))
@@ -252,7 +252,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(definition)
             .when()
-            .post("/api/v1/product-definitions")
+            .post("/api/product-definitions")
             .then()
             .statusCode(201)
             .extract()
@@ -260,7 +260,7 @@ class ProductDefinitionResourceTest {
 
         given()
             .when()
-            .get("/api/v1/product-definitions/" + id + "/export/yaml")
+            .get("/api/product-definitions/" + id + "/export/yaml")
             .then()
             .statusCode(200)
             .contentType("application/x-yaml")
@@ -274,7 +274,7 @@ class ProductDefinitionResourceTest {
     void shouldReturn404ForNonExistentProductCode() {
         given()
             .when()
-            .get("/api/v1/product-definitions/code/NON-EXISTENT-CODE-XYZ")
+            .get("/api/product-definitions/code/NON-EXISTENT-CODE-XYZ")
             .then()
             .statusCode(404);
     }
@@ -292,7 +292,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(definition)
             .when()
-            .post("/api/v1/product-definitions")
+            .post("/api/product-definitions")
             .then()
             .statusCode(400);
     }
@@ -311,7 +311,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(update)
             .when()
-            .put("/api/v1/product-definitions/non-existent-id-xyz")
+            .put("/api/product-definitions/non-existent-id-xyz")
             .then()
             .statusCode(404);
     }
@@ -321,7 +321,7 @@ class ProductDefinitionResourceTest {
     void shouldReturn404WhenDeletingNonExistentProduct() {
         given()
             .when()
-            .delete("/api/v1/product-definitions/non-existent-id-xyz")
+            .delete("/api/product-definitions/non-existent-id-xyz")
             .then()
             .statusCode(404);
     }
@@ -341,7 +341,7 @@ class ProductDefinitionResourceTest {
             .contentType("application/x-yaml")
             .body(yaml)
             .when()
-            .post("/api/v1/product-definitions/import/yaml")
+            .post("/api/product-definitions/import/yaml")
             .then()
             .statusCode(201);
 
@@ -350,7 +350,7 @@ class ProductDefinitionResourceTest {
             .contentType("application/x-yaml")
             .body(yaml)
             .when()
-            .post("/api/v1/product-definitions/import/yaml")
+            .post("/api/product-definitions/import/yaml")
             .then()
             .statusCode(409);
     }
@@ -360,7 +360,7 @@ class ProductDefinitionResourceTest {
     void shouldReturn404ForYamlExportOfNonExistentProduct() {
         given()
             .when()
-            .get("/api/v1/product-definitions/non-existent-id-xyz/export/yaml")
+            .get("/api/product-definitions/non-existent-id-xyz/export/yaml")
             .then()
             .statusCode(404);
     }
@@ -381,7 +381,7 @@ class ProductDefinitionResourceTest {
             .contentType("application/x-yaml")
             .body(yaml)
             .when()
-            .post("/api/v1/product-definitions/import/yaml")
+            .post("/api/product-definitions/import/yaml")
             .then()
             .statusCode(201)
             .body("productCode", equalTo(productCode));
@@ -404,7 +404,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(definition)
             .when()
-            .post("/api/v1/product-definitions")
+            .post("/api/product-definitions")
             .then()
             .statusCode(201)
             .extract()
@@ -412,7 +412,7 @@ class ProductDefinitionResourceTest {
 
         given()
             .when()
-            .get("/api/v1/product-definitions/" + id + "/export/yaml")
+            .get("/api/product-definitions/" + id + "/export/yaml")
             .then()
             .statusCode(200)
             .contentType("application/x-yaml")
@@ -424,7 +424,7 @@ class ProductDefinitionResourceTest {
     void shouldRejectUnauthenticatedRequests() {
         given()
             .when()
-            .get("/api/v1/product-definitions")
+            .get("/api/product-definitions")
             .then()
             .statusCode(anyOf(is(400), is(401)));
     }
@@ -434,7 +434,7 @@ class ProductDefinitionResourceTest {
     void shouldRejectUnauthorizedRequests() {
         given()
             .when()
-            .get("/api/v1/product-definitions")
+            .get("/api/product-definitions")
             .then()
             .statusCode(403);
     }
@@ -481,7 +481,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(request)
             .when()
-            .post("/api/v1/product-definitions/complete")
+            .post("/api/product-definitions/complete")
             .then()
             .statusCode(201)
             .body("productCode", equalTo(productCode))
@@ -493,7 +493,7 @@ class ProductDefinitionResourceTest {
         // Verify parts were created
         given()
             .when()
-            .get("/api/v1/product-definitions/" + id + "/parts")
+            .get("/api/product-definitions/" + id + "/parts")
             .then()
             .statusCode(200)
             .body("$", hasSize(1))
@@ -525,7 +525,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(createRequest)
             .when()
-            .post("/api/v1/product-definitions/complete")
+            .post("/api/product-definitions/complete")
             .then()
             .statusCode(201)
             .extract()
@@ -551,7 +551,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(updateRequest)
             .when()
-            .put("/api/v1/product-definitions/" + id + "/complete")
+            .put("/api/product-definitions/" + id + "/complete")
             .then()
             .statusCode(200)
             .body("description", equalTo("Updated"))
@@ -560,7 +560,7 @@ class ProductDefinitionResourceTest {
         // Verify parts were replaced
         given()
             .when()
-            .get("/api/v1/product-definitions/" + id + "/parts")
+            .get("/api/product-definitions/" + id + "/parts")
             .then()
             .statusCode(200)
             .body("$", hasSize(1))
@@ -592,7 +592,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(request)
             .when()
-            .post("/api/v1/product-definitions/complete")
+            .post("/api/product-definitions/complete")
             .then()
             .statusCode(201)
             .extract()
@@ -601,7 +601,7 @@ class ProductDefinitionResourceTest {
         // Get the part ID
         String partId = given()
             .when()
-            .get("/api/v1/product-definitions/" + id + "/parts")
+            .get("/api/product-definitions/" + id + "/parts")
             .then()
             .statusCode(200)
             .extract()
@@ -610,21 +610,21 @@ class ProductDefinitionResourceTest {
         // Delete the complete product
         given()
             .when()
-            .delete("/api/v1/product-definitions/" + id + "/complete")
+            .delete("/api/product-definitions/" + id + "/complete")
             .then()
             .statusCode(204);
 
         // Verify product is gone
         given()
             .when()
-            .get("/api/v1/product-definitions/" + id)
+            .get("/api/product-definitions/" + id)
             .then()
             .statusCode(404);
 
         // Verify part is also gone (cascade)
         given()
             .when()
-            .get("/api/v1/product-definitions/parts/" + partId)
+            .get("/api/product-definitions/parts/" + partId)
             .then()
             .statusCode(404);
     }
@@ -642,7 +642,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(request)
             .when()
-            .put("/api/v1/product-definitions/non-existent-id-xyz/complete")
+            .put("/api/product-definitions/non-existent-id-xyz/complete")
             .then()
             .statusCode(404);
     }
@@ -662,7 +662,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(request)
             .when()
-            .post("/api/v1/product-definitions/complete")
+            .post("/api/product-definitions/complete")
             .then()
             .statusCode(201);
 
@@ -671,7 +671,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(request)
             .when()
-            .post("/api/v1/product-definitions/complete")
+            .post("/api/product-definitions/complete")
             .then()
             .statusCode(409);
     }
@@ -688,7 +688,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(request)
             .when()
-            .post("/api/v1/product-definitions/complete")
+            .post("/api/product-definitions/complete")
             .then()
             .statusCode(400);
     }
@@ -712,7 +712,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(definition)
             .when()
-            .post("/api/v1/product-definitions")
+            .post("/api/product-definitions")
             .then()
             .statusCode(201)
             .extract()
@@ -730,7 +730,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(part)
             .when()
-            .post("/api/v1/product-definitions/" + productId + "/parts")
+            .post("/api/product-definitions/" + productId + "/parts")
             .then()
             .statusCode(201)
             .body("partCode", equalTo("ADDED-PART"))
@@ -751,7 +751,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(part)
             .when()
-            .post("/api/v1/product-definitions/non-existent-id/parts")
+            .post("/api/product-definitions/non-existent-id/parts")
             .then()
             .statusCode(404);
     }
@@ -781,7 +781,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(request)
             .when()
-            .post("/api/v1/product-definitions/complete")
+            .post("/api/product-definitions/complete")
             .then()
             .statusCode(201)
             .extract()
@@ -789,7 +789,7 @@ class ProductDefinitionResourceTest {
 
         String partId = given()
             .when()
-            .get("/api/v1/product-definitions/" + productId + "/parts")
+            .get("/api/product-definitions/" + productId + "/parts")
             .then()
             .statusCode(200)
             .extract()
@@ -807,7 +807,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(update)
             .when()
-            .put("/api/v1/product-definitions/parts/" + partId)
+            .put("/api/product-definitions/parts/" + partId)
             .then()
             .statusCode(200)
             .body("description", equalTo("Updated via REST"));
@@ -838,7 +838,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(request)
             .when()
-            .post("/api/v1/product-definitions/complete")
+            .post("/api/product-definitions/complete")
             .then()
             .statusCode(201)
             .extract()
@@ -846,7 +846,7 @@ class ProductDefinitionResourceTest {
 
         String partId = given()
             .when()
-            .get("/api/v1/product-definitions/" + productId + "/parts")
+            .get("/api/product-definitions/" + productId + "/parts")
             .then()
             .statusCode(200)
             .extract()
@@ -855,14 +855,14 @@ class ProductDefinitionResourceTest {
         // Delete the part
         given()
             .when()
-            .delete("/api/v1/product-definitions/parts/" + partId)
+            .delete("/api/product-definitions/parts/" + partId)
             .then()
             .statusCode(204);
 
         // Verify it's gone
         given()
             .when()
-            .get("/api/v1/product-definitions/parts/" + partId)
+            .get("/api/product-definitions/parts/" + partId)
             .then()
             .statusCode(404);
     }
@@ -872,7 +872,7 @@ class ProductDefinitionResourceTest {
     void shouldReturn404ForNonExistentPart() {
         given()
             .when()
-            .get("/api/v1/product-definitions/parts/non-existent-part-id")
+            .get("/api/product-definitions/parts/non-existent-part-id")
             .then()
             .statusCode(404);
     }
@@ -891,7 +891,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(part)
             .when()
-            .put("/api/v1/product-definitions/parts/non-existent-id")
+            .put("/api/product-definitions/parts/non-existent-id")
             .then()
             .statusCode(404);
     }
@@ -901,7 +901,7 @@ class ProductDefinitionResourceTest {
     void shouldReturn404WhenDeletingNonExistentPart() {
         given()
             .when()
-            .delete("/api/v1/product-definitions/parts/non-existent-id")
+            .delete("/api/product-definitions/parts/non-existent-id")
             .then()
             .statusCode(404);
     }
@@ -963,7 +963,7 @@ class ProductDefinitionResourceTest {
             .contentType(ContentType.JSON)
             .body(request)
             .when()
-            .post("/api/v1/product-definitions/complete")
+            .post("/api/product-definitions/complete")
             .then()
             .statusCode(201)
             .extract()
@@ -972,7 +972,7 @@ class ProductDefinitionResourceTest {
         // Get complete product
         given()
             .when()
-            .get("/api/v1/product-definitions/" + id + "/complete")
+            .get("/api/product-definitions/" + id + "/complete")
             .then()
             .statusCode(200)
             .body("productCode", equalTo(productCode))
@@ -994,7 +994,7 @@ class ProductDefinitionResourceTest {
     void shouldReturn404ForNonExistentCompleteProduct() {
         given()
             .when()
-            .get("/api/v1/product-definitions/non-existent-id-xyz/complete")
+            .get("/api/product-definitions/non-existent-id-xyz/complete")
             .then()
             .statusCode(404);
     }

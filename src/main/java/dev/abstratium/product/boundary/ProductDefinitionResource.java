@@ -19,7 +19,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-@Path("/api/v1/product-definitions")
+@Path("/api/product-definitions")
 @Tag(name = "Product Definitions", description = "Operations for managing product definitions")
 @RolesAllowed("abstratium-abstrapact_user")
 @Produces(MediaType.APPLICATION_JSON)

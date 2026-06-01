@@ -45,10 +45,51 @@ graph TD
 
 The contract references one or more terms-and-conditions documents drawn from a **catalogue**.
 
+#### General Terms and Conditions
+
+General T&C apply to the contract as a whole.
+
 - The catalogue is a repository of reusable T&C documents maintained by the SME.
 - Each T&C entry has a version identifier. The contract records which version was in force at the time of signing.
 - This ensures that a contract signed under "Standard Terms v3.2" remains bound to that version even if the SME later publishes v3.3.
-- A contract must reference at least one T&C document.
+- A contract must reference at least one general T&C document.
+
+#### Special Terms and Conditions
+
+Special T&C are attached to individual `PartDefinition` records. They apply only when the corresponding part is selected by the customer during product configuration.
+
+- A `PartDefinition` may optionally reference a `TermsAndConditions` document via `special_terms_and_conditions_id`.
+- When the part is included in a product instance that becomes a contract line item, the special terms are added to the contract.
+- The contract records which version of the special terms was in force at signing.
+
+#### Precedence
+
+The contract document must state that **special terms and conditions take precedence over general terms and conditions** where the two conflict. Special terms supplement the general terms for the specific product or service they apply to.
+
+#### Legal Framework (Swiss Law)
+
+Unlike German law (which has dedicated AGB provisions in §§ 305–310 BGB), Swiss law does not have a dedicated chapter on general terms and conditions in the Code of Obligations. The relevant legal basis is found in:
+
+**Code of Obligations (OR)**
+- **Art. 1 OR** — Good faith (`Treu und Glauben`): parties must exercise rights and fulfil obligations in good faith.
+- **Art. 6 OR** — Tacit acceptance (`stillschweigende Annahme`): relevant for how terms are incorporated into the contract.
+- **Art. 18 OR** — Form requirements (`Formvorschrift`): written-form clauses in GTC are only valid if the parties were aware of the form requirement.
+
+**Swiss Civil Code (ZGB)**
+- **Art. 8 ZGB** — Good faith in civil law.
+
+**Unfair Competition Act (UWG)**
+- **Art. 8 UWG** — Unfair business practices (`missbräuchliche Geschäftsbedingungen`): provides limited content control for particularly unfair clauses in consumer and B2B contexts.
+
+**Case law (Bundesgericht)**
+- The **unusualness rule** (`Ungewöhnlichkeitsregel`): a clause that is unusual and surprising is not binding on the accepting party unless it was clearly highlighted.
+- **Individual agreements take precedence** over general terms where the two conflict.
+
+Key requirements for the system:
+
+- **Transparency** -- The customer must be able to review both general and any applicable special terms before accepting the contract. The UI should surface special terms when the customer configures an optional part.
+- **No surprise clauses** -- Unusual clauses in special terms (e.g., liability limitations for a "premium support" add-on) must be clearly flagged so the customer is not bound by clauses they would not reasonably expect.
+- **Versioning** -- Just like general terms, special terms must be versioned. A contract signed under "Warranty Terms v2.1" remains bound to that version even if the SME later publishes a new version.
 
 ### 5. Signatories
 
@@ -164,13 +205,15 @@ stateDiagram-v2
 
 ### 10. Audit Trail
 
-Every transition between states is recorded with:
+Contract lifecycle transitions are tracked through a generic `ProcessInstance` linked to the contract. Each step within the process records:
 
 - Timestamp
 - Actor (user identifier)
 - From state
 - To state
 - Optional reason / comment
+
+The `ProcessInstance` and `ProcessInstanceStep` tables are described in [DATABASE_PROCESSES.md](./DATABASE_PROCESSES.md).
 
 ---
 
@@ -213,6 +256,8 @@ ContractTermsLink
 - contract_id (FK)
 - terms_and_conditions_id (FK -> TermsAndConditions)
 - terms_version_at_signing
+- scope (GENERAL | SPECIAL_FOR_LINE_ITEM)
+- contract_line_item_id (FK -> ContractLineItem, nullable, populated when scope = SPECIAL_FOR_LINE_ITEM)
 
 TermsAndConditions
 - id (PK)
@@ -234,13 +279,20 @@ Signatory
 - signature_place
 - digital_signature_reference
 
-ContractStateTransition
+ProcessInstance (generic -- see DATABASE_PROCESSES.md)
 - id (PK)
-- contract_id (FK)
+- contract_id (FK, nullable for non-contract processes)
+- process_name
+- process_version
+- state (TO_BE_STARTED | IN_PROGRESS | BLOCKED | FAILED | COMPLETED)
+
+ProcessInstanceStep (generic -- see DATABASE_PROCESSES.md)
+- id (PK)
+- process_instance_id (FK)
+- actor_user_id
+- step_timestamp
 - from_state
 - to_state
-- actor_user_id
-- transitioned_at
 - reason
 ```
 

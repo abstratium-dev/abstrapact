@@ -1,0 +1,59 @@
+<div class="container" data-testid="terms-and-conditions-detail-page">
+  <div class="page-header">
+    <h1>Terms and Conditions Details</h1>
+    <div class="header-actions">
+      <button class="btn-secondary" (click)="onBack()">
+        ← Back to List
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading">
+    <p>Loading terms and conditions...</p>
+  </div>
+
+  <div *ngIf="error" class="error-box">
+    <p>{{ error }}</p>
+    <button (click)="onBack()">Go Back</button>
+  </div>
+
+  <div *ngIf="!loading && !error && terms()" class="detail-card">
+    <div class="detail-header">
+      <h2>{{ terms()!.code }}</h2>
+      <span class="badge badge-primary" *ngIf="terms()!.currentVersion">
+        v{{ terms()!.currentVersion }}
+      </span>
+    </div>
+
+    <div class="detail-section">
+      <h3>{{ terms()!.title }}</h3>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-item">
+        <span class="label">Effective From:</span>
+        <span class="value">{{ formatDate(terms()!.effectiveFrom) }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">Effective Until:</span>
+        <span class="value">{{ formatDate(terms()!.effectiveUntil) }}</span>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <h4>Content</h4>
+      <div class="content-box">
+        {{ terms()!.content }}
+      </div>
+    </div>
+
+    <div class="detail-actions">
+      <button class="btn-icon" (click)="onEdit()" title="Edit">
+        ✏️ Edit
+      </button>
+      <button class="btn-icon btn-icon-danger" (click)="onDelete()" title="Delete">
+        🗑️ Delete
+      </button>
+    </div>
+  </div>
+</div>

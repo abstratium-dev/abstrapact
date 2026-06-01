@@ -4,7 +4,8 @@ import { firstValueFrom } from 'rxjs';
 import {
   Config, ModelService, ProductDefinition, ProductDefinitionRequest,
   PartDefinition, PartRequest, PartAttributeDefinition, PartAttributeRequest,
-  CompleteProductRequest, CompleteProductResponse
+  CompleteProductRequest, CompleteProductResponse,
+  TermsAndConditions, TermsAndConditionsRequest
 } from './model.service';
 
 @Injectable({
@@ -33,7 +34,7 @@ export class Controller {
     this.modelService.setProductDefinitionsLoading(true);
     this.modelService.setProductDefinitionsError(null);
 
-    this.http.get<ProductDefinition[]>('/api/v1/product-definitions').subscribe({
+    this.http.get<ProductDefinition[]>('/api/product-definitions').subscribe({
       next: (definitions) => {
         this.modelService.setProductDefinitions(definitions);
         this.modelService.setProductDefinitionsLoading(false);
@@ -50,7 +51,7 @@ export class Controller {
   async getProductDefinition(id: string): Promise<ProductDefinition | null> {
     try {
       const definition = await firstValueFrom(
-        this.http.get<ProductDefinition>(`/api/v1/product-definitions/${id}`)
+        this.http.get<ProductDefinition>(`/api/product-definitions/${id}`)
       );
       this.modelService.setSelectedProductDefinition(definition);
       return definition;
@@ -64,7 +65,7 @@ export class Controller {
   async createProductDefinition(request: ProductDefinitionRequest): Promise<ProductDefinition> {
     try {
       const response = await firstValueFrom(
-        this.http.post<ProductDefinition>('/api/v1/product-definitions', request)
+        this.http.post<ProductDefinition>('/api/product-definitions', request)
       );
       this.loadProductDefinitions();
       return response;
@@ -77,7 +78,7 @@ export class Controller {
   async updateProductDefinition(id: string, request: ProductDefinitionRequest): Promise<ProductDefinition> {
     try {
       const response = await firstValueFrom(
-        this.http.put<ProductDefinition>(`/api/v1/product-definitions/${id}`, request)
+        this.http.put<ProductDefinition>(`/api/product-definitions/${id}`, request)
       );
       this.loadProductDefinitions();
       return response;
@@ -90,7 +91,7 @@ export class Controller {
   async deleteProductDefinition(id: string): Promise<void> {
     try {
       await firstValueFrom(
-        this.http.delete<void>(`/api/v1/product-definitions/${id}`)
+        this.http.delete<void>(`/api/product-definitions/${id}`)
       );
       this.loadProductDefinitions();
     } catch (error) {
@@ -104,7 +105,7 @@ export class Controller {
   async createCompleteProduct(request: CompleteProductRequest): Promise<ProductDefinition> {
     try {
       const response = await firstValueFrom(
-        this.http.post<ProductDefinition>('/api/v1/product-definitions/complete', request)
+        this.http.post<ProductDefinition>('/api/product-definitions/complete', request)
       );
       this.loadProductDefinitions();
       return response;
@@ -117,7 +118,7 @@ export class Controller {
   async updateCompleteProduct(id: string, request: CompleteProductRequest): Promise<ProductDefinition> {
     try {
       const response = await firstValueFrom(
-        this.http.put<ProductDefinition>(`/api/v1/product-definitions/${id}/complete`, request)
+        this.http.put<ProductDefinition>(`/api/product-definitions/${id}/complete`, request)
       );
       this.loadProductDefinitions();
       return response;
@@ -130,7 +131,7 @@ export class Controller {
   async deleteCompleteProduct(id: string): Promise<void> {
     try {
       await firstValueFrom(
-        this.http.delete<void>(`/api/v1/product-definitions/${id}/complete`)
+        this.http.delete<void>(`/api/product-definitions/${id}/complete`)
       );
       this.loadProductDefinitions();
     } catch (error) {
@@ -142,7 +143,7 @@ export class Controller {
   async getCompleteProduct(id: string): Promise<CompleteProductResponse | null> {
     try {
       const response = await firstValueFrom(
-        this.http.get<CompleteProductResponse>(`/api/v1/product-definitions/${id}/complete`)
+        this.http.get<CompleteProductResponse>(`/api/product-definitions/${id}/complete`)
       );
       return response;
     } catch (error) {
@@ -157,7 +158,7 @@ export class Controller {
     this.modelService.setProductPartsLoading(true);
     this.modelService.setProductPartsError(null);
 
-    this.http.get<PartDefinition[]>(`/api/v1/product-definitions/${productId}/parts`).subscribe({
+    this.http.get<PartDefinition[]>(`/api/product-definitions/${productId}/parts`).subscribe({
       next: (parts) => {
         this.modelService.setProductParts(parts);
         this.modelService.setProductPartsLoading(false);
@@ -174,7 +175,7 @@ export class Controller {
   async getPart(partId: string): Promise<PartDefinition | null> {
     try {
       const part = await firstValueFrom(
-        this.http.get<PartDefinition>(`/api/v1/product-definitions/parts/${partId}`)
+        this.http.get<PartDefinition>(`/api/product-definitions/parts/${partId}`)
       );
       this.modelService.setSelectedPart(part);
       return part;
@@ -188,7 +189,7 @@ export class Controller {
   async createPart(productId: string, part: PartRequest): Promise<PartDefinition> {
     try {
       const response = await firstValueFrom(
-        this.http.post<PartDefinition>(`/api/v1/product-definitions/${productId}/parts`, part)
+        this.http.post<PartDefinition>(`/api/product-definitions/${productId}/parts`, part)
       );
       this.loadProductParts(productId);
       return response;
@@ -201,7 +202,7 @@ export class Controller {
   async updatePart(partId: string, part: PartRequest): Promise<PartDefinition> {
     try {
       const response = await firstValueFrom(
-        this.http.put<PartDefinition>(`/api/v1/product-definitions/parts/${partId}`, part)
+        this.http.put<PartDefinition>(`/api/product-definitions/parts/${partId}`, part)
       );
       return response;
     } catch (error) {
@@ -213,7 +214,7 @@ export class Controller {
   async deletePart(partId: string, productId: string): Promise<void> {
     try {
       await firstValueFrom(
-        this.http.delete<void>(`/api/v1/product-definitions/parts/${partId}`)
+        this.http.delete<void>(`/api/product-definitions/parts/${partId}`)
       );
       this.loadProductParts(productId);
     } catch (error) {
@@ -228,7 +229,7 @@ export class Controller {
     this.modelService.setPartAttributesLoading(true);
     this.modelService.setPartAttributesError(null);
 
-    this.http.get<PartAttributeDefinition[]>(`/api/v1/product-definitions/parts/${partId}/attributes`).subscribe({
+    this.http.get<PartAttributeDefinition[]>(`/api/product-definitions/parts/${partId}/attributes`).subscribe({
       next: (attributes) => {
         this.modelService.setPartAttributes(attributes);
         this.modelService.setPartAttributesLoading(false);
@@ -245,7 +246,7 @@ export class Controller {
   async getAttribute(attributeId: string): Promise<PartAttributeDefinition | null> {
     try {
       const attribute = await firstValueFrom(
-        this.http.get<PartAttributeDefinition>(`/api/v1/product-definitions/attributes/${attributeId}`)
+        this.http.get<PartAttributeDefinition>(`/api/product-definitions/attributes/${attributeId}`)
       );
       this.modelService.setSelectedAttribute(attribute);
       return attribute;
@@ -259,7 +260,7 @@ export class Controller {
   async createAttribute(partId: string, attribute: PartAttributeRequest): Promise<PartAttributeDefinition> {
     try {
       const response = await firstValueFrom(
-        this.http.post<PartAttributeDefinition>(`/api/v1/product-definitions/parts/${partId}/attributes`, attribute)
+        this.http.post<PartAttributeDefinition>(`/api/product-definitions/parts/${partId}/attributes`, attribute)
       );
       this.loadPartAttributes(partId);
       return response;
@@ -272,7 +273,7 @@ export class Controller {
   async updateAttribute(attributeId: string, attribute: PartAttributeRequest): Promise<PartAttributeDefinition> {
     try {
       const response = await firstValueFrom(
-        this.http.put<PartAttributeDefinition>(`/api/v1/product-definitions/attributes/${attributeId}`, attribute)
+        this.http.put<PartAttributeDefinition>(`/api/product-definitions/attributes/${attributeId}`, attribute)
       );
       return response;
     } catch (error) {
@@ -284,11 +285,82 @@ export class Controller {
   async deleteAttribute(attributeId: string, partId: string): Promise<void> {
     try {
       await firstValueFrom(
-        this.http.delete<void>(`/api/v1/product-definitions/attributes/${attributeId}`)
+        this.http.delete<void>(`/api/product-definitions/attributes/${attributeId}`)
       );
       this.loadPartAttributes(partId);
     } catch (error) {
       console.error('Error deleting attribute:', error);
+      throw error;
+    }
+  }
+
+  // Terms and Conditions methods
+  loadTermsAndConditions() {
+    this.modelService.setTermsAndConditionsLoading(true);
+    this.modelService.setTermsAndConditionsError(null);
+
+    this.http.get<TermsAndConditions[]>('/api/terms-and-conditions').subscribe({
+      next: (terms) => {
+        this.modelService.setTermsAndConditions(terms);
+        this.modelService.setTermsAndConditionsLoading(false);
+      },
+      error: (err) => {
+        console.error('Error loading terms and conditions:', err);
+        this.modelService.setTermsAndConditions([]);
+        this.modelService.setTermsAndConditionsError('Failed to load terms and conditions');
+        this.modelService.setTermsAndConditionsLoading(false);
+      }
+    });
+  }
+
+  async getTermsAndConditions(id: string): Promise<TermsAndConditions | null> {
+    try {
+      const terms = await firstValueFrom(
+        this.http.get<TermsAndConditions>(`/api/terms-and-conditions/${id}`)
+      );
+      this.modelService.setSelectedTermsAndConditions(terms);
+      return terms;
+    } catch (error) {
+      console.error('Error loading terms and conditions:', error);
+      this.modelService.setSelectedTermsAndConditions(null);
+      return null;
+    }
+  }
+
+  async createTermsAndConditions(request: TermsAndConditionsRequest): Promise<TermsAndConditions> {
+    try {
+      const response = await firstValueFrom(
+        this.http.post<TermsAndConditions>('/api/terms-and-conditions', request)
+      );
+      this.loadTermsAndConditions();
+      return response;
+    } catch (error) {
+      console.error('Error creating terms and conditions:', error);
+      throw error;
+    }
+  }
+
+  async updateTermsAndConditions(id: string, request: TermsAndConditionsRequest): Promise<TermsAndConditions> {
+    try {
+      const response = await firstValueFrom(
+        this.http.put<TermsAndConditions>(`/api/terms-and-conditions/${id}`, request)
+      );
+      this.loadTermsAndConditions();
+      return response;
+    } catch (error) {
+      console.error('Error updating terms and conditions:', error);
+      throw error;
+    }
+  }
+
+  async deleteTermsAndConditions(id: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.delete<void>(`/api/terms-and-conditions/${id}`)
+      );
+      this.loadTermsAndConditions();
+    } catch (error) {
+      console.error('Error deleting terms and conditions:', error);
       throw error;
     }
   }

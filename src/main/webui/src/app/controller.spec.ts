@@ -49,7 +49,7 @@ describe('Controller', () => {
 
       controller.loadProductDefinitions();
 
-      const req = httpMock.expectOne('/api/v1/product-definitions');
+      const req = httpMock.expectOne('/api/product-definitions');
       expect(req.request.method).toBe('GET');
       req.flush(mockDefinitions);
 
@@ -64,14 +64,14 @@ describe('Controller', () => {
       expect(modelService.productDefinitionsLoading$()).toBe(true);
       expect(modelService.productDefinitionsError$()).toBeNull();
 
-      const req = httpMock.expectOne('/api/v1/product-definitions');
+      const req = httpMock.expectOne('/api/product-definitions');
       req.flush([]);
     });
 
     it('should handle error response', () => {
       controller.loadProductDefinitions();
 
-      const req = httpMock.expectOne('/api/v1/product-definitions');
+      const req = httpMock.expectOne('/api/product-definitions');
       req.error(new ProgressEvent('error'), { status: 500, statusText: 'Server Error' });
 
       expect(modelService.productDefinitions$()).toEqual([]);
@@ -94,7 +94,7 @@ describe('Controller', () => {
     it('should get product definition by id', async () => {
       const promise = controller.getProductDefinition('1');
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/1');
+      const req = httpMock.expectOne('/api/product-definitions/1');
       expect(req.request.method).toBe('GET');
       req.flush(mockDefinition);
 
@@ -106,7 +106,7 @@ describe('Controller', () => {
     it('should return null when product not found', async () => {
       const promise = controller.getProductDefinition('999');
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/999');
+      const req = httpMock.expectOne('/api/product-definitions/999');
       req.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       const result = await promise;
@@ -138,7 +138,7 @@ describe('Controller', () => {
       // Start the create operation
       const createPromise = controller.createProductDefinition(request);
 
-      const createReq = httpMock.expectOne('/api/v1/product-definitions');
+      const createReq = httpMock.expectOne('/api/product-definitions');
       expect(createReq.request.method).toBe('POST');
       expect(createReq.request.body).toEqual(request);
       createReq.flush(mockDefinition);
@@ -148,7 +148,7 @@ describe('Controller', () => {
       expect(result).toEqual(mockDefinition);
 
       // Now expect the reload request that happens after successful create
-      const loadReq = httpMock.expectOne('/api/v1/product-definitions');
+      const loadReq = httpMock.expectOne('/api/product-definitions');
       expect(loadReq.request.method).toBe('GET');
       loadReq.flush([mockDefinition]);
 
@@ -158,7 +158,7 @@ describe('Controller', () => {
     it('should throw error on create failure', async () => {
       const createPromise = controller.createProductDefinition(request);
 
-      const createReq = httpMock.expectOne('/api/v1/product-definitions');
+      const createReq = httpMock.expectOne('/api/product-definitions');
       createReq.error(new ProgressEvent('error'), { status: 409, statusText: 'Conflict' });
 
       await expectAsync(createPromise).toBeRejected();
@@ -187,7 +187,7 @@ describe('Controller', () => {
     it('should update product definition and reload list', async () => {
       const updatePromise = controller.updateProductDefinition('1', request);
 
-      const updateReq = httpMock.expectOne('/api/v1/product-definitions/1');
+      const updateReq = httpMock.expectOne('/api/product-definitions/1');
       expect(updateReq.request.method).toBe('PUT');
       expect(updateReq.request.body).toEqual(request);
       updateReq.flush(mockDefinition);
@@ -197,7 +197,7 @@ describe('Controller', () => {
       expect(result).toEqual(mockDefinition);
 
       // Now expect the reload request that happens after successful update
-      const loadReq = httpMock.expectOne('/api/v1/product-definitions');
+      const loadReq = httpMock.expectOne('/api/product-definitions');
       expect(loadReq.request.method).toBe('GET');
       loadReq.flush([mockDefinition]);
     });
@@ -205,7 +205,7 @@ describe('Controller', () => {
     it('should throw error on update failure', async () => {
       const updatePromise = controller.updateProductDefinition('1', request);
 
-      const updateReq = httpMock.expectOne('/api/v1/product-definitions/1');
+      const updateReq = httpMock.expectOne('/api/product-definitions/1');
       updateReq.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       await expectAsync(updatePromise).toBeRejected();
@@ -216,7 +216,7 @@ describe('Controller', () => {
     it('should delete product definition and reload list', async () => {
       const deletePromise = controller.deleteProductDefinition('1');
 
-      const deleteReq = httpMock.expectOne('/api/v1/product-definitions/1');
+      const deleteReq = httpMock.expectOne('/api/product-definitions/1');
       expect(deleteReq.request.method).toBe('DELETE');
       deleteReq.flush(null);
 
@@ -224,7 +224,7 @@ describe('Controller', () => {
       await deletePromise;
 
       // Now expect the reload request that happens after successful delete
-      const loadReq = httpMock.expectOne('/api/v1/product-definitions');
+      const loadReq = httpMock.expectOne('/api/product-definitions');
       expect(loadReq.request.method).toBe('GET');
       loadReq.flush([]);
 
@@ -234,7 +234,7 @@ describe('Controller', () => {
     it('should throw error on delete failure', async () => {
       const deletePromise = controller.deleteProductDefinition('1');
 
-      const deleteReq = httpMock.expectOne('/api/v1/product-definitions/1');
+      const deleteReq = httpMock.expectOne('/api/product-definitions/1');
       deleteReq.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       await expectAsync(deletePromise).toBeRejected();
@@ -260,7 +260,7 @@ describe('Controller', () => {
     it('should load product parts and update model service', () => {
       controller.loadProductParts('prod-1');
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/prod-1/parts');
+      const req = httpMock.expectOne('/api/product-definitions/prod-1/parts');
       expect(req.request.method).toBe('GET');
       req.flush(mockParts);
 
@@ -275,14 +275,14 @@ describe('Controller', () => {
       expect(modelService.productPartsLoading$()).toBe(true);
       expect(modelService.productPartsError$()).toBeNull();
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/prod-1/parts');
+      const req = httpMock.expectOne('/api/product-definitions/prod-1/parts');
       req.flush([]);
     });
 
     it('should handle parts error response', () => {
       controller.loadProductParts('prod-1');
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/prod-1/parts');
+      const req = httpMock.expectOne('/api/product-definitions/prod-1/parts');
       req.error(new ProgressEvent('error'), { status: 500, statusText: 'Server Error' });
 
       expect(modelService.productParts$()).toEqual([]);
@@ -308,7 +308,7 @@ describe('Controller', () => {
     it('should get part by id', async () => {
       const promise = controller.getPart('part-1');
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/parts/part-1');
+      const req = httpMock.expectOne('/api/product-definitions/parts/part-1');
       expect(req.request.method).toBe('GET');
       req.flush(mockPart);
 
@@ -320,7 +320,7 @@ describe('Controller', () => {
     it('should return null when part not found', async () => {
       const promise = controller.getPart('999');
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/parts/999');
+      const req = httpMock.expectOne('/api/product-definitions/parts/999');
       req.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       const result = await promise;
@@ -357,7 +357,7 @@ describe('Controller', () => {
     it('should create part and reload parts list', async () => {
       const createPromise = controller.createPart('prod-1', request);
 
-      const createReq = httpMock.expectOne('/api/v1/product-definitions/prod-1/parts');
+      const createReq = httpMock.expectOne('/api/product-definitions/prod-1/parts');
       expect(createReq.request.method).toBe('POST');
       expect(createReq.request.body).toEqual(request);
       createReq.flush(mockPart);
@@ -365,14 +365,14 @@ describe('Controller', () => {
       const result = await createPromise;
       expect(result).toEqual(mockPart);
 
-      const loadReq = httpMock.expectOne('/api/v1/product-definitions/prod-1/parts');
+      const loadReq = httpMock.expectOne('/api/product-definitions/prod-1/parts');
       loadReq.flush([mockPart]);
     });
 
     it('should throw error on create part failure', async () => {
       const createPromise = controller.createPart('prod-1', request);
 
-      const createReq = httpMock.expectOne('/api/v1/product-definitions/prod-1/parts');
+      const createReq = httpMock.expectOne('/api/product-definitions/prod-1/parts');
       createReq.error(new ProgressEvent('error'), { status: 400, statusText: 'Bad Request' });
 
       await expectAsync(createPromise).toBeRejected();
@@ -407,7 +407,7 @@ describe('Controller', () => {
     it('should update part', async () => {
       const updatePromise = controller.updatePart('part-1', request);
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/parts/part-1');
+      const req = httpMock.expectOne('/api/product-definitions/parts/part-1');
       expect(req.request.method).toBe('PUT');
       expect(req.request.body).toEqual(request);
       req.flush(mockPart);
@@ -419,7 +419,7 @@ describe('Controller', () => {
     it('should throw error on update part failure', async () => {
       const updatePromise = controller.updatePart('part-1', request);
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/parts/part-1');
+      const req = httpMock.expectOne('/api/product-definitions/parts/part-1');
       req.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       await expectAsync(updatePromise).toBeRejected();
@@ -430,20 +430,20 @@ describe('Controller', () => {
     it('should delete part and reload parts list', async () => {
       const deletePromise = controller.deletePart('part-1', 'prod-1');
 
-      const deleteReq = httpMock.expectOne('/api/v1/product-definitions/parts/part-1');
+      const deleteReq = httpMock.expectOne('/api/product-definitions/parts/part-1');
       expect(deleteReq.request.method).toBe('DELETE');
       deleteReq.flush(null);
 
       await deletePromise;
 
-      const loadReq = httpMock.expectOne('/api/v1/product-definitions/prod-1/parts');
+      const loadReq = httpMock.expectOne('/api/product-definitions/prod-1/parts');
       loadReq.flush([]);
     });
 
     it('should throw error on delete part failure', async () => {
       const deletePromise = controller.deletePart('part-1', 'prod-1');
 
-      const deleteReq = httpMock.expectOne('/api/v1/product-definitions/parts/part-1');
+      const deleteReq = httpMock.expectOne('/api/product-definitions/parts/part-1');
       deleteReq.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       await expectAsync(deletePromise).toBeRejected();
@@ -466,7 +466,7 @@ describe('Controller', () => {
     it('should load part attributes and update model service', () => {
       controller.loadPartAttributes('part-1');
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/parts/part-1/attributes');
+      const req = httpMock.expectOne('/api/product-definitions/parts/part-1/attributes');
       expect(req.request.method).toBe('GET');
       req.flush(mockAttributes);
 
@@ -481,14 +481,14 @@ describe('Controller', () => {
       expect(modelService.partAttributesLoading$()).toBe(true);
       expect(modelService.partAttributesError$()).toBeNull();
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/parts/part-1/attributes');
+      const req = httpMock.expectOne('/api/product-definitions/parts/part-1/attributes');
       req.flush([]);
     });
 
     it('should handle attributes error response', () => {
       controller.loadPartAttributes('part-1');
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/parts/part-1/attributes');
+      const req = httpMock.expectOne('/api/product-definitions/parts/part-1/attributes');
       req.error(new ProgressEvent('error'), { status: 500, statusText: 'Server Error' });
 
       expect(modelService.partAttributes$()).toEqual([]);
@@ -511,7 +511,7 @@ describe('Controller', () => {
     it('should get attribute by id', async () => {
       const promise = controller.getAttribute('attr-1');
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/attributes/attr-1');
+      const req = httpMock.expectOne('/api/product-definitions/attributes/attr-1');
       expect(req.request.method).toBe('GET');
       req.flush(mockAttribute);
 
@@ -523,7 +523,7 @@ describe('Controller', () => {
     it('should return null when attribute not found', async () => {
       const promise = controller.getAttribute('999');
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/attributes/999');
+      const req = httpMock.expectOne('/api/product-definitions/attributes/999');
       req.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       const result = await promise;
@@ -554,7 +554,7 @@ describe('Controller', () => {
     it('should create attribute and reload attributes list', async () => {
       const createPromise = controller.createAttribute('part-1', request);
 
-      const createReq = httpMock.expectOne('/api/v1/product-definitions/parts/part-1/attributes');
+      const createReq = httpMock.expectOne('/api/product-definitions/parts/part-1/attributes');
       expect(createReq.request.method).toBe('POST');
       expect(createReq.request.body).toEqual(request);
       createReq.flush(mockAttribute);
@@ -562,14 +562,14 @@ describe('Controller', () => {
       const result = await createPromise;
       expect(result).toEqual(mockAttribute);
 
-      const loadReq = httpMock.expectOne('/api/v1/product-definitions/parts/part-1/attributes');
+      const loadReq = httpMock.expectOne('/api/product-definitions/parts/part-1/attributes');
       loadReq.flush([mockAttribute]);
     });
 
     it('should throw error on create attribute failure', async () => {
       const createPromise = controller.createAttribute('part-1', request);
 
-      const createReq = httpMock.expectOne('/api/v1/product-definitions/parts/part-1/attributes');
+      const createReq = httpMock.expectOne('/api/product-definitions/parts/part-1/attributes');
       createReq.error(new ProgressEvent('error'), { status: 400, statusText: 'Bad Request' });
 
       await expectAsync(createPromise).toBeRejected();
@@ -598,7 +598,7 @@ describe('Controller', () => {
     it('should update attribute', async () => {
       const updatePromise = controller.updateAttribute('attr-1', request);
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/attributes/attr-1');
+      const req = httpMock.expectOne('/api/product-definitions/attributes/attr-1');
       expect(req.request.method).toBe('PUT');
       expect(req.request.body).toEqual(request);
       req.flush(mockAttribute);
@@ -610,7 +610,7 @@ describe('Controller', () => {
     it('should throw error on update attribute failure', async () => {
       const updatePromise = controller.updateAttribute('attr-1', request);
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/attributes/attr-1');
+      const req = httpMock.expectOne('/api/product-definitions/attributes/attr-1');
       req.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       await expectAsync(updatePromise).toBeRejected();
@@ -621,20 +621,20 @@ describe('Controller', () => {
     it('should delete attribute and reload attributes list', async () => {
       const deletePromise = controller.deleteAttribute('attr-1', 'part-1');
 
-      const deleteReq = httpMock.expectOne('/api/v1/product-definitions/attributes/attr-1');
+      const deleteReq = httpMock.expectOne('/api/product-definitions/attributes/attr-1');
       expect(deleteReq.request.method).toBe('DELETE');
       deleteReq.flush(null);
 
       await deletePromise;
 
-      const loadReq = httpMock.expectOne('/api/v1/product-definitions/parts/part-1/attributes');
+      const loadReq = httpMock.expectOne('/api/product-definitions/parts/part-1/attributes');
       loadReq.flush([]);
     });
 
     it('should throw error on delete attribute failure', async () => {
       const deletePromise = controller.deleteAttribute('attr-1', 'part-1');
 
-      const deleteReq = httpMock.expectOne('/api/v1/product-definitions/attributes/attr-1');
+      const deleteReq = httpMock.expectOne('/api/product-definitions/attributes/attr-1');
       deleteReq.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       await expectAsync(deletePromise).toBeRejected();
@@ -668,7 +668,7 @@ describe('Controller', () => {
     it('should get complete product with parts tree', async () => {
       const promise = controller.getCompleteProduct('prod-1');
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/prod-1/complete');
+      const req = httpMock.expectOne('/api/product-definitions/prod-1/complete');
       expect(req.request.method).toBe('GET');
       req.flush(mockCompleteProduct);
 
@@ -681,7 +681,7 @@ describe('Controller', () => {
     it('should return null when complete product not found', async () => {
       const promise = controller.getCompleteProduct('999');
 
-      const req = httpMock.expectOne('/api/v1/product-definitions/999/complete');
+      const req = httpMock.expectOne('/api/product-definitions/999/complete');
       req.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       const result = await promise;

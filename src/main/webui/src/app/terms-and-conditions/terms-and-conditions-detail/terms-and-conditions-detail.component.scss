@@ -1,0 +1,10 @@
+/* Styles inherited from global styles.scss */
+
+.content-box {
+  white-space: pre-wrap;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-tertiary);
+  min-height: 100px;
+}

@@ -442,4 +442,46 @@ describe('ModelService', () => {
       expect(service.partAttributesLoading$()).toBe(true);
     });
   });
+
+  describe('Terms and Conditions State', () => {
+    it('should have empty terms and conditions initially', () => {
+      expect(service.termsAndConditions$()).toEqual([]);
+    });
+
+    it('should not be loading terms and conditions initially', () => {
+      expect(service.termsAndConditionsLoading$()).toBe(false);
+    });
+
+    it('should have no terms and conditions error initially', () => {
+      expect(service.termsAndConditionsError$()).toBeNull();
+    });
+
+    it('should have no selected terms and conditions initially', () => {
+      expect(service.selectedTermsAndConditions$()).toBeNull();
+    });
+
+    it('should set terms and conditions', () => {
+      const mockTerms = { id: '1', organisationId: 'org-1', code: 'T001', title: 'Test', content: 'Content', currentVersion: '1.0', effectiveFrom: null, effectiveUntil: null };
+      service.setTermsAndConditions([mockTerms]);
+      expect(service.termsAndConditions$()).toEqual([mockTerms]);
+    });
+
+    it('should set terms and conditions loading state', () => {
+      service.setTermsAndConditionsLoading(true);
+      expect(service.termsAndConditionsLoading$()).toBe(true);
+      service.setTermsAndConditionsLoading(false);
+      expect(service.termsAndConditionsLoading$()).toBe(false);
+    });
+
+    it('should set terms and conditions error', () => {
+      service.setTermsAndConditionsError('Error occurred');
+      expect(service.termsAndConditionsError$()).toBe('Error occurred');
+    });
+
+    it('should set selected terms and conditions', () => {
+      const mockTerms = { id: '1', organisationId: 'org-1', code: 'T001', title: 'Test', content: 'Content', currentVersion: '1.0', effectiveFrom: null, effectiveUntil: null };
+      service.setSelectedTermsAndConditions(mockTerms);
+      expect(service.selectedTermsAndConditions$()).toEqual(mockTerms);
+    });
+  });
 });

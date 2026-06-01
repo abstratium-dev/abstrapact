@@ -1,0 +1,135 @@
+<div class="container" data-testid="terms-and-conditions-form-page">
+  <div class="page-header">
+    <h1>{{ getPageTitle() }}</h1>
+  </div>
+
+  <div class="form-container">
+    <form (ngSubmit)="onSubmit()">
+      <div *ngIf="formError" class="error-box" data-testid="form-error">
+        {{ formError }}
+      </div>
+
+      <div class="form-group">
+        <label for="code">Code *</label>
+        <input
+          type="text"
+          id="code"
+          name="code"
+          [(ngModel)]="code"
+          [disabled]="submitting"
+          maxlength="50"
+          required
+          data-testid="code-input"
+        />
+        <span class="form-hint">A unique identifier (e.g., GENERAL-TERMS)</span>
+        <div *ngIf="fieldErrors['code']" class="error" data-testid="code-error">
+          {{ fieldErrors['code'] }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="title">Title *</label>
+        <input
+          type="text"
+          id="title"
+          name="title"
+          [(ngModel)]="title"
+          [disabled]="submitting"
+          maxlength="255"
+          required
+          data-testid="title-input"
+        />
+        <span class="form-hint">Short descriptive title</span>
+        <div *ngIf="fieldErrors['title']" class="error" data-testid="title-error">
+          {{ fieldErrors['title'] }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="content">Content *</label>
+        <textarea
+          id="content"
+          name="content"
+          [(ngModel)]="content"
+          [disabled]="submitting"
+          rows="8"
+          required
+          data-testid="content-input"
+        ></textarea>
+        <span class="form-hint">Full terms and conditions text</span>
+        <div *ngIf="fieldErrors['content']" class="error" data-testid="content-error">
+          {{ fieldErrors['content'] }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="currentVersion">Version *</label>
+        <input
+          type="text"
+          id="currentVersion"
+          name="currentVersion"
+          [(ngModel)]="currentVersion"
+          [disabled]="submitting"
+          maxlength="50"
+          required
+          data-testid="version-input"
+        />
+        <span class="form-hint">Version number (e.g., 1.0)</span>
+        <div *ngIf="fieldErrors['currentVersion']" class="error" data-testid="version-error">
+          {{ fieldErrors['currentVersion'] }}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="effectiveFrom">Effective From</label>
+          <input
+            type="date"
+            id="effectiveFrom"
+            name="effectiveFrom"
+            [(ngModel)]="effectiveFrom"
+            [disabled]="submitting"
+            data-testid="effective-from-input"
+          />
+          <span class="form-hint">Optional start date</span>
+        </div>
+
+        <div class="form-group">
+          <label for="effectiveUntil">Effective Until</label>
+          <input
+            type="date"
+            id="effectiveUntil"
+            name="effectiveUntil"
+            [(ngModel)]="effectiveUntil"
+            [disabled]="submitting"
+            data-testid="effective-until-input"
+          />
+          <span class="form-hint">Optional end date</span>
+          <div *ngIf="fieldErrors['effectiveUntil']" class="error" data-testid="effective-until-error">
+            {{ fieldErrors['effectiveUntil'] }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="btn-primary"
+          [disabled]="submitting"
+          data-testid="submit-button"
+        >
+          {{ submitting ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update' : 'Create') }}
+        </button>
+        <button
+          type="button"
+          class="btn-secondary"
+          (click)="onCancel()"
+          [disabled]="submitting"
+          data-testid="cancel-button"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

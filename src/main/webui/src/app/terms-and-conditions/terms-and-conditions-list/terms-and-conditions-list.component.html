@@ -1,0 +1,55 @@
+<div class="container" data-testid="terms-and-conditions-list-page">
+  <div class="page-header">
+    <h1>Terms and Conditions</h1>
+    <div class="header-actions">
+      <button class="btn-add" (click)="onCreate()">
+        + Add Terms and Conditions
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading()" class="loading">
+    <p>Loading terms and conditions...</p>
+  </div>
+
+  <div *ngIf="error()" class="error-box">
+    <p>{{ error() }}</p>
+    <button (click)="onRetry()">Retry</button>
+  </div>
+
+  <div *ngIf="!loading() && !error() && termsList().length === 0" class="info-message">
+    <p>No terms and conditions found. Click "Add Terms and Conditions" to create one.</p>
+  </div>
+
+  <div *ngIf="!loading() && !error() && termsList().length > 0">
+    <div class="tile-grid">
+      <div class="tile" *ngFor="let terms of termsList()" (click)="onView(terms)">
+        <div class="tile-header">
+          <div class="tile-info">
+            <h3 class="tile-title">{{ terms.code }}</h3>
+            <p class="tile-subtitle" *ngIf="terms.title">{{ terms.title }}</p>
+          </div>
+          <div class="tile-badges">
+            <span class="badge badge-primary" *ngIf="terms.currentVersion">
+              v{{ terms.currentVersion }}
+            </span>
+          </div>
+        </div>
+        <div class="tile-details">
+          <div class="tile-detail-item" *ngIf="terms.effectiveFrom || terms.effectiveUntil">
+            <span class="label">Effective:</span>
+            <span class="value">{{ formatDate(terms.effectiveFrom) }} - {{ formatDate(terms.effectiveUntil) }}</span>
+          </div>
+        </div>
+        <div class="tile-actions">
+          <button class="btn-icon" (click)="onEdit(terms, $event)" title="Edit terms and conditions">
+            ✏️
+          </button>
+          <button class="btn-icon btn-icon-danger" (click)="onDelete(terms, $event)" title="Delete terms and conditions">
+            🗑️
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
