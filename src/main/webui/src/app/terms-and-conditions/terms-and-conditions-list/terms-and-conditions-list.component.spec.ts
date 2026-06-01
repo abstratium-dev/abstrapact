@@ -1,8 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TermsAndConditionsListComponent } from './terms-and-conditions-list.component';
 import { provideRouter } from '@angular/router';
-import { ModelService } from '../../model.service';
-import { Controller } from '../../controller';
+import { TermsAndConditionsModelService } from '../terms-and-conditions.model.service';
+import { TermsAndConditionsController } from '../terms-and-conditions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
 import { of } from 'rxjs';
@@ -10,13 +10,13 @@ import { of } from 'rxjs';
 describe('TermsAndConditionsListComponent', () => {
   let component: TermsAndConditionsListComponent;
   let fixture: ComponentFixture<TermsAndConditionsListComponent>;
-  let modelService: ModelService;
-  let controller: jasmine.SpyObj<Controller>;
+  let modelService: TermsAndConditionsModelService;
+  let controller: jasmine.SpyObj<TermsAndConditionsController>;
   let toastService: jasmine.SpyObj<ToastService>;
   let confirmService: jasmine.SpyObj<ConfirmDialogService>;
 
   beforeEach(async () => {
-    const controllerSpy = jasmine.createSpyObj('Controller', [
+    const controllerSpy = jasmine.createSpyObj('TermsAndConditionsController', [
       'loadTermsAndConditions',
       'deleteTermsAndConditions'
     ]);
@@ -27,14 +27,15 @@ describe('TermsAndConditionsListComponent', () => {
       imports: [TermsAndConditionsListComponent],
       providers: [
         provideRouter([]),
-        { provide: Controller, useValue: controllerSpy },
+        { provide: TermsAndConditionsController, useValue: controllerSpy },
+        TermsAndConditionsModelService,
         { provide: ToastService, useValue: toastSpy },
         { provide: ConfirmDialogService, useValue: confirmSpy }
       ]
     }).compileComponents();
 
-    modelService = TestBed.inject(ModelService);
-    controller = TestBed.inject(Controller) as jasmine.SpyObj<Controller>;
+    modelService = TestBed.inject(TermsAndConditionsModelService);
+    controller = TestBed.inject(TermsAndConditionsController) as jasmine.SpyObj<TermsAndConditionsController>;
     toastService = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
     confirmService = TestBed.inject(ConfirmDialogService) as jasmine.SpyObj<ConfirmDialogService>;
 
@@ -58,7 +59,7 @@ describe('TermsAndConditionsListComponent', () => {
 
   it('should display terms from model service', () => {
     const mockTerms = [
-      { id: '1', organisationId: 'org-1', code: 'T001', title: 'Test Terms', content: 'Content', currentVersion: '1.0', effectiveFrom: '2024-01-01', effectiveUntil: null }
+      { id: '1', organisationId: 'org-1', code: 'T001', title: 'Test Terms', contentFr: 'Content FR', contentDe: 'Content DE', contentEn: 'Content', currentVersion: '1.0', effectiveFrom: '2024-01-01', effectiveUntil: null }
     ];
     modelService.setTermsAndConditions(mockTerms);
     fixture.detectChanges();
@@ -96,7 +97,7 @@ describe('TermsAndConditionsListComponent', () => {
     confirmService.confirm.and.returnValue(Promise.resolve(true));
     controller.deleteTermsAndConditions.and.returnValue(Promise.resolve());
 
-    const terms = { id: '1', organisationId: 'org-1', code: 'T001', title: 'Test Terms', content: 'Content', currentVersion: '1.0', effectiveFrom: null, effectiveUntil: null };
+    const terms = { id: '1', organisationId: 'org-1', code: 'T001', title: 'Test Terms', contentFr: 'Content FR', contentDe: 'Content DE', contentEn: 'Content', currentVersion: '1.0', effectiveFrom: null, effectiveUntil: null };
     await component.onDelete(terms, new Event('click'));
 
     expect(confirmService.confirm).toHaveBeenCalled();
@@ -107,7 +108,7 @@ describe('TermsAndConditionsListComponent', () => {
   it('should not delete if user cancels confirmation', async () => {
     confirmService.confirm.and.returnValue(Promise.resolve(false));
 
-    const terms = { id: '1', organisationId: 'org-1', code: 'T001', title: 'Test Terms', content: 'Content', currentVersion: '1.0', effectiveFrom: null, effectiveUntil: null };
+    const terms = { id: '1', organisationId: 'org-1', code: 'T001', title: 'Test Terms', contentFr: 'Content FR', contentDe: 'Content DE', contentEn: 'Content', currentVersion: '1.0', effectiveFrom: null, effectiveUntil: null };
     await component.onDelete(terms, new Event('click'));
 
     expect(controller.deleteTermsAndConditions).not.toHaveBeenCalled();
@@ -117,7 +118,7 @@ describe('TermsAndConditionsListComponent', () => {
     confirmService.confirm.and.returnValue(Promise.resolve(true));
     controller.deleteTermsAndConditions.and.returnValue(Promise.reject(new Error('fail')));
 
-    const terms = { id: '1', organisationId: 'org-1', code: 'T001', title: 'Test Terms', content: 'Content', currentVersion: '1.0', effectiveFrom: null, effectiveUntil: null };
+    const terms = { id: '1', organisationId: 'org-1', code: 'T001', title: 'Test Terms', contentFr: 'Content FR', contentDe: 'Content DE', contentEn: 'Content', currentVersion: '1.0', effectiveFrom: null, effectiveUntil: null };
     await component.onDelete(terms, new Event('click'));
 
     expect(toastService.error).toHaveBeenCalledWith('Failed to delete terms and conditions. Please try again.');

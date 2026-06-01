@@ -1,7 +1,7 @@
 import { Component, inject, Input, OnInit, Output, EventEmitter, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { PartDefinition, PartAttributeDefinition, ModelService } from '../../model.service';
-import { Controller } from '../../controller';
+import { PartDefinition, PartAttributeDefinition, ProductDefinitionsModelService } from '../product-definitions.model.service';
+import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
 
@@ -12,8 +12,8 @@ import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.s
   styleUrl: './product-structure.component.scss'
 })
 export class ProductStructureComponent implements OnInit {
-  private modelService = inject(ModelService);
-  private controller = inject(Controller);
+  private modelService = inject(ProductDefinitionsModelService);
+  private controller = inject(ProductDefinitionsController);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
 

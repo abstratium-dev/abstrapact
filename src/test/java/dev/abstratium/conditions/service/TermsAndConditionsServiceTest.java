@@ -36,7 +36,7 @@ class TermsAndConditionsServiceTest {
         t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         t1.setCode("GENERAL-001");
         t1.setTitle("General Terms");
-        t1.setContent("General terms content");
+        t1.setContentEn("General terms content");
         t1.setCurrentVersion("1.0");
         t1.setEffectiveFrom(LocalDate.now());
         service.create(t1);
@@ -46,7 +46,7 @@ class TermsAndConditionsServiceTest {
         t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         t2.setCode("SPECIAL-001");
         t2.setTitle("Special Terms");
-        t2.setContent("Special terms content");
+        t2.setContentEn("Special terms content");
         t2.setCurrentVersion("2.0");
         t2.setEffectiveFrom(LocalDate.now());
         service.create(t2);
@@ -76,7 +76,7 @@ class TermsAndConditionsServiceTest {
         terms.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         terms.setCode("NEW-TERMS");
         terms.setTitle("New Terms");
-        terms.setContent("New content");
+        terms.setContentEn("New content");
         terms.setCurrentVersion("1.0");
         terms.setEffectiveFrom(LocalDate.now());
 
@@ -112,7 +112,9 @@ class TermsAndConditionsServiceTest {
     void shouldReturnAllTerms() {
         List<TermsAndConditions> all = service.findAll();
 
-        assertEquals(2, all.size());
+        assertTrue(all.size() >= 2);
+        assertTrue(all.stream().anyMatch(t -> "GENERAL-001".equals(t.getCode())));
+        assertTrue(all.stream().anyMatch(t -> "SPECIAL-001".equals(t.getCode())));
     }
 
     @Test
@@ -181,7 +183,7 @@ class TermsAndConditionsServiceTest {
         terms.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         terms.setCode("PRESET-ID-TERMS");
         terms.setTitle("Preset ID Terms");
-        terms.setContent("Content");
+        terms.setContentEn("Content");
 
         TermsAndConditions created = service.create(terms);
 

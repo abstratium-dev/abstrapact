@@ -1,7 +1,7 @@
 import { Component, inject, Input, OnInit, OnChanges, Output, EventEmitter, Signal, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { PartAttributeDefinition, PartDefinition, ModelService } from '../../model.service';
-import { Controller } from '../../controller';
+import { PartAttributeDefinition, PartDefinition, ProductDefinitionsModelService } from '../product-definitions.model.service';
+import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
 
@@ -12,8 +12,8 @@ import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.s
   styleUrl: './part-attributes-list.component.scss'
 })
 export class PartAttributesListComponent implements OnInit, OnChanges {
-  private modelService = inject(ModelService);
-  private controller = inject(Controller);
+  private modelService = inject(ProductDefinitionsModelService);
+  private controller = inject(ProductDefinitionsController);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
 

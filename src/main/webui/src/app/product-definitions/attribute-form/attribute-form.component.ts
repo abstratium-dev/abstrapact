@@ -6,9 +6,9 @@ import {
   PartAttributeRequest,
   PartAttributeAllowedValueRequest,
   DataType,
-  ModelService
-} from '../../model.service';
-import { Controller } from '../../controller';
+  ProductDefinitionsModelService
+} from '../product-definitions.model.service';
+import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 
 @Component({
@@ -18,8 +18,8 @@ import { ToastService } from '../../core/toast/toast.service';
   styleUrl: './attribute-form.component.scss'
 })
 export class AttributeFormComponent implements OnInit {
-  private modelService = inject(ModelService);
-  private controller = inject(Controller);
+  private modelService = inject(ProductDefinitionsModelService);
+  private controller = inject(ProductDefinitionsController);
   private toastService = inject(ToastService);
 
   @Input() partId!: string;

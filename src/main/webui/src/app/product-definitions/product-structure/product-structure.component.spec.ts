@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProductStructureComponent } from './product-structure.component';
-import { ModelService, PartDefinition } from '../../model.service';
-import { Controller } from '../../controller';
+import { ProductDefinitionsModelService, PartDefinition } from '../product-definitions.model.service';
+import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
 import { of } from 'rxjs';
@@ -10,8 +10,8 @@ import { signal } from '@angular/core';
 describe('ProductStructureComponent', () => {
   let component: ProductStructureComponent;
   let fixture: ComponentFixture<ProductStructureComponent>;
-  let modelService: jasmine.SpyObj<ModelService>;
-  let controller: jasmine.SpyObj<Controller>;
+  let modelService: jasmine.SpyObj<ProductDefinitionsModelService>;
+  let controller: jasmine.SpyObj<ProductDefinitionsController>;
   let toastService: jasmine.SpyObj<ToastService>;
   let confirmService: jasmine.SpyObj<ConfirmDialogService>;
 
@@ -44,7 +44,7 @@ describe('ProductStructureComponent', () => {
   ];
 
   beforeEach(async () => {
-    modelService = jasmine.createSpyObj('ModelService', [
+    modelService = jasmine.createSpyObj('ProductDefinitionsModelService', [
       'setSelectedPart', 'setProductParts', 'setProductPartsLoading', 'setProductPartsError'
     ], {
       productParts$: signal(mockParts),
@@ -52,15 +52,15 @@ describe('ProductStructureComponent', () => {
       productPartsError$: signal(null)
     });
 
-    controller = jasmine.createSpyObj('Controller', ['loadProductParts']);
+    controller = jasmine.createSpyObj('ProductDefinitionsController', ['loadProductParts']);
     toastService = jasmine.createSpyObj('ToastService', ['success', 'error']);
     confirmService = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
 
     await TestBed.configureTestingModule({
       imports: [ProductStructureComponent],
       providers: [
-        { provide: ModelService, useValue: modelService },
-        { provide: Controller, useValue: controller },
+        { provide: ProductDefinitionsModelService, useValue: modelService },
+        { provide: ProductDefinitionsController, useValue: controller },
         { provide: ToastService, useValue: toastService },
         { provide: ConfirmDialogService, useValue: confirmService }
       ]

@@ -78,12 +78,10 @@ public class Contract {
     @Column(name = "state", length = 20, nullable = false)
     private ContractState state;
 
-    @Column(name = "public_notes")
-    @Lob
+    @Column(name = "public_notes", columnDefinition = "TEXT")
     private String publicNotes;
 
-    @Column(name = "internal_notes")
-    @Lob
+    @Column(name = "internal_notes", columnDefinition = "TEXT")
     private String internalNotes;
 
     @Column(name = "created_at")

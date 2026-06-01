@@ -2,8 +2,8 @@ import { Component, inject, OnInit, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { BillingModel, ProductDefinition, ProductDefinitionRequest, ModelService } from '../../model.service';
-import { Controller } from '../../controller';
+import { BillingModel, ProductDefinition, ProductDefinitionRequest, ProductDefinitionsModelService } from '../product-definitions.model.service';
+import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 
 @Component({
@@ -15,8 +15,8 @@ import { ToastService } from '../../core/toast/toast.service';
 export class ProductDefinitionFormComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private modelService = inject(ModelService);
-  private controller = inject(Controller);
+  private modelService = inject(ProductDefinitionsModelService);
+  private controller = inject(ProductDefinitionsController);
   private toastService = inject(ToastService);
 
   selectedProduct: Signal<ProductDefinition | null> = this.modelService.selectedProductDefinition$;

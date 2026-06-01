@@ -1,22 +1,24 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { TermsAndConditionsDetailComponent } from './terms-and-conditions-detail.component';
 import { provideRouter } from '@angular/router';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
-import { ModelService } from '../../model.service';
-import { Controller } from '../../controller';
+import { provideMarkdown } from 'ngx-markdown';
+import { TermsAndConditionsModelService } from '../terms-and-conditions.model.service';
+import { TermsAndConditionsController } from '../terms-and-conditions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
 
 describe('TermsAndConditionsDetailComponent', () => {
   let component: TermsAndConditionsDetailComponent;
   let fixture: ComponentFixture<TermsAndConditionsDetailComponent>;
-  let modelService = null as unknown as ModelService;
-  let controller: jasmine.SpyObj<Controller>;
+  let modelService = null as unknown as TermsAndConditionsModelService;
+  let controller: jasmine.SpyObj<TermsAndConditionsController>;
   let toastService: jasmine.SpyObj<ToastService>;
   let confirmService: jasmine.SpyObj<ConfirmDialogService>;
 
   beforeEach(async () => {
-    const controllerSpy = jasmine.createSpyObj('Controller', [
+    const controllerSpy = jasmine.createSpyObj('TermsAndConditionsController', [
       'getTermsAndConditions',
       'deleteTermsAndConditions'
     ]);
@@ -27,8 +29,10 @@ describe('TermsAndConditionsDetailComponent', () => {
       imports: [TermsAndConditionsDetailComponent],
       providers: [
         provideRouter([]),
-        ModelService,
-        { provide: Controller, useValue: controllerSpy },
+        provideHttpClient(),
+        provideMarkdown(),
+        TermsAndConditionsModelService,
+        { provide: TermsAndConditionsController, useValue: controllerSpy },
         { provide: ToastService, useValue: toastSpy },
         { provide: ConfirmDialogService, useValue: confirmSpy },
         {
@@ -38,8 +42,8 @@ describe('TermsAndConditionsDetailComponent', () => {
       ]
     }).compileComponents();
 
-    modelService = TestBed.inject(ModelService);
-    controller = TestBed.inject(Controller) as jasmine.SpyObj<Controller>;
+    modelService = TestBed.inject(TermsAndConditionsModelService);
+    controller = TestBed.inject(TermsAndConditionsController) as jasmine.SpyObj<TermsAndConditionsController>;
     toastService = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
     confirmService = TestBed.inject(ConfirmDialogService) as jasmine.SpyObj<ConfirmDialogService>;
 
@@ -57,7 +61,9 @@ describe('TermsAndConditionsDetailComponent', () => {
       organisationId: 'org-1',
       code: 'T001',
       title: 'Test Terms',
-      content: 'Test Content',
+      contentFr: 'Test Content FR',
+      contentDe: 'Test Content DE',
+      contentEn: 'Test Content',
       currentVersion: '1.0',
       effectiveFrom: null,
       effectiveUntil: null
@@ -74,7 +80,9 @@ describe('TermsAndConditionsDetailComponent', () => {
       organisationId: 'org-1',
       code: 'T001',
       title: 'Test Terms',
-      content: 'Test Content',
+      contentFr: 'Test Content FR',
+      contentDe: 'Test Content DE',
+      contentEn: 'Test Content',
       currentVersion: '1.0',
       effectiveFrom: '2024-01-01',
       effectiveUntil: null
@@ -90,7 +98,8 @@ describe('TermsAndConditionsDetailComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('T001');
     expect(compiled.textContent).toContain('Test Terms');
-    expect(compiled.textContent).toContain('Test Content');
+    expect(compiled.textContent).toContain('EN');
+    expect(component.selectedContent()).toBe('Test Content');
   });
 
   it('should show error when terms not found', async () => {
@@ -108,7 +117,9 @@ describe('TermsAndConditionsDetailComponent', () => {
       organisationId: 'org-1',
       code: 'T001',
       title: 'Test Terms',
-      content: 'Content',
+      contentFr: 'Content FR',
+      contentDe: 'Content DE',
+      contentEn: 'Content',
       currentVersion: '1.0',
       effectiveFrom: null,
       effectiveUntil: null
@@ -136,7 +147,9 @@ describe('TermsAndConditionsDetailComponent', () => {
       organisationId: 'org-1',
       code: 'T001',
       title: 'Test Terms',
-      content: 'Content',
+      contentFr: 'Content FR',
+      contentDe: 'Content DE',
+      contentEn: 'Content',
       currentVersion: '1.0',
       effectiveFrom: null,
       effectiveUntil: null

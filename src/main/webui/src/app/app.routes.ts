@@ -1,36 +1,26 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth.guard';
-import { NotFoundComponent } from './core/not-found/not-found.component';
-import { SignedInComponent } from './core/signed-in/signed-in.component';
-import { SignedOutComponent } from './core/signed-out/signed-out.component';
-import { LegalComponent } from './core/legal/legal.component';
 import { ProductDefinitionsListComponent } from './product-definitions/product-definitions-list/product-definitions-list.component';
-import { ProductDefinitionFormComponent } from './product-definitions/product-definition-form/product-definition-form.component';
-import { ProductDefinitionDetailComponent } from './product-definitions/product-definition-detail/product-definition-detail.component';
-import { ProductSimulatorComponent } from './product-definitions/product-simulator/product-simulator.component';
-import { TermsAndConditionsListComponent } from './terms-and-conditions/terms-and-conditions-list/terms-and-conditions-list.component';
-import { TermsAndConditionsFormComponent } from './terms-and-conditions/terms-and-conditions-form/terms-and-conditions-form.component';
-import { TermsAndConditionsDetailComponent } from './terms-and-conditions/terms-and-conditions-detail/terms-and-conditions-detail.component';
 
 export const routes: Routes = [
-  { path: 'legal',      component: LegalComponent },
+  { path: 'legal', loadComponent: () => import('./core/legal/legal.component').then(m => m.LegalComponent) },
 
-  { path: 'signed-in',  component: SignedInComponent, canActivate: [authGuard] },
-  { path: 'signed-out', component: SignedOutComponent },
+  { path: 'signed-in', loadComponent: () => import('./core/signed-in/signed-in.component').then(m => m.SignedInComponent), canActivate: [authGuard] },
+  { path: 'signed-out', loadComponent: () => import('./core/signed-out/signed-out.component').then(m => m.SignedOutComponent) },
 
   // Product Definition routes
-  { path: '',               component: ProductDefinitionsListComponent,   canActivate: [authGuard] },
-  { path: 'product-definitions',               component: ProductDefinitionsListComponent,   canActivate: [authGuard] },
-  { path: 'product-definitions/new',          component: ProductDefinitionFormComponent,  canActivate: [authGuard] },
-  { path: 'product-definitions/:id',          component: ProductDefinitionDetailComponent, canActivate: [authGuard] },
-  { path: 'product-definitions/:id/edit',     component: ProductDefinitionFormComponent,  canActivate: [authGuard] },
-  { path: 'product-definitions/:id/simulate', component: ProductSimulatorComponent, canActivate: [authGuard] },
+  { path: '', component: ProductDefinitionsListComponent, canActivate: [authGuard] },
+  { path: 'product-definitions', loadComponent: () => import('./product-definitions/product-definitions-list/product-definitions-list.component').then(m => m.ProductDefinitionsListComponent), canActivate: [authGuard] },
+  { path: 'product-definitions/new', loadComponent: () => import('./product-definitions/product-definition-form/product-definition-form.component').then(m => m.ProductDefinitionFormComponent), canActivate: [authGuard] },
+  { path: 'product-definitions/:id', loadComponent: () => import('./product-definitions/product-definition-detail/product-definition-detail.component').then(m => m.ProductDefinitionDetailComponent), canActivate: [authGuard] },
+  { path: 'product-definitions/:id/edit', loadComponent: () => import('./product-definitions/product-definition-form/product-definition-form.component').then(m => m.ProductDefinitionFormComponent), canActivate: [authGuard] },
+  { path: 'product-definitions/:id/simulate', loadComponent: () => import('./product-definitions/product-simulator/product-simulator.component').then(m => m.ProductSimulatorComponent), canActivate: [authGuard] },
 
   // Terms and Conditions routes
-  { path: 'terms-and-conditions',               component: TermsAndConditionsListComponent,   canActivate: [authGuard] },
-  { path: 'terms-and-conditions/new',           component: TermsAndConditionsFormComponent, canActivate: [authGuard] },
-  { path: 'terms-and-conditions/:id',           component: TermsAndConditionsDetailComponent, canActivate: [authGuard] },
-  { path: 'terms-and-conditions/:id/edit',      component: TermsAndConditionsFormComponent,   canActivate: [authGuard] },
+  { path: 'terms-and-conditions', loadComponent: () => import('./terms-and-conditions/terms-and-conditions-list/terms-and-conditions-list.component').then(m => m.TermsAndConditionsListComponent), canActivate: [authGuard] },
+  { path: 'terms-and-conditions/new', loadComponent: () => import('./terms-and-conditions/terms-and-conditions-form/terms-and-conditions-form.component').then(m => m.TermsAndConditionsFormComponent), canActivate: [authGuard] },
+  { path: 'terms-and-conditions/:id', loadComponent: () => import('./terms-and-conditions/terms-and-conditions-detail/terms-and-conditions-detail.component').then(m => m.TermsAndConditionsDetailComponent), canActivate: [authGuard] },
+  { path: 'terms-and-conditions/:id/edit', loadComponent: () => import('./terms-and-conditions/terms-and-conditions-form/terms-and-conditions-form.component').then(m => m.TermsAndConditionsFormComponent), canActivate: [authGuard] },
 
-  { path: '**',         component: NotFoundComponent }
+  { path: '**', loadComponent: () => import('./core/not-found/not-found.component').then(m => m.NotFoundComponent) }
 ];

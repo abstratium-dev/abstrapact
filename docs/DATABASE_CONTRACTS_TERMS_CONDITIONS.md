@@ -22,6 +22,7 @@ classDiagram
         VARCHAR(50) current_version
         DATE effective_from
         DATE effective_until
+        VARCHAR(10) language
     }
 
     class T_contract {
@@ -117,6 +118,7 @@ Catalogue of reusable terms and conditions documents. Each entry represents a di
 | current_version | VARCHAR(50) | Semantic version or revision identifier |
 | effective_from | DATE | Date when this version becomes effective (nullable) |
 | effective_until | DATE | Date when this version ceases to be effective (nullable) |
+| language | VARCHAR(10) | Language code (e.g. "fr", "de", "en") for this T&C version (nullable) |
 
 **Constraints:**
 - Primary Key: `id`

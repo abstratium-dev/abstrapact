@@ -1,15 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AttributeFormComponent } from './attribute-form.component';
-import { ModelService, PartAttributeDefinition, DataType } from '../../model.service';
-import { Controller } from '../../controller';
+import { ProductDefinitionsModelService, PartAttributeDefinition, DataType } from '../product-definitions.model.service';
+import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { signal } from '@angular/core';
 
 describe('AttributeFormComponent', () => {
   let component: AttributeFormComponent;
   let fixture: ComponentFixture<AttributeFormComponent>;
-  let modelService: jasmine.SpyObj<ModelService>;
-  let controller: jasmine.SpyObj<Controller>;
+  let modelService: jasmine.SpyObj<ProductDefinitionsModelService>;
+  let controller: jasmine.SpyObj<ProductDefinitionsController>;
   let toastService: jasmine.SpyObj<ToastService>;
 
   const mockExistingAttribute: PartAttributeDefinition = {
@@ -26,15 +26,15 @@ describe('AttributeFormComponent', () => {
   };
 
   beforeEach(async () => {
-    modelService = jasmine.createSpyObj('ModelService', ['setSelectedAttribute']);
-    controller = jasmine.createSpyObj('Controller', ['createAttribute', 'updateAttribute']);
+    modelService = jasmine.createSpyObj('ProductDefinitionsModelService', ['setSelectedAttribute']);
+    controller = jasmine.createSpyObj('ProductDefinitionsController', ['createAttribute', 'updateAttribute']);
     toastService = jasmine.createSpyObj('ToastService', ['success', 'error']);
 
     await TestBed.configureTestingModule({
       imports: [AttributeFormComponent],
       providers: [
-        { provide: ModelService, useValue: modelService },
-        { provide: Controller, useValue: controller },
+        { provide: ProductDefinitionsModelService, useValue: modelService },
+        { provide: ProductDefinitionsController, useValue: controller },
         { provide: ToastService, useValue: toastService }
       ]
     }).compileComponents();

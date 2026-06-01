@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PartAttributesListComponent } from './part-attributes-list.component';
-import { ModelService, PartAttributeDefinition, PartDefinition, DataType } from '../../model.service';
-import { Controller } from '../../controller';
+import { ProductDefinitionsModelService, PartAttributeDefinition, PartDefinition, DataType } from '../product-definitions.model.service';
+import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
 import { signal } from '@angular/core';
@@ -9,8 +9,8 @@ import { signal } from '@angular/core';
 describe('PartAttributesListComponent', () => {
   let component: PartAttributesListComponent;
   let fixture: ComponentFixture<PartAttributesListComponent>;
-  let modelService: jasmine.SpyObj<ModelService>;
-  let controller: jasmine.SpyObj<Controller>;
+  let modelService: jasmine.SpyObj<ProductDefinitionsModelService>;
+  let controller: jasmine.SpyObj<ProductDefinitionsController>;
   let toastService: jasmine.SpyObj<ToastService>;
   let confirmService: jasmine.SpyObj<ConfirmDialogService>;
 
@@ -60,15 +60,15 @@ describe('PartAttributesListComponent', () => {
       setSelectedAttribute: jasmine.createSpy('setSelectedAttribute')
     };
 
-    controller = jasmine.createSpyObj('Controller', ['loadPartAttributes', 'deleteAttribute']);
+    controller = jasmine.createSpyObj('ProductDefinitionsController', ['loadPartAttributes', 'deleteAttribute']);
     toastService = jasmine.createSpyObj('ToastService', ['success', 'error']);
     confirmService = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
 
     await TestBed.configureTestingModule({
       imports: [PartAttributesListComponent],
       providers: [
-        { provide: ModelService, useValue: modelServiceMock },
-        { provide: Controller, useValue: controller },
+        { provide: ProductDefinitionsModelService, useValue: modelServiceMock },
+        { provide: ProductDefinitionsController, useValue: controller },
         { provide: ToastService, useValue: toastService },
         { provide: ConfirmDialogService, useValue: confirmService }
       ]
@@ -76,7 +76,7 @@ describe('PartAttributesListComponent', () => {
 
     fixture = TestBed.createComponent(PartAttributesListComponent);
     component = fixture.componentInstance;
-    modelService = TestBed.inject(ModelService) as jasmine.SpyObj<ModelService>;
+    modelService = TestBed.inject(ProductDefinitionsModelService) as jasmine.SpyObj<ProductDefinitionsModelService>;
     component.part = mockPart;
 
     fixture.detectChanges();

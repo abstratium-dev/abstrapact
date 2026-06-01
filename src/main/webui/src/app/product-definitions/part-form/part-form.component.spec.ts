@@ -1,15 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PartFormComponent } from './part-form.component';
-import { ModelService, PartDefinition } from '../../model.service';
-import { Controller } from '../../controller';
+import { ProductDefinitionsModelService, PartDefinition } from '../product-definitions.model.service';
+import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { signal } from '@angular/core';
 
 describe('PartFormComponent', () => {
   let component: PartFormComponent;
   let fixture: ComponentFixture<PartFormComponent>;
-  let modelService: jasmine.SpyObj<ModelService>;
-  let controller: jasmine.SpyObj<Controller>;
+  let modelService: jasmine.SpyObj<ProductDefinitionsModelService>;
+  let controller: jasmine.SpyObj<ProductDefinitionsController>;
   let toastService: jasmine.SpyObj<ToastService>;
 
   const mockExistingPart: PartDefinition = {
@@ -26,15 +26,15 @@ describe('PartFormComponent', () => {
   };
 
   beforeEach(async () => {
-    modelService = jasmine.createSpyObj('ModelService', ['setSelectedPart']);
-    controller = jasmine.createSpyObj('Controller', ['createPart', 'updatePart']);
+    modelService = jasmine.createSpyObj('ProductDefinitionsModelService', ['setSelectedPart']);
+    controller = jasmine.createSpyObj('ProductDefinitionsController', ['createPart', 'updatePart']);
     toastService = jasmine.createSpyObj('ToastService', ['success', 'error']);
 
     await TestBed.configureTestingModule({
       imports: [PartFormComponent],
       providers: [
-        { provide: ModelService, useValue: modelService },
-        { provide: Controller, useValue: controller },
+        { provide: ProductDefinitionsModelService, useValue: modelService },
+        { provide: ProductDefinitionsController, useValue: controller },
         { provide: ToastService, useValue: toastService }
       ]
     }).compileComponents();

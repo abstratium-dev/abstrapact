@@ -1,8 +1,8 @@
 import { Component, inject, Input, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { PartDefinition, PartRequest, ModelService } from '../../model.service';
-import { Controller } from '../../controller';
+import { PartDefinition, PartRequest, ProductDefinitionsModelService } from '../product-definitions.model.service';
+import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 
 @Component({
@@ -12,8 +12,8 @@ import { ToastService } from '../../core/toast/toast.service';
   styleUrl: './part-form.component.scss'
 })
 export class PartFormComponent implements OnInit {
-  private modelService = inject(ModelService);
-  private controller = inject(Controller);
+  private modelService = inject(ProductDefinitionsModelService);
+  private controller = inject(ProductDefinitionsController);
   private toastService = inject(ToastService);
 
   @Input() productId!: string;

@@ -46,19 +46,53 @@
       </div>
 
       <div class="form-group">
-        <label for="content">Content *</label>
+        <label for="contentFr">Content (French) *</label>
         <textarea
-          id="content"
-          name="content"
-          [(ngModel)]="content"
+          id="contentFr"
+          name="contentFr"
+          [(ngModel)]="contentFr"
           [disabled]="submitting"
-          rows="8"
+          rows="6"
           required
-          data-testid="content-input"
+          data-testid="content-fr-input"
         ></textarea>
-        <span class="form-hint">Full terms and conditions text</span>
-        <div *ngIf="fieldErrors['content']" class="error" data-testid="content-error">
-          {{ fieldErrors['content'] }}
+        <span class="form-hint">French terms and conditions text</span>
+        <div *ngIf="fieldErrors['contentFr']" class="error" data-testid="content-fr-error">
+          {{ fieldErrors['contentFr'] }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="contentDe">Content (German) *</label>
+        <textarea
+          id="contentDe"
+          name="contentDe"
+          [(ngModel)]="contentDe"
+          [disabled]="submitting"
+          rows="6"
+          required
+          data-testid="content-de-input"
+        ></textarea>
+        <span class="form-hint">German terms and conditions text</span>
+        <div *ngIf="fieldErrors['contentDe']" class="error" data-testid="content-de-error">
+          {{ fieldErrors['contentDe'] }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="contentEn">Content (English) *</label>
+        <textarea
+          id="contentEn"
+          name="contentEn"
+          [(ngModel)]="contentEn"
+          [disabled]="submitting"
+          rows="6"
+          required
+          data-testid="content-en-input"
+        ></textarea>
+        <span class="form-hint">English terms and conditions text</span>
+        <div *ngIf="fieldErrors['contentEn']" class="error" data-testid="content-en-error">
+          {{ fieldErrors['contentEn'] }}
         </div>
       </div>
 

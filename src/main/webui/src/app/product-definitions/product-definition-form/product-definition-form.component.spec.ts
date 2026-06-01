@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProductDefinitionFormComponent } from './product-definition-form.component';
-import { Controller } from '../../controller';
-import { ModelService, ProductDefinition } from '../../model.service';
+import { ProductDefinitionsModelService, ProductDefinition } from '../product-definitions.model.service';
+import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -10,8 +10,8 @@ import { FormsModule } from '@angular/forms';
 describe('ProductDefinitionFormComponent', () => {
   let component: ProductDefinitionFormComponent;
   let fixture: ComponentFixture<ProductDefinitionFormComponent>;
-  let controller: jasmine.SpyObj<Controller>;
-  let modelService: jasmine.SpyObj<ModelService>;
+  let controller: jasmine.SpyObj<ProductDefinitionsController>;
+  let modelService: jasmine.SpyObj<ProductDefinitionsModelService>;
   let toastService: jasmine.SpyObj<ToastService>;
   let router: jasmine.SpyObj<Router>;
   let activatedRoute: any;
@@ -29,7 +29,7 @@ describe('ProductDefinitionFormComponent', () => {
   };
 
   beforeEach(async () => {
-    const controllerSpy = jasmine.createSpyObj('Controller', [
+    const controllerSpy = jasmine.createSpyObj('ProductDefinitionsController', [
       'getProductDefinition',
       'createProductDefinition',
       'updateProductDefinition'
@@ -37,7 +37,7 @@ describe('ProductDefinitionFormComponent', () => {
 
     selectedProductSignal = signal<ProductDefinition | null>(null);
 
-    const modelServiceSpy = jasmine.createSpyObj('ModelService', [], {
+    const modelServiceSpy = jasmine.createSpyObj('ProductDefinitionsModelService', [], {
       selectedProductDefinition$: selectedProductSignal.asReadonly()
     });
 
@@ -47,8 +47,8 @@ describe('ProductDefinitionFormComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ProductDefinitionFormComponent, FormsModule],
       providers: [
-        { provide: Controller, useValue: controllerSpy },
-        { provide: ModelService, useValue: modelServiceSpy },
+        { provide: ProductDefinitionsController, useValue: controllerSpy },
+        { provide: ProductDefinitionsModelService, useValue: modelServiceSpy },
         { provide: ToastService, useValue: toastServiceSpy },
         { provide: Router, useValue: routerSpy },
         {
@@ -64,8 +64,8 @@ describe('ProductDefinitionFormComponent', () => {
       ]
     }).compileComponents();
 
-    controller = TestBed.inject(Controller) as jasmine.SpyObj<Controller>;
-    modelService = TestBed.inject(ModelService) as jasmine.SpyObj<ModelService>;
+    controller = TestBed.inject(ProductDefinitionsController) as jasmine.SpyObj<ProductDefinitionsController>;
+    modelService = TestBed.inject(ProductDefinitionsModelService) as jasmine.SpyObj<ProductDefinitionsModelService>;
     toastService = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
     router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
     activatedRoute = TestBed.inject(ActivatedRoute);

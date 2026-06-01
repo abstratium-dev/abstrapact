@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProductDefinitionDetailComponent } from './product-definition-detail.component';
-import { Controller } from '../../controller';
-import { ModelService, ProductDefinition, PartDefinition } from '../../model.service';
+import { ProductDefinitionsModelService, ProductDefinition, PartDefinition } from '../product-definitions.model.service';
+import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
 import { signal } from '@angular/core';
@@ -10,8 +10,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 describe('ProductDefinitionDetailComponent', () => {
   let component: ProductDefinitionDetailComponent;
   let fixture: ComponentFixture<ProductDefinitionDetailComponent>;
-  let controller: jasmine.SpyObj<Controller>;
-  let modelService: jasmine.SpyObj<ModelService>;
+  let controller: jasmine.SpyObj<ProductDefinitionsController>;
+  let modelService: jasmine.SpyObj<ProductDefinitionsModelService>;
   let toastService: jasmine.SpyObj<ToastService>;
   let confirmService: jasmine.SpyObj<ConfirmDialogService>;
   let router: jasmine.SpyObj<Router>;
@@ -48,7 +48,7 @@ describe('ProductDefinitionDetailComponent', () => {
     selectedProductSignal = signal<ProductDefinition | null>(null);
     selectedPartSignal = signal<PartDefinition | null>(null);
 
-    const modelServiceSpy = jasmine.createSpyObj('ModelService',
+    const modelServiceSpy = jasmine.createSpyObj('ProductDefinitionsModelService',
       ['setSelectedProductDefinition', 'setSelectedPart'],
       {
         selectedProductDefinition$: selectedProductSignal.asReadonly(),
@@ -65,7 +65,7 @@ describe('ProductDefinitionDetailComponent', () => {
     });
 
     // Create controller spy that also updates the model service like the real controller does
-    const controllerSpy = jasmine.createSpyObj('Controller', [
+    const controllerSpy = jasmine.createSpyObj('ProductDefinitionsController', [
       'getProductDefinition',
       'deleteProductDefinition',
       'loadProductParts'
@@ -95,8 +95,8 @@ describe('ProductDefinitionDetailComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ProductDefinitionDetailComponent],
       providers: [
-        { provide: Controller, useValue: controllerSpy },
-        { provide: ModelService, useValue: modelServiceSpy },
+        { provide: ProductDefinitionsController, useValue: controllerSpy },
+        { provide: ProductDefinitionsModelService, useValue: modelServiceSpy },
         { provide: ToastService, useValue: toastServiceSpy },
         { provide: ConfirmDialogService, useValue: confirmServiceSpy },
         { provide: Router, useValue: routerSpy },
@@ -113,8 +113,8 @@ describe('ProductDefinitionDetailComponent', () => {
       ]
     }).compileComponents();
 
-    controller = TestBed.inject(Controller) as jasmine.SpyObj<Controller>;
-    modelService = TestBed.inject(ModelService) as jasmine.SpyObj<ModelService>;
+    controller = TestBed.inject(ProductDefinitionsController) as jasmine.SpyObj<ProductDefinitionsController>;
+    modelService = TestBed.inject(ProductDefinitionsModelService) as jasmine.SpyObj<ProductDefinitionsModelService>;
     toastService = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
     confirmService = TestBed.inject(ConfirmDialogService) as jasmine.SpyObj<ConfirmDialogService>;
     router = TestBed.inject(Router) as jasmine.SpyObj<Router>;

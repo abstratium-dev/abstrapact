@@ -2,18 +2,18 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TermsAndConditionsFormComponent } from './terms-and-conditions-form.component';
 import { provideRouter } from '@angular/router';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
-import { ModelService } from '../../model.service';
-import { Controller } from '../../controller';
+import { TermsAndConditionsModelService } from '../terms-and-conditions.model.service';
+import { TermsAndConditionsController } from '../terms-and-conditions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 
 describe('TermsAndConditionsFormComponent', () => {
   let component: TermsAndConditionsFormComponent;
   let fixture: ComponentFixture<TermsAndConditionsFormComponent>;
-  let controller: jasmine.SpyObj<Controller>;
+  let controller: jasmine.SpyObj<TermsAndConditionsController>;
   let toastService: jasmine.SpyObj<ToastService>;
 
   beforeEach(async () => {
-    const controllerSpy = jasmine.createSpyObj('Controller', [
+    const controllerSpy = jasmine.createSpyObj('TermsAndConditionsController', [
       'getTermsAndConditions',
       'createTermsAndConditions',
       'updateTermsAndConditions'
@@ -24,8 +24,8 @@ describe('TermsAndConditionsFormComponent', () => {
       imports: [TermsAndConditionsFormComponent],
       providers: [
         provideRouter([]),
-        ModelService,
-        { provide: Controller, useValue: controllerSpy },
+        TermsAndConditionsModelService,
+        { provide: TermsAndConditionsController, useValue: controllerSpy },
         { provide: ToastService, useValue: toastSpy },
         {
           provide: ActivatedRoute,
@@ -34,7 +34,7 @@ describe('TermsAndConditionsFormComponent', () => {
       ]
     }).compileComponents();
 
-    controller = TestBed.inject(Controller) as jasmine.SpyObj<Controller>;
+    controller = TestBed.inject(TermsAndConditionsController) as jasmine.SpyObj<TermsAndConditionsController>;
     toastService = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
 
     fixture = TestBed.createComponent(TermsAndConditionsFormComponent);
@@ -49,7 +49,7 @@ describe('TermsAndConditionsFormComponent', () => {
   it('should validate required code', () => {
     component.code = '';
     component.title = 'Title';
-    component.content = 'Content';
+    component.contentEn = 'Content';
     component.currentVersion = '1.0';
     expect(component.validateForm()).toBeFalse();
     expect(component.fieldErrors['code']).toBe('Code is required');
@@ -58,7 +58,7 @@ describe('TermsAndConditionsFormComponent', () => {
   it('should validate required title', () => {
     component.code = 'CODE';
     component.title = '';
-    component.content = 'Content';
+    component.contentEn = 'Content';
     component.currentVersion = '1.0';
     expect(component.validateForm()).toBeFalse();
     expect(component.fieldErrors['title']).toBe('Title is required');
@@ -67,16 +67,16 @@ describe('TermsAndConditionsFormComponent', () => {
   it('should validate required content', () => {
     component.code = 'CODE';
     component.title = 'Title';
-    component.content = '';
+    component.contentEn = '';
     component.currentVersion = '1.0';
     expect(component.validateForm()).toBeFalse();
-    expect(component.fieldErrors['content']).toBe('Content is required');
+    expect(component.fieldErrors['contentEn']).toBe('English content is required');
   });
 
   it('should validate required version', () => {
     component.code = 'CODE';
     component.title = 'Title';
-    component.content = 'Content';
+    component.contentEn = 'Content';
     component.currentVersion = '';
     expect(component.validateForm()).toBeFalse();
     expect(component.fieldErrors['currentVersion']).toBe('Version is required');
@@ -85,7 +85,7 @@ describe('TermsAndConditionsFormComponent', () => {
   it('should validate code max length', () => {
     component.code = 'a'.repeat(51);
     component.title = 'Title';
-    component.content = 'Content';
+    component.contentEn = 'Content';
     component.currentVersion = '1.0';
     expect(component.validateForm()).toBeFalse();
     expect(component.fieldErrors['code']).toBe('Code must be 50 characters or less');
@@ -94,7 +94,7 @@ describe('TermsAndConditionsFormComponent', () => {
   it('should validate date range', () => {
     component.code = 'CODE';
     component.title = 'Title';
-    component.content = 'Content';
+    component.contentEn = 'Content';
     component.currentVersion = '1.0';
     component.effectiveFrom = '2024-12-01';
     component.effectiveUntil = '2024-01-01';
@@ -105,7 +105,9 @@ describe('TermsAndConditionsFormComponent', () => {
   it('should pass validation with valid data', () => {
     component.code = 'CODE';
     component.title = 'Title';
-    component.content = 'Content';
+    component.contentFr = 'Content FR';
+    component.contentDe = 'Content DE';
+    component.contentEn = 'Content';
     component.currentVersion = '1.0';
     expect(component.validateForm()).toBeTrue();
   });
@@ -125,7 +127,9 @@ describe('TermsAndConditionsFormComponent', () => {
       organisationId: 'org-1',
       code: 'TEST',
       title: 'Test Title',
-      content: 'Test Content',
+      contentFr: 'Test Content FR',
+      contentDe: 'Test Content DE',
+      contentEn: 'Test Content',
       currentVersion: '2.0',
       effectiveFrom: '2024-01-01',
       effectiveUntil: '2024-12-31'
@@ -133,7 +137,7 @@ describe('TermsAndConditionsFormComponent', () => {
     component.populateForm(terms);
     expect(component.code).toBe('TEST');
     expect(component.title).toBe('Test Title');
-    expect(component.content).toBe('Test Content');
+    expect(component.contentEn).toBe('Test Content');
     expect(component.currentVersion).toBe('2.0');
     expect(component.effectiveFrom).toBe('2024-01-01');
     expect(component.effectiveUntil).toBe('2024-12-31');

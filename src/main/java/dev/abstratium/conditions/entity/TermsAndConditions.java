@@ -25,9 +25,14 @@ public class TermsAndConditions {
     @Column(name = "title", length = 255)
     private String title;
 
-    @Column(name = "content")
-    @Lob
-    private String content;
+    @Column(name = "content_fr", columnDefinition = "TEXT")
+    private String contentFr;
+
+    @Column(name = "content_de", columnDefinition = "TEXT")
+    private String contentDe;
+
+    @Column(name = "content_en", columnDefinition = "TEXT")
+    private String contentEn;
 
     @Column(name = "current_version", length = 50)
     private String currentVersion;
@@ -73,12 +78,28 @@ public class TermsAndConditions {
         this.title = title;
     }
 
-    public String getContent() {
-        return content;
+    public String getContentFr() {
+        return contentFr;
     }
 
-    public void setContent(String content) {
-        this.content = content;
+    public void setContentFr(String contentFr) {
+        this.contentFr = contentFr;
+    }
+
+    public String getContentDe() {
+        return contentDe;
+    }
+
+    public void setContentDe(String contentDe) {
+        this.contentDe = contentDe;
+    }
+
+    public String getContentEn() {
+        return contentEn;
+    }
+
+    public void setContentEn(String contentEn) {
+        this.contentEn = contentEn;
     }
 
     public String getCurrentVersion() {

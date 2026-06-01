@@ -139,3 +139,10 @@ export class DemoComponent implements OnInit {
 ❌ **Don't**: Write to the Model Service directly from components without going through the Controller
 ❌ **Don't**: Manually trigger change detection (signals handle this)
 
+
+## PROJECT SPECIFIC INFORMATION FOR THE ABSTRAPACT PROJE
+
+- this project has a number of model and controller files because the number of entities that it manages is very large. above the term "model" or "controller" is used generically. you must apply changes to the right model and controller files. their names tell you what entity group they manage.
+  - product-definitions.model.service.ts and product-definitions.controller.service.ts
+  - terms-and-conditions.model.service.ts and terms-and-conditions.controller.service.ts
+  - etc.

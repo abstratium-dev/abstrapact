@@ -6,7 +6,9 @@ CREATE TABLE T_terms_and_conditions (
     organisation_id VARCHAR(36) NOT NULL,
     code VARCHAR(50) NOT NULL UNIQUE,
     title VARCHAR(255),
-    content TEXT,
+    content_fr TEXT,
+    content_de TEXT,
+    content_en TEXT,
     current_version VARCHAR(50),
     effective_from DATE,
     effective_until DATE

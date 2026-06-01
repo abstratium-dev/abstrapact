@@ -1,14 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProductSimulatorComponent } from './product-simulator.component';
-import { Controller } from '../../controller';
+import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CompleteProductResponse, DataType } from '../../model.service';
+import { CompleteProductResponse, DataType } from '../product-definitions.model.service';
 
 describe('ProductSimulatorComponent', () => {
   let component: ProductSimulatorComponent;
   let fixture: ComponentFixture<ProductSimulatorComponent>;
-  let controller: jasmine.SpyObj<Controller>;
+  let controller: jasmine.SpyObj<ProductDefinitionsController>;
   let toastService: jasmine.SpyObj<ToastService>;
   let router: jasmine.SpyObj<Router>;
   let activatedRoute: any;
@@ -88,14 +88,14 @@ describe('ProductSimulatorComponent', () => {
   };
 
   beforeEach(async () => {
-    controller = jasmine.createSpyObj('Controller', ['getCompleteProduct']);
+    controller = jasmine.createSpyObj('ProductDefinitionsController', ['getCompleteProduct']);
     toastService = jasmine.createSpyObj('ToastService', ['success', 'error']);
     router = jasmine.createSpyObj('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
       imports: [ProductSimulatorComponent],
       providers: [
-        { provide: Controller, useValue: controller },
+        { provide: ProductDefinitionsController, useValue: controller },
         { provide: ToastService, useValue: toastService },
         { provide: Router, useValue: router },
         {

@@ -1,6 +1,7 @@
 import { HttpClient, provideHttpClient, withXsrfConfiguration } from '@angular/common/http';
 import { ApplicationConfig, inject, provideAppInitializer, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { provideMarkdown } from 'ngx-markdown';
 import { firstValueFrom } from 'rxjs';
 
 import { routes } from './app.routes';
@@ -18,6 +19,7 @@ export const appConfig: ApplicationConfig = {
         headerName: 'X-XSRF-TOKEN',
       })
     ),
+    provideMarkdown(),
     provideAppInitializer(() => {
       const controller = inject(Controller);
       // Load config first (doesn't require authentication)

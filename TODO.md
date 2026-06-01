@@ -12,11 +12,16 @@
 
 - do not allow products or their parts or attributes to be modified or deleted if instances exist for the product definition.
 
+- change price per part from usd to the currency with which abstrapact has been configured as its base currency.
+
 - creating an instance creates a contract in an early status
 
 - contract t&c must state that the contract only comes into effect once the status reaches x and it is no longer in effect once status y is reached.
 
 - add version field and optimistic locking to all entities and always take the version from the client. write a doc about this and add it to abstracore and implement it as standard in the database.md file.
+
+- when creating a contract, it should take the version of the GTC that matches the date of sale - since they have dates.
+- GTC may not overlap if the code is the same!
 
 - in order to create an instance, read "build directives" which allow the caller to see what values need to be set via placeholders. alternatively the b2c can simply send a map with paths and values and that can be merged with the build directives to create the instance.
 
@@ -28,7 +33,7 @@
 
 - add discounts to UI and simulator
 
-- add General Terms and Conditions and map product to them
+- map product to GTC? or contract? whatever, do that.
 
 - add contract and states
 

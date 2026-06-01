@@ -7,8 +7,8 @@ import {
   PartDefinition,
   PartAttributeDefinition,
   DataType
-} from '../../model.service';
-import { Controller } from '../../controller';
+} from '../product-definitions.model.service';
+import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 
 interface SimulatedPartInstance {
@@ -38,7 +38,7 @@ interface InstanceResult {
 export class ProductSimulatorComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private controller = inject(Controller);
+  private controller = inject(ProductDefinitionsController);
   private toastService = inject(ToastService);
 
   productId: string | null = null;

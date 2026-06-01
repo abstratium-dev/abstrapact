@@ -1,8 +1,8 @@
 import { Component, inject, OnInit, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { TermsAndConditions, ModelService } from '../../model.service';
-import { Controller } from '../../controller';
+import { TermsAndConditions, TermsAndConditionsModelService } from '../terms-and-conditions.model.service';
+import { TermsAndConditionsController } from '../terms-and-conditions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
 
@@ -13,8 +13,8 @@ import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.s
   styleUrl: './terms-and-conditions-list.component.scss'
 })
 export class TermsAndConditionsListComponent implements OnInit {
-  private modelService = inject(ModelService);
-  private controller = inject(Controller);
+  private modelService = inject(TermsAndConditionsModelService);
+  private controller = inject(TermsAndConditionsController);
   private router = inject(Router);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);

@@ -28,7 +28,7 @@ class TermsAndConditionsResourceTest {
         terms.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         terms.setCode(code);
         terms.setTitle("Test Terms Title");
-        terms.setContent("Test terms content");
+        terms.setContentEn("Test terms content");
         terms.setCurrentVersion("1.0");
         terms.setEffectiveFrom(LocalDate.now());
 
@@ -93,7 +93,7 @@ class TermsAndConditionsResourceTest {
         terms.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         terms.setCode(code);
         terms.setTitle("First Terms");
-        terms.setContent("First content");
+        terms.setContentEn("First content");
         terms.setCurrentVersion("1.0");
         terms.setEffectiveFrom(LocalDate.now());
 
@@ -109,7 +109,7 @@ class TermsAndConditionsResourceTest {
         duplicate.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         duplicate.setCode(code);
         duplicate.setTitle("Duplicate Terms");
-        duplicate.setContent("Duplicate content");
+        duplicate.setContentEn("Duplicate content");
         duplicate.setCurrentVersion("2.0");
         duplicate.setEffectiveFrom(LocalDate.now());
 
@@ -131,7 +131,7 @@ class TermsAndConditionsResourceTest {
         terms.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         terms.setCode(code);
         terms.setTitle("Original Title");
-        terms.setContent("Original content");
+        terms.setContentEn("Original content");
         terms.setCurrentVersion("1.0");
         terms.setEffectiveFrom(LocalDate.now());
 
@@ -149,7 +149,7 @@ class TermsAndConditionsResourceTest {
         update.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         update.setCode(code);
         update.setTitle("Updated Title");
-        update.setContent("Updated content");
+        update.setContentEn("Updated content");
         update.setCurrentVersion("2.0");
         update.setEffectiveFrom(LocalDate.now());
 
@@ -173,7 +173,7 @@ class TermsAndConditionsResourceTest {
         terms.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         terms.setCode(code);
         terms.setTitle("To be deleted");
-        terms.setContent("Delete me");
+        terms.setContentEn("Delete me");
         terms.setCurrentVersion("1.0");
         terms.setEffectiveFrom(LocalDate.now());
 
@@ -206,7 +206,7 @@ class TermsAndConditionsResourceTest {
         TermsAndConditions terms = new TermsAndConditions();
         terms.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
         terms.setTitle("No code");
-        terms.setContent("Content without code");
+        terms.setContentEn("Content without code");
 
         given()
             .contentType(ContentType.JSON)
@@ -293,7 +293,7 @@ class TermsAndConditionsResourceTest {
         TermsAndConditions terms = new TermsAndConditions();
         terms.setCode(code);
         terms.setTitle("Cross-tenant read test");
-        terms.setContent("Content");
+        terms.setContentEn("Content");
         terms.setCurrentVersion("1.0");
         terms.setEffectiveFrom(LocalDate.now());
 
@@ -336,7 +336,7 @@ class TermsAndConditionsResourceTest {
         TermsAndConditions terms = new TermsAndConditions();
         terms.setCode(code);
         terms.setTitle("Cross-tenant update test");
-        terms.setContent("Content");
+        terms.setContentEn("Content");
         terms.setCurrentVersion("1.0");
         terms.setEffectiveFrom(LocalDate.now());
 
@@ -354,7 +354,7 @@ class TermsAndConditionsResourceTest {
         TermsAndConditions update = new TermsAndConditions();
         update.setCode(code);
         update.setTitle("Hacked title");
-        update.setContent("Hacked content");
+        update.setContentEn("Hacked content");
 
         // Tenant B cannot update
         given()
@@ -386,7 +386,7 @@ class TermsAndConditionsResourceTest {
         TermsAndConditions terms = new TermsAndConditions();
         terms.setCode(code);
         terms.setTitle("Cross-tenant delete test");
-        terms.setContent("Content");
+        terms.setContentEn("Content");
         terms.setCurrentVersion("1.0");
         terms.setEffectiveFrom(LocalDate.now());
 

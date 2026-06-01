@@ -2,8 +2,8 @@ import { Component, inject, OnInit, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TermsAndConditions, TermsAndConditionsRequest, ModelService } from '../../model.service';
-import { Controller } from '../../controller';
+import { TermsAndConditions, TermsAndConditionsRequest, TermsAndConditionsModelService } from '../terms-and-conditions.model.service';
+import { TermsAndConditionsController } from '../terms-and-conditions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 
 @Component({
@@ -15,8 +15,8 @@ import { ToastService } from '../../core/toast/toast.service';
 export class TermsAndConditionsFormComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private modelService = inject(ModelService);
-  private controller = inject(Controller);
+  private modelService = inject(TermsAndConditionsModelService);
+  private controller = inject(TermsAndConditionsController);
   private toastService = inject(ToastService);
 
   selectedTerms: Signal<TermsAndConditions | null> = this.modelService.selectedTermsAndConditions$;
@@ -26,7 +26,9 @@ export class TermsAndConditionsFormComponent implements OnInit {
 
   code = '';
   title = '';
-  content = '';
+  contentFr = '';
+  contentDe = '';
+  contentEn = '';
   currentVersion = '';
   effectiveFrom: string | null = null;
   effectiveUntil: string | null = null;
@@ -56,7 +58,9 @@ export class TermsAndConditionsFormComponent implements OnInit {
   populateForm(terms: TermsAndConditions): void {
     this.code = terms.code;
     this.title = terms.title || '';
-    this.content = terms.content || '';
+    this.contentFr = terms.contentFr || '';
+    this.contentDe = terms.contentDe || '';
+    this.contentEn = terms.contentEn || '';
     this.currentVersion = terms.currentVersion || '';
     this.effectiveFrom = terms.effectiveFrom;
     this.effectiveUntil = terms.effectiveUntil;
@@ -79,13 +83,22 @@ export class TermsAndConditionsFormComponent implements OnInit {
       this.fieldErrors['title'] = 'Title must be 255 characters or less';
     }
 
-    if (!this.content || this.content.trim().length === 0) {
-      this.fieldErrors['content'] = 'Content is required';
+    if (!this.contentFr || this.contentFr.trim().length === 0) {
+      this.fieldErrors['contentFr'] = 'French content is required';
+    }
+
+    if (!this.contentDe || this.contentDe.trim().length === 0) {
+      this.fieldErrors['contentDe'] = 'German content is required';
+    }
+
+    if (!this.contentEn || this.contentEn.trim().length === 0) {
+      this.fieldErrors['contentEn'] = 'English content is required';
     }
 
     if (!this.currentVersion || this.currentVersion.trim().length === 0) {
       this.fieldErrors['currentVersion'] = 'Version is required';
     }
+
 
     if (this.effectiveFrom && this.effectiveUntil) {
       const fromDate = new Date(this.effectiveFrom);
@@ -110,7 +123,9 @@ export class TermsAndConditionsFormComponent implements OnInit {
     const request: TermsAndConditionsRequest = {
       code: this.code.trim(),
       title: this.title.trim(),
-      content: this.content.trim(),
+      contentFr: this.contentFr.trim(),
+      contentDe: this.contentDe.trim(),
+      contentEn: this.contentEn.trim(),
       currentVersion: this.currentVersion.trim(),
       effectiveFrom: this.effectiveFrom || null,
       effectiveUntil: this.effectiveUntil || null

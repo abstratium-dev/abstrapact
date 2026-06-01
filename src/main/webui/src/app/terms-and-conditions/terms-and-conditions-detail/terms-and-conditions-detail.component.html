@@ -42,8 +42,19 @@
 
     <div class="detail-section">
       <h4>Content</h4>
+      <div class="language-tabs">
+        <button
+          *ngFor="let lang of languages"
+          class="tab-button"
+          [class.active]="selectedLanguage() === lang.code"
+          (click)="selectLanguage(lang.code)"
+          [attr.data-testid]="'tab-' + lang.code"
+        >
+          {{ lang.label }}
+        </button>
+      </div>
       <div class="content-box">
-        {{ terms()!.content }}
+        <markdown [data]="selectedContent()"></markdown>
       </div>
     </div>
 

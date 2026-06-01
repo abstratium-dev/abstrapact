@@ -1,8 +1,8 @@
 import { Component, inject, OnInit, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ProductDefinition, PartDefinition, PartAttributeDefinition, ModelService } from '../../model.service';
-import { Controller } from '../../controller';
+import { ProductDefinition, PartDefinition, PartAttributeDefinition, ProductDefinitionsModelService } from '../product-definitions.model.service';
+import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
 import { ProductStructureComponent } from '../product-structure/product-structure.component';
@@ -19,8 +19,8 @@ import { AttributeFormComponent } from '../attribute-form/attribute-form.compone
 export class ProductDefinitionDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private modelService = inject(ModelService);
-  private controller = inject(Controller);
+  private modelService = inject(ProductDefinitionsModelService);
+  private controller = inject(ProductDefinitionsController);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
 

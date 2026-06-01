@@ -1,28 +1,51 @@
-import { Component, inject, OnInit, Signal } from '@angular/core';
+import { Component, computed, inject, OnInit, Signal, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TermsAndConditions, ModelService } from '../../model.service';
-import { Controller } from '../../controller';
+import { MarkdownComponent } from 'ngx-markdown';
+import { TermsAndConditions, TermsAndConditionsModelService } from '../terms-and-conditions.model.service';
+import { TermsAndConditionsController } from '../terms-and-conditions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
 
 @Component({
   selector: 'app-terms-and-conditions-detail',
-  imports: [CommonModule],
+  imports: [CommonModule, MarkdownComponent],
   templateUrl: './terms-and-conditions-detail.component.html',
   styleUrl: './terms-and-conditions-detail.component.scss'
 })
 export class TermsAndConditionsDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private modelService = inject(ModelService);
-  private controller = inject(Controller);
+  private modelService = inject(TermsAndConditionsModelService);
+  private controller = inject(TermsAndConditionsController);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
 
   terms: Signal<TermsAndConditions | null> = this.modelService.selectedTermsAndConditions$;
   loading = false;
   error: string | null = null;
+
+  languages = [
+    { code: 'fr', label: 'FR' },
+    { code: 'de', label: 'DE' },
+    { code: 'en', label: 'EN' }
+  ];
+  selectedLanguage = signal<string>('en');
+
+  selectedContent = computed(() => {
+    const terms = this.terms();
+    if (!terms) return '';
+    switch (this.selectedLanguage()) {
+      case 'fr': return terms.contentFr;
+      case 'de': return terms.contentDe;
+      case 'en': return terms.contentEn;
+      default: return terms.contentEn;
+    }
+  });
+
+  selectLanguage(lang: string): void {
+    this.selectedLanguage.set(lang);
+  }
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
