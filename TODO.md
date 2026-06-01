@@ -21,6 +21,16 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 # TODOs for Abstracore (to be deleted downstream)
 
+- add version field and optimistic locking to all entities and always take the version from the client. write a doc about this and add it to abstracore and implement it as standard in the database.md file.
+  - apply versioning to
+    - abstrauth
+    - abstrapact
+    - abstraccount
+    - abstrapact
+    - abstracertification
+    - abstracore itself in demo
+    - abstradocs (coming soon) and others too
+
 - allow other addresses than localhost to read management/metrics. need to also expose it in docker file?
 
 - add a link to the sbom in readme: e.g. https://github.com/abstratium-dev/abnemo/dependency-graph/sbom. although a copy needs adding to the release! what does the law say?
