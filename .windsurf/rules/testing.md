@@ -36,3 +36,5 @@ Do ask for help if you are going in circles and not getting the tests to pass.
 NEVER run `quarkus dev` or `mvn quarkus:dev` yourself. If you need the server to be running, ask the user to start it.
 NEVER kill quarkus yourself, always ask the user to do that.
 
+If the test requires transactions, consider the following, or alternatively use the class `TestTransactionHelper`. From the quarkus documentation:
+  - You can use the standard Quarkus @Transactional annotation on tests, but this means that the changes your test makes to the database will be persistent. If you want any changes made to be rolled back at the end of the test you can use the `io.quarkus.test.TestTransaction` annotation. This will run the test method in a transaction, but roll it back once the test method is complete to revert any database changes.

@@ -16,6 +16,8 @@
 
 - contract t&c must state that the contract only comes into effect once the status reaches x and it is no longer in effect once status y is reached.
 
+- add version field and optimistic locking to all entities and always take the version from the client. write a doc about this and add it to abstracore and implement it as standard in the database.md file.
+
 - in order to create an instance, read "build directives" which allow the caller to see what values need to be set via placeholders. alternatively the b2c can simply send a map with paths and values and that can be merged with the build directives to create the instance.
 
 - when creating an instance, it needs to validate the attributes that they exist, the type is corrert and their values match the rules. cardinality must be ok too. the given date must match the product validity dates.
@@ -47,4 +49,6 @@
 - [ ] Update database migration files
 - [ ] add a new oauth client to your oauth authorization server like abstrauth
 - [ ] ensure all TODOs in the code have been fixed
+
+- allow other addresses than localhost to read management/metrics. need to also expose it in docker file?
 
