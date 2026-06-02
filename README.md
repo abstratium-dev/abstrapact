@@ -13,12 +13,12 @@ OTHERWISE:
 
 ----
 
-## Windsurf Hooks Installation
+## Devin Hooks Installation
 
-This repository includes optional Windsurf hooks for enhanced safety. To install them:
+This repository includes optional Devin hooks for enhanced safety. To install them:
 
 ```bash
-bash scripts/windsurf-hooks/install-hooks.sh
+bash scripts/devin-hooks/install-hooks.sh
 ```
 
 This will copy the hook scripts to `~/.codeium/abstratium-hooks/`. The install script will also provide instructions for configuring Windsurf to use these hooks.
