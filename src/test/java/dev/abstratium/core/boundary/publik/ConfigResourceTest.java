@@ -142,4 +142,27 @@ class ConfigResourceTest {
             .body("brandName", notNullValue())
             .body("brandName", is("ABSTRATIUM"));
     }
+
+    @Test
+    void testConfigEndpointReturnsCurrencyCode() {
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("currencyCode", notNullValue())
+            .body("currencyCode", is("CHF")); // Default from application.properties
+    }
+
+    @Test
+    void testConfigEndpointReturnsLocale() {
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("locale", notNullValue());
+    }
 }

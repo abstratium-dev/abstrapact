@@ -101,11 +101,11 @@ class TermsAndConditionsServiceTest {
 
     @Test
     void shouldFindByCode() {
-        Optional<TermsAndConditions> found = service.findByCode("GENERAL-001");
+        List<TermsAndConditions> found = service.findByCode("GENERAL-001");
 
-        assertTrue(found.isPresent());
-        assertEquals("GENERAL-001", found.get().getCode());
-        assertEquals("General Terms", found.get().getTitle());
+        assertFalse(found.isEmpty());
+        assertEquals("GENERAL-001", found.get(0).getCode());
+        assertEquals("General Terms", found.get(0).getTitle());
     }
 
     @Test
@@ -126,10 +126,10 @@ class TermsAndConditionsServiceTest {
 
     @Test
     void shouldUpdateTermsAndConditions() throws Exception {
-        Optional<TermsAndConditions> existing = service.findByCode("GENERAL-001");
-        assertTrue(existing.isPresent());
+        List<TermsAndConditions> existingList = service.findByCode("GENERAL-001");
+        assertFalse(existingList.isEmpty());
 
-        TermsAndConditions terms = existing.get();
+        TermsAndConditions terms = existingList.get(0);
         terms.setTitle("Updated Title");
 
         userTransaction.begin();
@@ -149,12 +149,39 @@ class TermsAndConditionsServiceTest {
     }
 
     @Test
-    void shouldDeleteTermsAndConditions() {
-        Optional<TermsAndConditions> existing = service.findByCode("GENERAL-001");
-        assertTrue(existing.isPresent());
+    void shouldUpdateEffectiveUntilWithoutEffectiveFrom() throws Exception {
+        List<TermsAndConditions> existingList = service.findByCode("GENERAL-001");
+        assertFalse(existingList.isEmpty());
 
-        String id = existing.get().getId();
-        String code = existing.get().getCode();
+        TermsAndConditions terms = existingList.get(0);
+        terms.setEffectiveFrom(null);
+        terms.setEffectiveUntil(LocalDate.of(2025, 12, 31));
+
+        userTransaction.begin();
+        try {
+            TermsAndConditions updated = service.update(terms);
+            userTransaction.commit();
+
+            assertNull(updated.getEffectiveFrom());
+            assertEquals(LocalDate.of(2025, 12, 31), updated.getEffectiveUntil());
+
+            Optional<TermsAndConditions> found = service.findById(terms.getId());
+            assertTrue(found.isPresent());
+            assertNull(found.get().getEffectiveFrom());
+            assertEquals(LocalDate.of(2025, 12, 31), found.get().getEffectiveUntil());
+        } catch (Exception e) {
+            userTransaction.rollback();
+            throw e;
+        }
+    }
+
+    @Test
+    void shouldDeleteTermsAndConditions() {
+        List<TermsAndConditions> existingList = service.findByCode("GENERAL-001");
+        assertFalse(existingList.isEmpty());
+
+        String id = existingList.get(0).getId();
+        String code = existingList.get(0).getCode();
 
         service.delete(id);
         em.clear();
@@ -170,9 +197,9 @@ class TermsAndConditionsServiceTest {
     }
 
     @Test
-    void shouldReturnEmptyOptionalForNonExistentCode() {
-        Optional<TermsAndConditions> found = service.findByCode("NON-EXISTENT-CODE");
-        assertFalse(found.isPresent());
+    void shouldReturnEmptyListForNonExistentCode() {
+        List<TermsAndConditions> found = service.findByCode("NON-EXISTENT-CODE");
+        assertTrue(found.isEmpty());
     }
 
     @Test
@@ -193,5 +220,225 @@ class TermsAndConditionsServiceTest {
     @Test
     void shouldSilentlyHandleDeleteOfNonExistentId() {
         service.delete("non-existent-id-that-does-not-exist");
+    }
+
+    @Test
+    void shouldAllowContinuousChainForSameCode() {
+        String code = "CHAIN-001";
+
+        TermsAndConditions t1 = new TermsAndConditions();
+        t1.setId(UUID.randomUUID().toString());
+        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setCode(code);
+        t1.setTitle("First");
+        t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
+        t1.setEffectiveUntil(LocalDate.of(2024, 6, 30));
+        service.create(t1);
+
+        TermsAndConditions t2 = new TermsAndConditions();
+        t2.setId(UUID.randomUUID().toString());
+        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setCode(code);
+        t2.setTitle("Second");
+        t2.setEffectiveFrom(LocalDate.of(2024, 7, 1));
+        t2.setEffectiveUntil(null);
+        service.create(t2);
+
+        List<TermsAndConditions> found = service.findByCode(code);
+        assertEquals(2, found.size());
+    }
+
+    @Test
+    void shouldRejectOverlapInDates() {
+        String code = "OVERLAP-001";
+
+        TermsAndConditions t1 = new TermsAndConditions();
+        t1.setId(UUID.randomUUID().toString());
+        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setCode(code);
+        t1.setTitle("First");
+        t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
+        t1.setEffectiveUntil(LocalDate.of(2024, 12, 31));
+        service.create(t1);
+
+        TermsAndConditions t2 = new TermsAndConditions();
+        t2.setId(UUID.randomUUID().toString());
+        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setCode(code);
+        t2.setTitle("Second");
+        t2.setEffectiveFrom(LocalDate.of(2024, 6, 1));
+        t2.setEffectiveUntil(null);
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(t2));
+    }
+
+    @Test
+    void shouldRejectGapInDates() {
+        String code = "GAP-001";
+
+        TermsAndConditions t1 = new TermsAndConditions();
+        t1.setId(UUID.randomUUID().toString());
+        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setCode(code);
+        t1.setTitle("First");
+        t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
+        t1.setEffectiveUntil(LocalDate.of(2024, 6, 30));
+        service.create(t1);
+
+        TermsAndConditions t2 = new TermsAndConditions();
+        t2.setId(UUID.randomUUID().toString());
+        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setCode(code);
+        t2.setTitle("Second");
+        t2.setEffectiveFrom(LocalDate.of(2024, 8, 1));
+        t2.setEffectiveUntil(null);
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(t2));
+    }
+
+    @Test
+    void shouldRejectMultipleNullEffectiveFrom() {
+        String code = "NULL-FROM-001";
+
+        TermsAndConditions t1 = new TermsAndConditions();
+        t1.setId(UUID.randomUUID().toString());
+        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setCode(code);
+        t1.setTitle("First");
+        t1.setEffectiveFrom(null);
+        t1.setEffectiveUntil(LocalDate.of(2024, 6, 30));
+        service.create(t1);
+
+        TermsAndConditions t2 = new TermsAndConditions();
+        t2.setId(UUID.randomUUID().toString());
+        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setCode(code);
+        t2.setTitle("Second");
+        t2.setEffectiveFrom(null);
+        t2.setEffectiveUntil(LocalDate.of(2024, 12, 31));
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(t2));
+    }
+
+    @Test
+    void shouldAllowOpenEndedChain() {
+        String code = "OPEN-001";
+
+        TermsAndConditions t1 = new TermsAndConditions();
+        t1.setId(UUID.randomUUID().toString());
+        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setCode(code);
+        t1.setTitle("First");
+        t1.setEffectiveFrom(null);
+        t1.setEffectiveUntil(LocalDate.of(2024, 12, 31));
+        service.create(t1);
+
+        TermsAndConditions t2 = new TermsAndConditions();
+        t2.setId(UUID.randomUUID().toString());
+        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setCode(code);
+        t2.setTitle("Second");
+        t2.setEffectiveFrom(LocalDate.of(2025, 1, 1));
+        t2.setEffectiveUntil(null);
+        service.create(t2);
+
+        List<TermsAndConditions> found = service.findByCode(code);
+        assertEquals(2, found.size());
+    }
+
+    @Test
+    void shouldRejectUnboundedOverlap() {
+        String code = "UNBOUNDED-001";
+
+        TermsAndConditions t1 = new TermsAndConditions();
+        t1.setId(UUID.randomUUID().toString());
+        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setCode(code);
+        t1.setTitle("First");
+        t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
+        t1.setEffectiveUntil(null);
+        service.create(t1);
+
+        TermsAndConditions t2 = new TermsAndConditions();
+        t2.setId(UUID.randomUUID().toString());
+        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setCode(code);
+        t2.setTitle("Second");
+        t2.setEffectiveFrom(LocalDate.of(2024, 7, 1));
+        t2.setEffectiveUntil(null);
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(t2));
+    }
+
+    @Test
+    void shouldRejectUpdateCreatingGap() {
+        String code = "UPDATE-GAP-001";
+
+        TermsAndConditions t1 = new TermsAndConditions();
+        t1.setId(UUID.randomUUID().toString());
+        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setCode(code);
+        t1.setTitle("First");
+        t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
+        t1.setEffectiveUntil(LocalDate.of(2024, 6, 30));
+        service.create(t1);
+
+        TermsAndConditions t2 = new TermsAndConditions();
+        t2.setId(UUID.randomUUID().toString());
+        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setCode(code);
+        t2.setTitle("Second");
+        t2.setEffectiveFrom(LocalDate.of(2024, 7, 1));
+        t2.setEffectiveUntil(LocalDate.of(2024, 12, 31));
+        service.create(t2);
+
+        TermsAndConditions t3 = new TermsAndConditions();
+        t3.setId(UUID.randomUUID().toString());
+        t3.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t3.setCode(code);
+        t3.setTitle("Third");
+        t3.setEffectiveFrom(LocalDate.of(2025, 1, 1));
+        t3.setEffectiveUntil(null);
+        service.create(t3);
+
+        // Update t2 to end earlier, creating a gap between t2 and t3
+        t2.setEffectiveUntil(LocalDate.of(2024, 10, 31));
+
+        assertThrows(IllegalArgumentException.class, () -> service.update(t2));
+    }
+
+    @Test
+    void shouldRejectDeleteCreatingGap() {
+        String code = "DELETE-GAP-001";
+
+        TermsAndConditions t1 = new TermsAndConditions();
+        t1.setId(UUID.randomUUID().toString());
+        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setCode(code);
+        t1.setTitle("First");
+        t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
+        t1.setEffectiveUntil(LocalDate.of(2024, 6, 30));
+        service.create(t1);
+
+        TermsAndConditions t2 = new TermsAndConditions();
+        t2.setId(UUID.randomUUID().toString());
+        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setCode(code);
+        t2.setTitle("Second");
+        t2.setEffectiveFrom(LocalDate.of(2024, 7, 1));
+        t2.setEffectiveUntil(LocalDate.of(2024, 12, 31));
+        service.create(t2);
+
+        TermsAndConditions t3 = new TermsAndConditions();
+        t3.setId(UUID.randomUUID().toString());
+        t3.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t3.setCode(code);
+        t3.setTitle("Third");
+        t3.setEffectiveFrom(LocalDate.of(2025, 1, 1));
+        t3.setEffectiveUntil(null);
+        service.create(t3);
+
+        // Deleting t2 creates a gap between t1 and t3
+        assertThrows(IllegalArgumentException.class, () -> service.delete(t2.getId()));
     }
 }

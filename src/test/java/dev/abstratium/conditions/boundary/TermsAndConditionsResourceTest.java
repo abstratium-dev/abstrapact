@@ -59,8 +59,10 @@ class TermsAndConditionsResourceTest {
             .get("/api/terms-and-conditions/code/" + code)
             .then()
             .statusCode(200)
-            .body("id", equalTo(id))
-            .body("code", equalTo(code));
+            .body("$", isA(java.util.List.class))
+            .body("size()", equalTo(1))
+            .body("[0].id", equalTo(id))
+            .body("[0].code", equalTo(code));
     }
 
     @Test
@@ -86,7 +88,7 @@ class TermsAndConditionsResourceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
-    void shouldRejectDuplicateCode() {
+    void shouldRejectDuplicateCodeWithOverlappingDates() {
         String code = "DUP-TERMS-" + System.currentTimeMillis();
 
         TermsAndConditions terms = new TermsAndConditions();
@@ -119,7 +121,7 @@ class TermsAndConditionsResourceTest {
             .when()
             .post("/api/terms-and-conditions")
             .then()
-            .statusCode(409);
+            .statusCode(400);
     }
 
     @Test
@@ -162,6 +164,53 @@ class TermsAndConditionsResourceTest {
             .statusCode(200)
             .body("title", equalTo("Updated Title"))
             .body("currentVersion", equalTo("2.0"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldUpdateEffectiveUntilWithoutEffectiveFrom() {
+        String code = "UPDATE-NULL-FROM-" + System.currentTimeMillis();
+        LocalDate untilDate = LocalDate.of(2025, 12, 31);
+
+        TermsAndConditions terms = new TermsAndConditions();
+        terms.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        terms.setCode(code);
+        terms.setTitle("Original Title");
+        terms.setContentEn("Original content");
+        terms.setCurrentVersion("1.0");
+        terms.setEffectiveFrom(LocalDate.now());
+        terms.setEffectiveUntil(untilDate);
+
+        String id = given()
+            .contentType(ContentType.JSON)
+            .body(terms)
+            .when()
+            .post("/api/terms-and-conditions")
+            .then()
+            .statusCode(201)
+            .body("effectiveUntil", equalTo("2025-12-31"))
+            .extract()
+            .path("id");
+
+        TermsAndConditions update = new TermsAndConditions();
+        update.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        update.setCode(code);
+        update.setTitle("Updated Title");
+        update.setContentEn("Updated content");
+        update.setCurrentVersion("2.0");
+        update.setEffectiveFrom(null);
+        update.setEffectiveUntil(untilDate);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(update)
+            .when()
+            .put("/api/terms-and-conditions/" + id)
+            .then()
+            .statusCode(200)
+            .body("title", equalTo("Updated Title"))
+            .body("effectiveFrom", nullValue())
+            .body("effectiveUntil", equalTo("2025-12-31"));
     }
 
     @Test
@@ -252,6 +301,99 @@ class TermsAndConditionsResourceTest {
             .get("/api/terms-and-conditions/code/NON-EXISTENT-CODE-XYZ")
             .then()
             .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldAllowContinuousChainForSameCode() {
+        String code = "CHAIN-RES-" + System.currentTimeMillis();
+
+        TermsAndConditions t1 = new TermsAndConditions();
+        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setCode(code);
+        t1.setTitle("First");
+        t1.setContentEn("First");
+        t1.setCurrentVersion("1.0");
+        t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
+        t1.setEffectiveUntil(LocalDate.of(2024, 6, 30));
+
+        String id1 = given()
+            .contentType(ContentType.JSON)
+            .body(t1)
+            .when()
+            .post("/api/terms-and-conditions")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        TermsAndConditions t2 = new TermsAndConditions();
+        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setCode(code);
+        t2.setTitle("Second");
+        t2.setContentEn("Second");
+        t2.setCurrentVersion("2.0");
+        t2.setEffectiveFrom(LocalDate.of(2024, 7, 1));
+        t2.setEffectiveUntil(null);
+
+        String id2 = given()
+            .contentType(ContentType.JSON)
+            .body(t2)
+            .when()
+            .post("/api/terms-and-conditions")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        given()
+            .when()
+            .get("/api/terms-and-conditions/code/" + code)
+            .then()
+            .statusCode(200)
+            .body("size()", equalTo(2))
+            .body("[0].id", equalTo(id1))
+            .body("[1].id", equalTo(id2));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldRejectGapInChain() {
+        String code = "GAP-RES-" + System.currentTimeMillis();
+
+        TermsAndConditions t1 = new TermsAndConditions();
+        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setCode(code);
+        t1.setTitle("First");
+        t1.setContentEn("First");
+        t1.setCurrentVersion("1.0");
+        t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
+        t1.setEffectiveUntil(LocalDate.of(2024, 6, 30));
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(t1)
+            .when()
+            .post("/api/terms-and-conditions")
+            .then()
+            .statusCode(201);
+
+        TermsAndConditions t2 = new TermsAndConditions();
+        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setCode(code);
+        t2.setTitle("Second");
+        t2.setContentEn("Second");
+        t2.setCurrentVersion("2.0");
+        t2.setEffectiveFrom(LocalDate.of(2024, 8, 1));
+        t2.setEffectiveUntil(null);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(t2)
+            .when()
+            .post("/api/terms-and-conditions")
+            .then()
+            .statusCode(400);
     }
 
     @Test

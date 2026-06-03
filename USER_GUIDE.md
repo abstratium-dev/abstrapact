@@ -119,6 +119,8 @@ _Replace all placeholder values with the values generated above.
    - `ABSTRA_BRAND_LOGO_URL`: URL of the logo image shown in the header. Defaults to `https://abstratium.dev/abstratium-logo-small.png`.
    - `ABSTRA_BRAND_LOGO_ALT`: Alt text for the header logo image. Defaults to `Abstratium Logo`.
    - `ABSTRA_BRAND_NAME`: Brand name text shown next to the logo in the header. Defaults to `ABSTRATIUM`.
+   - `ABSTRA_CURRENCY_CODE`: ISO 4217 currency code used for price formatting in the UI. Defaults to `CHF`. Affects the product simulator, product structure view, and part form.
+   - `ABSTRA_CURRENCY_LOCALE`: BCP 47 locale tag used for number formatting (e.g., `en-US`, `de-DE`, `fr-CH`). Defaults to `fr-CH`. Affects the product simulator and product structure view.
 
 
 3. **Verify the container is running**:

@@ -7,6 +7,8 @@ export interface Config {
   brandLogoUrl: string;
   brandLogoAlt: string;
   brandName: string;
+  currencyCode: string;
+  locale: string;
 }
 
 @Injectable({
@@ -20,10 +22,14 @@ export class ModelService {
   private readonly defaultBrandLogoUrl = 'https://abstratium.dev/abstratium-logo-small.png';
   private readonly defaultBrandLogoAlt = 'Abstratium Logo';
   private readonly defaultBrandName = 'ABSTRATIUM';
+  private readonly defaultCurrencyCode = 'CHF';
+  private readonly defaultLocale = 'en-US';
 
   private brandLogoUrl = signal<string>(this.defaultBrandLogoUrl);
   private brandLogoAlt = signal<string>(this.defaultBrandLogoAlt);
   private brandName = signal<string>(this.defaultBrandName);
+  private currencyCode = signal<string>(this.defaultCurrencyCode);
+  private locale = signal<string>(this.defaultLocale);
 
   config$: Signal<Config | null> = this.config.asReadonly();
   warningMessage$: Signal<string> = this.warningMessage.asReadonly();
@@ -31,6 +37,8 @@ export class ModelService {
   brandLogoUrl$: Signal<string> = this.brandLogoUrl.asReadonly();
   brandLogoAlt$: Signal<string> = this.brandLogoAlt.asReadonly();
   brandName$: Signal<string> = this.brandName.asReadonly();
+  currencyCode$: Signal<string> = this.currencyCode.asReadonly();
+  locale$: Signal<string> = this.locale.asReadonly();
 
   setConfig(config: Config) {
     this.config.set(config);
@@ -43,5 +51,7 @@ export class ModelService {
     this.brandLogoUrl.set(config.brandLogoUrl || this.defaultBrandLogoUrl);
     this.brandLogoAlt.set(config.brandLogoAlt || this.defaultBrandLogoAlt);
     this.brandName.set(config.brandName || this.defaultBrandName);
+    this.currencyCode.set(config.currencyCode || this.defaultCurrencyCode);
+    this.locale.set(config.locale || this.defaultLocale);
   }
 }

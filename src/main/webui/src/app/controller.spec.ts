@@ -37,7 +37,9 @@ describe('Controller', () => {
         warningBgColor: '#fff3cd',
         brandLogoUrl: 'https://example.com/logo.png',
         brandLogoAlt: 'Logo',
-        brandName: 'Example'
+        brandName: 'Example',
+        currencyCode: 'CHF',
+        locale: 'en-US'
       };
 
       const promise = controller.loadConfig();

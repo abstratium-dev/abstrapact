@@ -16,6 +16,9 @@ export const routes: Routes = [
   { path: 'product-definitions/:id/edit', loadComponent: () => import('./product-definitions/product-definition-form/product-definition-form.component').then(m => m.ProductDefinitionFormComponent), canActivate: [authGuard] },
   { path: 'product-definitions/:id/simulate', loadComponent: () => import('./product-definitions/product-simulator/product-simulator.component').then(m => m.ProductSimulatorComponent), canActivate: [authGuard] },
 
+  // Config route
+  { path: 'config', loadComponent: () => import('./config/config.component').then(m => m.ConfigComponent), canActivate: [authGuard] },
+
   // Terms and Conditions routes
   { path: 'terms-and-conditions', loadComponent: () => import('./terms-and-conditions/terms-and-conditions-list/terms-and-conditions-list.component').then(m => m.TermsAndConditionsListComponent), canActivate: [authGuard] },
   { path: 'terms-and-conditions/new', loadComponent: () => import('./terms-and-conditions/terms-and-conditions-form/terms-and-conditions-form.component').then(m => m.TermsAndConditionsFormComponent), canActivate: [authGuard] },

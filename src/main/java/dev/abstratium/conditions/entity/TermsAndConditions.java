@@ -19,7 +19,7 @@ public class TermsAndConditions {
     @Column(name = "organisation_id", length = 36, nullable = false)
     private String organisationId;
 
-    @Column(name = "code", length = 50, nullable = false, unique = true)
+    @Column(name = "code", length = 50, nullable = false)
     private String code;
 
     @Column(name = "title", length = 255)

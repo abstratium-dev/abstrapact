@@ -10,18 +10,36 @@
 
 ## Today
 
-- do not allow products or their parts or attributes to be modified or deleted if instances exist for the product definition.
+- flyway script that uses 00000000-... needs to use flyway placeholders - see app.props and incoming from abstracore. e.g. UPDATE T_oauth_clients SET org_id = '${default_org_uuid}';
 
-- change price per part from usd to the currency with which abstrapact has been configured as its base currency.
 
-- creating an instance creates a contract in an early status
+- how to deal with overlaps in t&c? return a warning when loading t&c. logic during contract creation is to take the newest version with the given code.
+
+- T change price per part from usd to the currency with which abstrapact has been configured as its base currency.
+
+- T @V01.005__createTermsAndConditionsTable.sql has a unique constraint on the code - the code is allowed to be duplicated, but the service needs to check when an update / create / delete is being done, that for a given code, there are no gaps between the conditions. take all the conditions with the same code (within the tenant organisation) and ensure that there are no gaps between the conditions. the "chain" can be open ended, left and right on the time axis. no dates means it is valid from the beginning of time until forever
 
 - contract t&c must state that the contract only comes into effect once the status reaches x and it is no longer in effect once status y is reached.
+
+
+- gutscheine! or a discount code? or unique discount codes as gutscheine?
+
+- map product to GTC? or contract? whatever, do that.
+
+- add contract and states
+
+- add sales process including steps to show the process instances to org users
+
+
+- do not allow products or their parts or attributes to be modified or deleted if instances exist for the product definition.
+
+- creating an instance creates a contract in an early status
 
 - add version field and optimistic locking to all entities and always take the version from the client. write a doc about this and add it to abstracore and implement it as standard in the database.md file.
 
 - when creating a contract, it should take the version of the GTC that matches the date of sale - since they have dates.
 - GTC may not overlap if the code is the same!
+- if two versions exist, take the one that lasts longer or starts later or something
 
 - in order to create an instance, read "build directives" which allow the caller to see what values need to be set via placeholders. alternatively the b2c can simply send a map with paths and values and that can be merged with the build directives to create the instance.
 
@@ -32,12 +50,6 @@
   - pricing and discounts are private and should not leak out if the orgId doesn't match - this is a requirement for future PUBLIC interfaces used for b2c and b2b sales
 
 - add discounts to UI and simulator
-
-- map product to GTC? or contract? whatever, do that.
-
-- add contract and states
-
-- add sales process including steps to show the process instances to org users
 
 ## Tomorrow
 

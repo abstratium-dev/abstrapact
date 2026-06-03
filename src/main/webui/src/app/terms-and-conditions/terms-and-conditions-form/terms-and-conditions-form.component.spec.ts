@@ -142,4 +142,40 @@ describe('TermsAndConditionsFormComponent', () => {
     expect(component.effectiveFrom).toBe('2024-01-01');
     expect(component.effectiveUntil).toBe('2024-12-31');
   });
+
+  it('should send effectiveUntil in request when effectiveFrom is null', async () => {
+    component.isEditMode = true;
+    component.termsId = '1';
+    component.code = 'TEST';
+    component.title = 'Test Title';
+    component.contentFr = 'Content FR';
+    component.contentDe = 'Content DE';
+    component.contentEn = 'Content EN';
+    component.currentVersion = '1.0';
+    component.effectiveFrom = null;
+    component.effectiveUntil = '2025-12-31';
+
+    controller.updateTermsAndConditions.and.returnValue(Promise.resolve({
+      id: '1',
+      organisationId: 'org-1',
+      code: 'TEST',
+      title: 'Test Title',
+      contentFr: 'Content FR',
+      contentDe: 'Content DE',
+      contentEn: 'Content EN',
+      currentVersion: '1.0',
+      effectiveFrom: null,
+      effectiveUntil: '2025-12-31'
+    }));
+
+    await component.onSubmit();
+
+    expect(controller.updateTermsAndConditions).toHaveBeenCalledWith(
+      '1',
+      jasmine.objectContaining({
+        effectiveFrom: null,
+        effectiveUntil: '2025-12-31'
+      })
+    );
+  });
 });

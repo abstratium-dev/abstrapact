@@ -1,0 +1,69 @@
+<div class="container" data-testid="config-page">
+  <div class="page-header">
+    <h1>Organisation Configuration</h1>
+  </div>
+
+  <div class="form-container">
+    <form (ngSubmit)="onSubmit()">
+      <div *ngIf="formError" class="error-box" data-testid="form-error">
+        {{ formError }}
+      </div>
+
+      <div class="form-group">
+        <label for="currencyCode">Currency Code *</label>
+        <input
+          type="text"
+          id="currencyCode"
+          name="currencyCode"
+          [(ngModel)]="currencyCode"
+          [disabled]="submitting"
+          maxlength="3"
+          required
+          data-testid="currency-code-input"
+        />
+        <span class="form-hint">ISO 4217 code (e.g., CHF, USD, EUR)</span>
+        <div *ngIf="fieldErrors['currencyCode']" class="error" data-testid="currency-code-error">
+          {{ fieldErrors['currencyCode'] }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="locale">Locale *</label>
+        <input
+          type="text"
+          id="locale"
+          name="locale"
+          [(ngModel)]="locale"
+          [disabled]="submitting"
+          maxlength="20"
+          required
+          data-testid="locale-input"
+        />
+        <span class="form-hint">BCP 47 tag (e.g., en-US, de-DE, fr-CH)</span>
+        <div *ngIf="fieldErrors['locale']" class="error" data-testid="locale-error">
+          {{ fieldErrors['locale'] }}
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="btn-primary"
+          [disabled]="submitting"
+          data-testid="submit-button"
+        >
+          {{ submitting ? 'Saving...' : 'Save' }}
+        </button>
+        <button
+          type="button"
+          class="btn-secondary"
+          (click)="onCancel()"
+          [disabled]="submitting"
+          data-testid="cancel-button"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -114,8 +114,10 @@ describe('ProductStructureComponent', () => {
   });
 
   it('should format price correctly', () => {
-    expect(component.formatPrice(99.99)).toBe('$99.99');
-    expect(component.formatPrice(0)).toBe('$0.00');
+    const expected99 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'CHF' }).format(99.99);
+    const expected0 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'CHF' }).format(0);
+    expect(component.formatPrice(99.99)).toBe(expected99);
+    expect(component.formatPrice(0)).toBe(expected0);
   });
 
   it('should get correct indent level', () => {

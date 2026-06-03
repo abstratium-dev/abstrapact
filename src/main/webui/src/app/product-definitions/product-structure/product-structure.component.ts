@@ -4,6 +4,7 @@ import { PartDefinition, PartAttributeDefinition, ProductDefinitionsModelService
 import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
+import { ModelService } from '../../model.service';
 
 @Component({
   selector: 'app-product-structure',
@@ -16,6 +17,7 @@ export class ProductStructureComponent implements OnInit {
   private controller = inject(ProductDefinitionsController);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
+  private appModelService = inject(ModelService);
 
   @Input() productId!: string;
   @Input() readOnly = false;
@@ -130,9 +132,9 @@ export class ProductStructureComponent implements OnInit {
   }
 
   formatPrice(price: number): string {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(this.appModelService.locale$(), {
       style: 'currency',
-      currency: 'USD'
+      currency: this.appModelService.currencyCode$()
     }).format(price || 0);
   }
 

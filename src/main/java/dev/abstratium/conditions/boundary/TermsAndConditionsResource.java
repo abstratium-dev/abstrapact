@@ -44,9 +44,9 @@ public class TermsAndConditionsResource {
     @Path("/code/{code}")
     @Operation(summary = "Get terms and conditions by code")
     public Response getByCode(@PathParam("code") String code) {
-        Optional<TermsAndConditions> terms = service.findByCode(code);
-        if (terms.isPresent()) {
-            return Response.ok(terms.get()).build();
+        List<TermsAndConditions> terms = service.findByCode(code);
+        if (!terms.isEmpty()) {
+            return Response.ok(terms).build();
         }
         return Response.status(Response.Status.NOT_FOUND).build();
     }
@@ -57,10 +57,6 @@ public class TermsAndConditionsResource {
         if (terms.getCode() == null || terms.getCode().isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity("Code is required").build();
-        }
-        if (service.existsByCode(terms.getCode())) {
-            return Response.status(Response.Status.CONFLICT)
-                .entity("Code already exists").build();
         }
         TermsAndConditions created = service.create(terms);
         return Response.status(Response.Status.CREATED).entity(created).build();

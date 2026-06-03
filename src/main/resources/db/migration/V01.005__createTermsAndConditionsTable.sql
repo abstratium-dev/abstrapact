@@ -4,7 +4,7 @@
 CREATE TABLE T_terms_and_conditions (
     id VARCHAR(36) PRIMARY KEY,
     organisation_id VARCHAR(36) NOT NULL,
-    code VARCHAR(50) NOT NULL UNIQUE,
+    code VARCHAR(50) NOT NULL,
     title VARCHAR(255),
     content_fr TEXT,
     content_de TEXT,

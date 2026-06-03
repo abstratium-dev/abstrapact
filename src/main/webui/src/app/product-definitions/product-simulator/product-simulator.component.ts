@@ -10,6 +10,7 @@ import {
 } from '../product-definitions.model.service';
 import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
+import { ModelService } from '../../model.service';
 
 interface SimulatedPartInstance {
   instanceId: string;
@@ -40,6 +41,7 @@ export class ProductSimulatorComponent implements OnInit {
   private router = inject(Router);
   private controller = inject(ProductDefinitionsController);
   private toastService = inject(ToastService);
+  private modelService = inject(ModelService);
 
   productId: string | null = null;
   completeProduct: CompleteProductResponse | null = null;
@@ -231,9 +233,9 @@ export class ProductSimulatorComponent implements OnInit {
   }
 
   formatPrice(price: number): string {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(this.modelService.locale$(), {
       style: 'currency',
-      currency: 'USD'
+      currency: this.modelService.currencyCode$()
     }).format(price || 0);
   }
 
