@@ -17,3 +17,4 @@ When creating DDL scripts, don't forget to check if there are also hibernate env
 
 If hibernate multi-tenancy is in use, remember to use the `@TenantId` on the discriminator column. If you are not sure, ask for help.
 
+You may read the database using something like the following docker command: `docker run -it --rm --network abstratium mysql mysql -h abstratium-mysql --port 3306 -u abstracore -psecret` but DO NOT CREATE, DELETE or UPDATE data without asking first! this is primarly meant for you to read the data if it helps during debugging.
