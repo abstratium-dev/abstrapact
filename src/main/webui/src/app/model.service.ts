@@ -11,6 +11,7 @@ export interface Config {
   brandLogoUrl: string;
   brandLogoAlt: string;
   brandName: string;
+  legalContent: string | null;
 }
 
 @Injectable({
@@ -31,6 +32,9 @@ export class ModelService {
   private brandLogoUrl = signal<string>(this.defaultBrandLogoUrl);
   private brandLogoAlt = signal<string>(this.defaultBrandLogoAlt);
   private brandName = signal<string>(this.defaultBrandName);
+  private legalContent = signal<string | null>(null);
+
+  legalContent$: Signal<string | null> = this.legalContent.asReadonly();
 
   demos$: Signal<Demo[]> = this.demos.asReadonly();
   demosLoading$: Signal<boolean> = this.demosLoading.asReadonly();
@@ -65,5 +69,6 @@ export class ModelService {
     this.brandLogoUrl.set(config.brandLogoUrl || this.defaultBrandLogoUrl);
     this.brandLogoAlt.set(config.brandLogoAlt || this.defaultBrandLogoAlt);
     this.brandName.set(config.brandName || this.defaultBrandName);
+    this.legalContent.set(config.legalContent ?? null);
   }
 }

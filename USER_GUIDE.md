@@ -114,7 +114,32 @@ _Replace all `TODO_...` values with the values generated above.
    - `ABSTRA_BRAND_LOGO_URL`: URL of the logo image shown in the header. Defaults to `https://abstratium.dev/abstratium-logo-small.png`.
    - `ABSTRA_BRAND_LOGO_ALT`: Alt text for the header logo image. Defaults to `Abstratium Logo`.
    - `ABSTRA_BRAND_NAME`: Brand name text shown next to the logo in the header. Defaults to `ABSTRATIUM`.
+   - `ABSTRA_LEGAL_CONTENT_FILE`: **Required for non-abstratium deployments.** Absolute path inside the container to an HTML file containing your organisation's legal page content. When set, this file's contents are served to the frontend and displayed instead of the built-in abstratium legal text — with no misconfiguration warnings. If this variable is not set and the deployment is not on `abstratium.dev`, the legal page will display a prominent error warning to users, and the home page will display a disclaimer stating that abstratium is not responsible for this deployment. Example: `-e ABSTRA_LEGAL_CONTENT_FILE=/config/legal.html -v /host/legal.html:/config/legal.html`.
    - `TODO_ENV_VAR_NAME`: TODO
+
+
+----
+
+> **⚠ LEGAL NOTICE FOR OPERATORS AND DEPLOYERS**
+>
+> This software ships with a legal page (`src/main/webui/src/app/core/legal/legal.component.html`)
+> that is **specific to abstratium informatique sàrl** and applies **only** to the official deployment
+> at **abstratium.dev**.
+>
+> If you deploy this software on **any other domain**, the legal page will automatically display a
+> prominent misconfiguration warning to users, and the abstratium legal text will be visually
+> invalidated. However, **you are still legally required** to:
+>
+> 1. Replace the legal page with one that correctly names **your** organisation as data controller.
+> 2. Ensure the page accurately reflects **your** data processing practices, applicable law, and contact details.
+> 3. Comply with the GDPR, Swiss revDSG, and any other applicable data protection law in your jurisdiction.
+>
+> Failure to do so may expose **you** (the operator) to regulatory action. abstratium informatique sàrl
+> accepts no liability whatsoever for deployments made by third parties.
+>
+> See the checklist below for full configuration steps.
+
+
 
 
 3. **Verify the container is running**:

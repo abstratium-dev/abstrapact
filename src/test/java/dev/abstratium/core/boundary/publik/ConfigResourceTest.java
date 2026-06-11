@@ -142,4 +142,15 @@ class ConfigResourceTest {
             .body("brandName", notNullValue())
             .body("brandName", is("ABSTRATIUM"));
     }
+
+    @Test
+    void testLegalContentIsNullWhenFileNotConfigured() {
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("legalContent", org.hamcrest.Matchers.nullValue());
+    }
 }

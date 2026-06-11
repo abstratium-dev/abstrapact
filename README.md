@@ -244,4 +244,5 @@ That Entity should have the following properties:
 - [ ] remove all references to `demo` in the entire project
 - [ ] remove all files with `demo` in their name
 - [ ] ensure all TODOs in the code have been fixed
-- [ ] create a legal page based on others, which matches the functionality of the site
+- [ ] **Replace the legal page** (`src/main/webui/src/app/core/legal/legal.component.html`) with one specific to your organisation — it MUST name the correct data controller, contact details, and applicable law. See the ⚠ LEGAL NOTICE at the top of this README.
+- [ ] ensure that the legal page matches the functionality of the site

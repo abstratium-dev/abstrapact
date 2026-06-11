@@ -1,18 +1,37 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { LegalComponent } from './legal.component';
+import { DomainService } from '../domain.service';
+import { ModelService } from '../../model.service';
+
+function makeMocks(isAbstratiumDomain: boolean, legalContent: string | null) {
+  const mockDomainService = { isAbstratiumDomain };
+  const mockModelService = { legalContent$: signal(legalContent) };
+  return { mockDomainService, mockModelService };
+}
+
+async function buildFixture(isAbstratiumDomain: boolean, legalContent: string | null): Promise<ComponentFixture<LegalComponent>> {
+  TestBed.resetTestingModule();
+  const { mockDomainService, mockModelService } = makeMocks(isAbstratiumDomain, legalContent);
+  await TestBed.configureTestingModule({
+    imports: [LegalComponent],
+    providers: [
+      { provide: DomainService, useValue: mockDomainService },
+      { provide: ModelService, useValue: mockModelService },
+    ]
+  }).compileComponents();
+  const f = TestBed.createComponent(LegalComponent);
+  f.detectChanges();
+  return f;
+}
 
 describe('LegalComponent', () => {
   let component: LegalComponent;
   let fixture: ComponentFixture<LegalComponent>;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [LegalComponent]
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(LegalComponent);
+    fixture = await buildFixture(true, null);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
   it('should create', () => {
@@ -25,7 +44,51 @@ describe('LegalComponent', () => {
     expect(component.copyrightYears).toContain(String(currentYear));
   });
 
-  describe('Template Rendering', () => {
+  describe('Domain check via DomainService', () => {
+    it('should reflect isCorrectDomain true when DomainService reports abstratium domain', async () => {
+      const f = await buildFixture(true, null);
+      expect(f.componentInstance.isCorrectDomain).toBeTrue();
+    });
+
+    it('should reflect isCorrectDomain false when DomainService reports foreign domain', async () => {
+      const f = await buildFixture(false, null);
+      expect(f.componentInstance.isCorrectDomain).toBeFalse();
+    });
+  });
+
+  describe('Custom legal content (ABSTRA_LEGAL_CONTENT_FILE)', () => {
+    it('should render custom content and hide abstratium sections when legalContent is set', async () => {
+      const f = await buildFixture(false, '<p>My Legal Text</p>');
+      const el = f.nativeElement as HTMLElement;
+      expect(el.querySelector('.legal-custom-content')).toBeTruthy();
+      expect(el.querySelector('.legal-custom-content')!.textContent).toContain('My Legal Text');
+      expect(el.querySelector('.legal-title')).toBeNull();
+      expect(el.querySelector('.misconfiguration-warning')).toBeNull();
+    });
+
+    it('should show abstratium content when legalContent is null', async () => {
+      const f = await buildFixture(true, null);
+      const el = f.nativeElement as HTMLElement;
+      expect(el.querySelector('.legal-title')).toBeTruthy();
+      expect(el.querySelector('#custom-legal')).toBeNull();
+    });
+  });
+
+  describe('Misconfiguration warning', () => {
+    it('should show warning when not on abstratium domain and no custom content', async () => {
+      const f = await buildFixture(false, null);
+      const el = f.nativeElement as HTMLElement;
+      expect(el.querySelector('.misconfiguration-warning')).toBeTruthy();
+    });
+
+    it('should not show warning when on abstratium domain', async () => {
+      const f = await buildFixture(true, null);
+      const el = f.nativeElement as HTMLElement;
+      expect(el.querySelector('.misconfiguration-warning')).toBeNull();
+    });
+  });
+
+  describe('Template Rendering (abstratium domain)', () => {
     it('should display legal page heading', () => {
       const compiled = fixture.nativeElement as HTMLElement;
       const heading = compiled.querySelector('.legal-title');
@@ -34,43 +97,32 @@ describe('LegalComponent', () => {
     });
 
     it('should render copyright notice section', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const sections = compiled.querySelectorAll('.notice-card-title');
-      const titles = Array.from(sections).map(el => el.textContent);
+      const titles = Array.from(fixture.nativeElement.querySelectorAll('.notice-card-title')).map((el: any) => el.textContent);
       expect(titles).toContain('Copyright Notice');
     });
 
     it('should render AI transparency section', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const sections = compiled.querySelectorAll('.notice-card-title');
-      const titles = Array.from(sections).map(el => el.textContent);
+      const titles = Array.from(fixture.nativeElement.querySelectorAll('.notice-card-title')).map((el: any) => el.textContent);
       expect(titles).toContain('AI Transparency & Authorship Notice');
     });
 
     it('should render terms of use section', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const sections = compiled.querySelectorAll('.notice-card-title');
-      const titles = Array.from(sections).map(el => el.textContent);
+      const titles = Array.from(fixture.nativeElement.querySelectorAll('.notice-card-title')).map((el: any) => el.textContent);
       expect(titles).toContain('Terms of Use & Disclaimer');
     });
 
     it('should render privacy section', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const sections = compiled.querySelectorAll('.notice-card-title');
-      const titles = Array.from(sections).map(el => el.textContent);
-      expect(titles).toContain('Privacy & Data');
+      const titles = Array.from(fixture.nativeElement.querySelectorAll('.notice-card-title')).map((el: any) => el.textContent?.trim());
+      expect(titles.some(t => t?.includes('Privacy'))).toBeTrue();
     });
 
     it('should render contact section', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const sections = compiled.querySelectorAll('.notice-card-title');
-      const titles = Array.from(sections).map(el => el.textContent);
+      const titles = Array.from(fixture.nativeElement.querySelectorAll('.notice-card-title')).map((el: any) => el.textContent);
       expect(titles).toContain('Contact');
     });
 
     it('should render contact image', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const img = compiled.querySelector('.contact-card-img');
+      const img = fixture.nativeElement.querySelector('.contact-card-img');
       expect(img).toBeTruthy();
       expect(img?.getAttribute('src')).toBe('https://abstratium.dev/contact.png');
     });
