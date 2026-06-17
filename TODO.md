@@ -11,11 +11,15 @@
 
 ## Today
 
+- e2e test for product management.
 
+- connect product to t&c - or how is that in the design docs?
+
+- implement contract and the process to work thru the states.
+
+- orgId to be taken from productId which is a query parameter or header that overrides the orgId taken from elsewhere in @JwtOrgResolver
 
 - how to deal with overlaps in t&c? return a warning when loading t&c. logic during contract creation is to take the newest version with the given code.
-
-- T change price per part from usd to the currency with which abstrapact has been configured as its base currency.
 
 - T @V01.005__createTermsAndConditionsTable.sql has a unique constraint on the code - the code is allowed to be duplicated, but the service needs to check when an update / create / delete is being done, that for a given code, there are no gaps between the conditions. take all the conditions with the same code (within the tenant organisation) and ensure that there are no gaps between the conditions. the "chain" can be open ended, left and right on the time axis. no dates means it is valid from the beginning of time until forever
 
