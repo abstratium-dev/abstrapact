@@ -15,7 +15,7 @@ INSERT INTO T_terms_and_conditions (
     effective_until
 ) VALUES (
     '11111111-1111-1111-1111-111111111111',
-    '00000000-0000-0000-0000-000000000000',
+    '${default_org_uuid}',
     'ABSTRATIUM-001',
     'Conditions générales de vente / Allgemeine Geschäftsbedingungen / General Terms and Conditions',
     'Conditions générales de vente (CGV) — abstratium informatique sàrl

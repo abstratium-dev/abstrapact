@@ -1,7 +1,6 @@
 package dev.abstratium.conditions.service;
 
 import dev.abstratium.conditions.entity.TermsAndConditions;
-import dev.abstratium.core.service.JwtOrgResolver;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -33,7 +32,7 @@ class TermsAndConditionsServiceTest {
     void setUp() throws Exception {
         TermsAndConditions t1 = new TermsAndConditions();
         t1.setId(UUID.randomUUID().toString());
-        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t1.setCode("GENERAL-001");
         t1.setTitle("General Terms");
         t1.setContentEn("General terms content");
@@ -43,7 +42,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t2 = new TermsAndConditions();
         t2.setId(UUID.randomUUID().toString());
-        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t2.setCode("SPECIAL-001");
         t2.setTitle("Special Terms");
         t2.setContentEn("Special terms content");
@@ -73,7 +72,7 @@ class TermsAndConditionsServiceTest {
     @Test
     void shouldCreateTermsAndConditions() {
         TermsAndConditions terms = new TermsAndConditions();
-        terms.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        terms.setOrganisationId("00000000-0000-0000-0000-000000000000");
         terms.setCode("NEW-TERMS");
         terms.setTitle("New Terms");
         terms.setContentEn("New content");
@@ -207,7 +206,7 @@ class TermsAndConditionsServiceTest {
         String preSetId = UUID.randomUUID().toString();
         TermsAndConditions terms = new TermsAndConditions();
         terms.setId(preSetId);
-        terms.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        terms.setOrganisationId("00000000-0000-0000-0000-000000000000");
         terms.setCode("PRESET-ID-TERMS");
         terms.setTitle("Preset ID Terms");
         terms.setContentEn("Content");
@@ -228,7 +227,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t1 = new TermsAndConditions();
         t1.setId(UUID.randomUUID().toString());
-        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t1.setCode(code);
         t1.setTitle("First");
         t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
@@ -237,7 +236,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t2 = new TermsAndConditions();
         t2.setId(UUID.randomUUID().toString());
-        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t2.setCode(code);
         t2.setTitle("Second");
         t2.setEffectiveFrom(LocalDate.of(2024, 7, 1));
@@ -254,7 +253,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t1 = new TermsAndConditions();
         t1.setId(UUID.randomUUID().toString());
-        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t1.setCode(code);
         t1.setTitle("First");
         t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
@@ -263,7 +262,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t2 = new TermsAndConditions();
         t2.setId(UUID.randomUUID().toString());
-        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t2.setCode(code);
         t2.setTitle("Second");
         t2.setEffectiveFrom(LocalDate.of(2024, 6, 1));
@@ -278,7 +277,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t1 = new TermsAndConditions();
         t1.setId(UUID.randomUUID().toString());
-        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t1.setCode(code);
         t1.setTitle("First");
         t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
@@ -287,7 +286,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t2 = new TermsAndConditions();
         t2.setId(UUID.randomUUID().toString());
-        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t2.setCode(code);
         t2.setTitle("Second");
         t2.setEffectiveFrom(LocalDate.of(2024, 8, 1));
@@ -302,7 +301,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t1 = new TermsAndConditions();
         t1.setId(UUID.randomUUID().toString());
-        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t1.setCode(code);
         t1.setTitle("First");
         t1.setEffectiveFrom(null);
@@ -311,7 +310,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t2 = new TermsAndConditions();
         t2.setId(UUID.randomUUID().toString());
-        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t2.setCode(code);
         t2.setTitle("Second");
         t2.setEffectiveFrom(null);
@@ -326,7 +325,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t1 = new TermsAndConditions();
         t1.setId(UUID.randomUUID().toString());
-        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t1.setCode(code);
         t1.setTitle("First");
         t1.setEffectiveFrom(null);
@@ -335,7 +334,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t2 = new TermsAndConditions();
         t2.setId(UUID.randomUUID().toString());
-        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t2.setCode(code);
         t2.setTitle("Second");
         t2.setEffectiveFrom(LocalDate.of(2025, 1, 1));
@@ -352,7 +351,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t1 = new TermsAndConditions();
         t1.setId(UUID.randomUUID().toString());
-        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t1.setCode(code);
         t1.setTitle("First");
         t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
@@ -361,7 +360,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t2 = new TermsAndConditions();
         t2.setId(UUID.randomUUID().toString());
-        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t2.setCode(code);
         t2.setTitle("Second");
         t2.setEffectiveFrom(LocalDate.of(2024, 7, 1));
@@ -376,7 +375,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t1 = new TermsAndConditions();
         t1.setId(UUID.randomUUID().toString());
-        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t1.setCode(code);
         t1.setTitle("First");
         t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
@@ -385,7 +384,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t2 = new TermsAndConditions();
         t2.setId(UUID.randomUUID().toString());
-        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t2.setCode(code);
         t2.setTitle("Second");
         t2.setEffectiveFrom(LocalDate.of(2024, 7, 1));
@@ -394,7 +393,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t3 = new TermsAndConditions();
         t3.setId(UUID.randomUUID().toString());
-        t3.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t3.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t3.setCode(code);
         t3.setTitle("Third");
         t3.setEffectiveFrom(LocalDate.of(2025, 1, 1));
@@ -413,7 +412,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t1 = new TermsAndConditions();
         t1.setId(UUID.randomUUID().toString());
-        t1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t1.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t1.setCode(code);
         t1.setTitle("First");
         t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
@@ -422,7 +421,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t2 = new TermsAndConditions();
         t2.setId(UUID.randomUUID().toString());
-        t2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t2.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t2.setCode(code);
         t2.setTitle("Second");
         t2.setEffectiveFrom(LocalDate.of(2024, 7, 1));
@@ -431,7 +430,7 @@ class TermsAndConditionsServiceTest {
 
         TermsAndConditions t3 = new TermsAndConditions();
         t3.setId(UUID.randomUUID().toString());
-        t3.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        t3.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t3.setCode(code);
         t3.setTitle("Third");
         t3.setEffectiveFrom(LocalDate.of(2025, 1, 1));

@@ -1,6 +1,5 @@
 package dev.abstratium.product.boundary;
 
-import dev.abstratium.core.service.JwtOrgResolver;
 import dev.abstratium.product.boundary.dto.CompleteProductResponse;
 import dev.abstratium.product.boundary.dto.ProductDefinitionRequest;
 import dev.abstratium.product.entity.PartAttributeDefinition;
@@ -8,6 +7,7 @@ import dev.abstratium.product.entity.PartDefinition;
 import dev.abstratium.product.entity.ProductDefinition;
 import dev.abstratium.product.service.ProductDefinitionService;
 import jakarta.annotation.security.RolesAllowed;
+import dev.abstratium.core.service.CurrentOrgContext;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -28,6 +28,9 @@ public class ProductDefinitionResource {
 
     @Inject
     ProductDefinitionService service;
+
+    @Inject
+    CurrentOrgContext currentOrgContext;
 
     @GET
     @Operation(summary = "List all product definitions")
@@ -323,7 +326,7 @@ public class ProductDefinitionResource {
 
     private ProductDefinition parseYamlToProductDefinition(String yamlContent) {
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        definition.setOrganisationId(currentOrgContext.getOrgId());
         String[] lines = yamlContent.split("\n");
         for (String line : lines) {
             line = line.trim();

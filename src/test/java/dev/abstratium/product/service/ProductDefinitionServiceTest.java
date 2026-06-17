@@ -1,6 +1,5 @@
 package dev.abstratium.product.service;
 
-import dev.abstratium.core.service.JwtOrgResolver;
 import dev.abstratium.product.boundary.dto.*;
 import dev.abstratium.product.entity.PartAttributeDefinition;
 import dev.abstratium.product.entity.PartDefinition;
@@ -39,7 +38,7 @@ class ProductDefinitionServiceTest {
         // Create test products using the service which handles transactions
         ProductDefinition product1 = new ProductDefinition();
         product1.setId(UUID.randomUUID().toString());
-        product1.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        product1.setOrganisationId("00000000-0000-0000-0000-000000000000");
         product1.setProductCode("PROD-001");
         product1.setDescription("Test Product 1");
         product1.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -48,7 +47,7 @@ class ProductDefinitionServiceTest {
 
         ProductDefinition product2 = new ProductDefinition();
         product2.setId(UUID.randomUUID().toString());
-        product2.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        product2.setOrganisationId("00000000-0000-0000-0000-000000000000");
         product2.setProductCode("PROD-002");
         product2.setDescription("Test Product 2");
         product2.setBillingModel(ProductDefinition.BillingModel.SUBSCRIPTION);
@@ -81,7 +80,7 @@ class ProductDefinitionServiceTest {
     private ProductDefinition createTestProduct(String code, String description, ProductDefinition.BillingModel billingModel) {
         ProductDefinition product = new ProductDefinition();
         product.setId(UUID.randomUUID().toString());
-        product.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        product.setOrganisationId("00000000-0000-0000-0000-000000000000");
         product.setProductCode(code);
         product.setDescription(description);
         product.setBillingModel(billingModel);
@@ -92,7 +91,7 @@ class ProductDefinitionServiceTest {
     @Test
     void shouldCreateProductDefinition() {
         ProductDefinition product = new ProductDefinition();
-        product.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        product.setOrganisationId("00000000-0000-0000-0000-000000000000");
         product.setProductCode("PROD-NEW");
         product.setDescription("New Test Product");
         product.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -205,7 +204,7 @@ class ProductDefinitionServiceTest {
         String preSetId = UUID.randomUUID().toString();
         ProductDefinition product = new ProductDefinition();
         product.setId(preSetId);
-        product.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        product.setOrganisationId("00000000-0000-0000-0000-000000000000");
         product.setProductCode("PRESET-ID-PROD");
         product.setDescription("Product with pre-set ID");
         product.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -426,7 +425,7 @@ class ProductDefinitionServiceTest {
         String productId = product.getId();
 
         PartDefinition part = new PartDefinition();
-        part.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        part.setOrganisationId("00000000-0000-0000-0000-000000000000");
         part.setProductDefinition(product);
         part.setPartCode("INDEPENDENT-PART");
         part.setDescription("Independent Part");
@@ -455,7 +454,7 @@ class ProductDefinitionServiceTest {
         // Create product and part
         ProductDefinition product = createTestProduct("PART-UPDATE-PROD", "Product", ProductDefinition.BillingModel.FIXED_PRICE);
         PartDefinition part = new PartDefinition();
-        part.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        part.setOrganisationId("00000000-0000-0000-0000-000000000000");
         part.setProductDefinition(product);
         part.setPartCode("UPDATE-PART");
         part.setDescription("Original");
@@ -494,7 +493,7 @@ class ProductDefinitionServiceTest {
         // Create product and part
         ProductDefinition product = createTestProduct("PART-DELETE-PROD", "Product", ProductDefinition.BillingModel.FIXED_PRICE);
         PartDefinition part = new PartDefinition();
-        part.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        part.setOrganisationId("00000000-0000-0000-0000-000000000000");
         part.setProductDefinition(product);
         part.setPartCode("DELETE-PART");
         part.setDescription("To Delete");
@@ -531,7 +530,7 @@ class ProductDefinitionServiceTest {
         // Create product and part first
         ProductDefinition product = createTestProduct("ATTR-TEST-PROD", "Product", ProductDefinition.BillingModel.FIXED_PRICE);
         PartDefinition part = new PartDefinition();
-        part.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        part.setOrganisationId("00000000-0000-0000-0000-000000000000");
         part.setProductDefinition(product);
         part.setPartCode("ATTR-TEST-PART");
         part.setDescription("Part for Attribute");
@@ -550,7 +549,7 @@ class ProductDefinitionServiceTest {
         // Create attribute
         PartAttributeDefinition attr = new PartAttributeDefinition();
         attr.setId(UUID.randomUUID().toString());
-        attr.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        attr.setOrganisationId("00000000-0000-0000-0000-000000000000");
         attr.setPartDefinition(part);
         attr.setAttributeName("MATERIAL");
         attr.setDataType(PartAttributeDefinition.DataType.STRING);
@@ -579,7 +578,7 @@ class ProductDefinitionServiceTest {
         // Create product, part, and attribute
         ProductDefinition product = createTestProduct("ATTR-UPDATE-PROD", "Product", ProductDefinition.BillingModel.FIXED_PRICE);
         PartDefinition part = new PartDefinition();
-        part.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        part.setOrganisationId("00000000-0000-0000-0000-000000000000");
         part.setProductDefinition(product);
         part.setPartCode("ATTR-UPDATE-PART");
         part.setDescription("Part");
@@ -588,7 +587,7 @@ class ProductDefinitionServiceTest {
 
         PartAttributeDefinition attr = new PartAttributeDefinition();
         attr.setId(UUID.randomUUID().toString());
-        attr.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        attr.setOrganisationId("00000000-0000-0000-0000-000000000000");
         attr.setAttributeName("ORIGINAL-ATTR");
         attr.setDataType(PartAttributeDefinition.DataType.STRING);
         attr.setIsRequired(false);
@@ -626,7 +625,7 @@ class ProductDefinitionServiceTest {
         // Create product, part, and attribute
         ProductDefinition product = createTestProduct("ATTR-DELETE-PROD", "Product", ProductDefinition.BillingModel.FIXED_PRICE);
         PartDefinition part = new PartDefinition();
-        part.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        part.setOrganisationId("00000000-0000-0000-0000-000000000000");
         part.setProductDefinition(product);
         part.setPartCode("ATTR-DELETE-PART");
         part.setDescription("Part");
@@ -635,7 +634,7 @@ class ProductDefinitionServiceTest {
 
         PartAttributeDefinition attr = new PartAttributeDefinition();
         attr.setId(UUID.randomUUID().toString());
-        attr.setOrganisationId(JwtOrgResolver.DEFAULT_ORG_ID);
+        attr.setOrganisationId("00000000-0000-0000-0000-000000000000");
         attr.setAttributeName("DELETE-ATTR");
         attr.setDataType(PartAttributeDefinition.DataType.STRING);
         attr.setIsRequired(false);

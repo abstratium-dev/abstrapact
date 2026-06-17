@@ -11,7 +11,6 @@
 
 ## Today
 
-- flyway script that uses 00000000-... needs to use flyway placeholders - see app.props and incoming from abstracore. e.g. UPDATE T_oauth_clients SET org_id = '${default_org_uuid}';
 
 
 - how to deal with overlaps in t&c? return a warning when loading t&c. logic during contract creation is to take the newest version with the given code.
