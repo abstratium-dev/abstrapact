@@ -38,6 +38,7 @@ describe('Controller', () => {
         brandLogoUrl: 'https://example.com/logo.png',
         brandLogoAlt: 'Logo',
         brandName: 'Example',
+        legalContent: null,
         currencyCode: 'CHF',
         locale: 'en-US'
       };

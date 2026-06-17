@@ -144,6 +144,18 @@ class ConfigResourceTest {
     }
 
     @Test
+    void testLegalContentIsNullWhenFileNotConfigured() {
+        given()
+            .when()
+            .get("/public/config")
+            .then()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .body("legalContent", org.hamcrest.Matchers.nullValue());
+    }
+
+
+    @Test
     void testConfigEndpointReturnsCurrencyCode() {
         given()
             .when()

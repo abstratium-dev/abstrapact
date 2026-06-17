@@ -113,6 +113,74 @@
   filter: invert(1) hue-rotate(180deg);
 }
 
+.legal-custom-content {
+  line-height: 1.6;
+  color: var(--color-text-primary);
+}
+
+.misconfiguration-warning {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 2px solid #ef4444;
+  border-radius: 0.75rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  text-align: left;
+
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #fca5a5;
+  }
+
+  p {
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+    font-size: 0.95rem;
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+
+  a {
+    color: #fca5a5;
+    text-decoration: underline;
+  }
+}
+
+.misconfiguration-warning-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.misconfiguration-source {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.unconfigured-legal {
+  opacity: 0.45;
+  pointer-events: none;
+  user-select: none;
+  filter: blur(0.5px);
+}
+
+.notice-card--warning {
+  border: 2px solid #f97316;
+  background: #431407;
+  color: #fed7aa;
+
+  .notice-card-title {
+    color: #fb923c;
+  }
+
+  .notice-body p {
+    color: #fed7aa;
+  }
+}
+
 @media (max-width: 600px) {
   .legal-page {
     padding: 1rem 0.75rem;

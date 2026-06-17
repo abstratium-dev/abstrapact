@@ -4,7 +4,7 @@ globs: e2e-tests/**/*.ts
 ---
 
 - end to end (e2e) tests are written using playwright
-- use the playwright-cli skill (.windsurf/skills/playwright-cli/SKILL.md) to help understand what is displayed in the browser and how to use it
+- use the playwright-cli skill (.devin/skills/playwright-cli/SKILL.md) to help understand what is displayed in the browser and how to use it
 - When writing playwright tests for end to end testing, in the `e2e-tests` folder, avoid `page.waitForTimeout`since the docs say "Note that page.waitForTimeout() should only be used for debugging. Tests using the timer in production are going to be flaky. Use signals such as network events, selectors becoming visible and others instead." Note that when using "waitUntil", the docs say "Default is 'load'; 'networkidle' is discouraged for testing."
 - tests use the "page object model" pattern - each page is encapsulated in a file in the folder named `e2e-tests/pages`.
 - page files should consist of low level functions used to select elements, and higher level functions that encapsulate functionality of the page, e.g. filling in a form or clicking a button. the higher level functions should use the low level functions.
@@ -19,5 +19,5 @@ globs: e2e-tests/**/*.ts
 - run the tests with just chromium, rather than running the tests in firefox or other browsers too.
 - add `data-testid` attributes to the html source if that makes the selection of elements easier or more deterministic
 - when you write page object models and tests, make sure that you add logging, so that you can debug the tests when they are failing
-- you can use the playwright-cli (see .windsurf/skills/playwright-cli/SKILL.md)
+- you can use the playwright-cli (see .devin/skills/playwright-cli/SKILL.md)
 - to access files in the .playwright-cli folder use command line tools as they are blocked by .gitignore and your other tools cannot access them.

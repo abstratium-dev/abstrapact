@@ -17,3 +17,4 @@ globs: src/main/java/**/service/**/*.java
 **Native SQL:**
 - never use native SQL in production code
 
+

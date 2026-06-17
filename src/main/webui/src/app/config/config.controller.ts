@@ -48,6 +48,7 @@ export class ConfigController {
         brandLogoUrl: currentConfig?.brandLogoUrl || '',
         brandLogoAlt: currentConfig?.brandLogoAlt || '',
         brandName: currentConfig?.brandName || '',
+        legalContent: currentConfig?.legalContent || null,
         currencyCode: response.currencyCode,
         locale: response.locale
       });

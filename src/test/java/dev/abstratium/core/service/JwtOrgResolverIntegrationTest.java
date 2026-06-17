@@ -23,7 +23,7 @@ import static org.hamcrest.Matchers.is;
 @QuarkusTest
 class JwtOrgResolverIntegrationTest {
 
-    private static final String ORG_ID = JwtOrgResolver.DEFAULT_ORG_ID;
+    public static final String DEFAULT_ORG_ID = "00000000-0000-0000-0000-000000000000";
 
     private String buildBearerToken(String payloadJson) {
         String header = Base64.getUrlEncoder().withoutPadding()
@@ -37,7 +37,7 @@ class JwtOrgResolverIntegrationTest {
     @TestSecurity(user = "testuser", roles = {"jwt-test-user"})
     void resolveTenantId_withOrgIdInBearer_usesOrgId() {
         String token = buildBearerToken(
-                "{\"sub\":\"testuser\",\"orgId\":\"" + ORG_ID + "\",\"groups\":[\"jwt-test-user\"]}");
+                "{\"sub\":\"testuser\",\"orgId\":\"" + DEFAULT_ORG_ID + "\",\"groups\":[\"jwt-test-user\"]}");
 
         given()
             .header("Authorization", "Bearer " + token)
@@ -45,7 +45,7 @@ class JwtOrgResolverIntegrationTest {
             .get("/api/test/jwt-org")
             .then()
             .statusCode(200)
-            .body(is("\"" + ORG_ID + "\""));
+            .body(is("\"" + DEFAULT_ORG_ID + "\""));
     }
 
     @Test
@@ -60,7 +60,7 @@ class JwtOrgResolverIntegrationTest {
             .get("/api/test/jwt-org")
             .then()
             .statusCode(200)
-            .body(is("\"" + JwtOrgResolver.DEFAULT_ORG_ID + "\""));
+            .body(is("\"" + DEFAULT_ORG_ID + "\""));
     }
 
     @Test
@@ -72,7 +72,7 @@ class JwtOrgResolverIntegrationTest {
             .get("/api/test/jwt-org")
             .then()
             .statusCode(200)
-            .body(is("\"" + JwtOrgResolver.DEFAULT_ORG_ID + "\""));
+            .body(is("\"" + DEFAULT_ORG_ID + "\""));
     }
 
     @Test
@@ -87,6 +87,6 @@ class JwtOrgResolverIntegrationTest {
             .get("/api/test/jwt-org")
             .then()
             .statusCode(200)
-            .body(is("\"" + JwtOrgResolver.DEFAULT_ORG_ID + "\""));
+            .body(is("\"" + DEFAULT_ORG_ID + "\""));
     }
 }

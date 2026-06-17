@@ -7,6 +7,7 @@ export interface Config {
   brandLogoUrl: string;
   brandLogoAlt: string;
   brandName: string;
+  legalContent: string | null;
   currencyCode: string;
   locale: string;
 }
@@ -28,6 +29,7 @@ export class ModelService {
   private brandLogoUrl = signal<string>(this.defaultBrandLogoUrl);
   private brandLogoAlt = signal<string>(this.defaultBrandLogoAlt);
   private brandName = signal<string>(this.defaultBrandName);
+  private legalContent = signal<string | null>(null);
   private currencyCode = signal<string>(this.defaultCurrencyCode);
   private locale = signal<string>(this.defaultLocale);
 
@@ -37,6 +39,7 @@ export class ModelService {
   brandLogoUrl$: Signal<string> = this.brandLogoUrl.asReadonly();
   brandLogoAlt$: Signal<string> = this.brandLogoAlt.asReadonly();
   brandName$: Signal<string> = this.brandName.asReadonly();
+  legalContent$: Signal<string | null> = this.legalContent.asReadonly();
   currencyCode$: Signal<string> = this.currencyCode.asReadonly();
   locale$: Signal<string> = this.locale.asReadonly();
 
@@ -51,6 +54,7 @@ export class ModelService {
     this.brandLogoUrl.set(config.brandLogoUrl || this.defaultBrandLogoUrl);
     this.brandLogoAlt.set(config.brandLogoAlt || this.defaultBrandLogoAlt);
     this.brandName.set(config.brandName || this.defaultBrandName);
+    this.legalContent.set(config.legalContent ?? null);
     this.currencyCode.set(config.currencyCode || this.defaultCurrencyCode);
     this.locale.set(config.locale || this.defaultLocale);
   }

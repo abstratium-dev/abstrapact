@@ -5,9 +5,10 @@ Fix remaining project-name references and clean up baseline-specific files.
 1. Replace all occurrences of the literal string "abstracore" (case-sensitive)
    with the name of the project root folder.
 2. Skip the file scripts/sync-base.sh.
-3. In TODO.md, delete the line "# TODOs for Abstracore (to be deleted downstream)"
+3. Also process .devin/rules/database.md explicitly (excluded dirs are otherwise skipped).
+4. In TODO.md, delete the line "# TODOs for Abstracore (to be deleted downstream)"
    and everything that follows it.
-4. Delete the file copy_to_.git_hooks_pre-commit if it exists.
+5. Delete the file copy_to_.git_hooks_pre-commit if it exists.
 """
 
 import os
@@ -18,7 +19,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 PROJECT_NAME = os.path.basename(PROJECT_ROOT)
 
 EXCLUDED_DIRS = {
-    '.git', 'target', 'node_modules', '.windsurf', 'dist', '.angular',
+    '.git', 'target', 'node_modules', '.windsurf', '.devin', 'dist', '.angular',
     '.mvn', '__pycache__', '.idea', '.vscode',
 }
 
@@ -30,6 +31,9 @@ EXCLUDED_EXTENSIONS = {
 
 OLD_NAME = "abstracore"
 SKIP_FILE = os.path.join(PROJECT_ROOT, "scripts", "sync-base.sh")
+EXTRA_FILES = [
+    os.path.join(PROJECT_ROOT, ".devin", "rules", "database.md"),
+]
 TODO_FILE = os.path.join(PROJECT_ROOT, "TODO.md")
 DELETE_FILE = os.path.join(PROJECT_ROOT, "copy_to_.git_hooks_pre-commit")
 
@@ -68,6 +72,16 @@ def main():
 
     changed_files = []
     self_path = os.path.abspath(__file__)
+
+    for extra in EXTRA_FILES:
+        if os.path.isfile(extra):
+            try:
+                if replace_in_file(extra, OLD_NAME, PROJECT_NAME):
+                    changed_files.append(extra)
+            except OSError as e:
+                print(f"Warning: could not process {extra}: {e}", file=sys.stderr)
+        else:
+            print(f"Warning: extra file not found: {extra}", file=sys.stderr)
 
     for root, dirs, files in os.walk(PROJECT_ROOT):
         dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]

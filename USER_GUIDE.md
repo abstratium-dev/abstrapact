@@ -100,6 +100,7 @@ _Replace all placeholder values with the values generated above.
      -e COOKIE_ENCRYPTION_SECRET="<your-cookie-encryption-secret>" \
      -e CSRF_TOKEN_SIGNATURE_KEY="<your-csrf-signature-key>" \
      -e ABSTRATIUM_CLIENT_SECRET="<your-oauth-client-secret>" \
+     -e DEFAULT_ORG_UUID="TODO_YOUR_GENERATED_DEFAULT_ORG_UUID" \
      ghcr.io/abstratium-dev/abstrapact:latest
    ```
 
@@ -112,6 +113,7 @@ _Replace all placeholder values with the values generated above.
    - `ABSTRATIUM_TOGGLES_API_URL`: URL of the Abstoggle public API (e.g., `https://toggles.abstratium.dev`, required in production only)
    - `ABSTRATIUM_TOGGLES_CONTEXT`: Context for the Abstoggle public API (e.g., `abstratium-public-...`)
    - `STAGE`: Deployment stage identifier exposed to the frontend (e.g., "dev", "test", "prod", defaults to "dev")
+   - `DEFAULT_ORG_UUID`: UUID for the default organisation that existing data is migrated into (generate with `uuidgen`)
 
    **Optional Environment Variables:**
    - `ABSTRA_WARNING_MESSAGE`: Warning banner message displayed at the top of the UI (e.g., "You are in the TEST environment!"). Set to "-" or omit to hide the banner.
@@ -121,6 +123,31 @@ _Replace all placeholder values with the values generated above.
    - `ABSTRA_BRAND_NAME`: Brand name text shown next to the logo in the header. Defaults to `ABSTRATIUM`.
    - `ABSTRA_CURRENCY_CODE`: ISO 4217 currency code used for price formatting in the UI. Defaults to `CHF`. Affects the product simulator, product structure view, and part form.
    - `ABSTRA_CURRENCY_LOCALE`: BCP 47 locale tag used for number formatting (e.g., `en-US`, `de-DE`, `fr-CH`). Defaults to `fr-CH`. Affects the product simulator and product structure view.
+   - `ABSTRA_LEGAL_CONTENT_FILE`: **Required for non-abstratium deployments.** Absolute path inside the container to an HTML file containing your organisation's legal page content. When set, this file's contents are served to the frontend and displayed instead of the built-in abstratium legal text — with no misconfiguration warnings. If this variable is not set and the deployment is not on `abstratium.dev`, the legal page will display a prominent error warning to users, and the home page will display a disclaimer stating that abstratium is not responsible for this deployment. Example: `-e ABSTRA_LEGAL_CONTENT_FILE=/config/legal.html -v /host/legal.html:/config/legal.html`.
+
+
+----
+
+> **⚠ LEGAL NOTICE FOR OPERATORS AND DEPLOYERS**
+>
+> This software ships with a legal page (`src/main/webui/src/app/core/legal/legal.component.html`)
+> that is **specific to abstratium informatique sàrl** and applies **only** to the official deployment
+> at **abstratium.dev**.
+>
+> If you deploy this software on **any other domain**, the legal page will automatically display a
+> prominent misconfiguration warning to users, and the abstratium legal text will be visually
+> invalidated. However, **you are still legally required** to:
+>
+> 1. Replace the legal page with one that correctly names **your** organisation as data controller.
+> 2. Ensure the page accurately reflects **your** data processing practices, applicable law, and contact details.
+> 3. Comply with the GDPR, Swiss revDSG, and any other applicable data protection law in your jurisdiction.
+>
+> Failure to do so may expose **you** (the operator) to regulatory action. abstratium informatique sàrl
+> accepts no liability whatsoever for deployments made by third parties.
+>
+> See the checklist below for full configuration steps.
+
+
 
 
 3. **Verify the container is running**:
