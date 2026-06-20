@@ -1,5 +1,6 @@
 package dev.abstratium.product.boundary.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.abstratium.product.entity.ProductDefinition;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
@@ -12,12 +13,16 @@ import java.util.List;
  */
 @RegisterForReflection
 public class ProductDefinitionRequest {
+    public ProductDefinitionRequest() {
+    }
+
     private String id;
     private String productCode;
     private String description;
     private ProductDefinition.BillingModel billingModel;
     private LocalDate productValidFrom;
     private LocalDate productValidUntil;
+    private String termsAndConditionsCode;
     private List<PartRequest> parts;
 
     public String getId() {
@@ -66,6 +71,14 @@ public class ProductDefinitionRequest {
 
     public void setProductValidUntil(LocalDate productValidUntil) {
         this.productValidUntil = productValidUntil;
+    }
+
+    public String getTermsAndConditionsCode() {
+        return termsAndConditionsCode;
+    }
+
+    public void setTermsAndConditionsCode(String termsAndConditionsCode) {
+        this.termsAndConditionsCode = termsAndConditionsCode;
     }
 
     public List<PartRequest> getParts() {

@@ -144,7 +144,15 @@ export class TermsAndConditionsFormComponent implements OnInit {
       if (err.status === 409) {
         this.formError = 'Terms and conditions with this code already exists';
       } else if (err.status === 400) {
-        this.formError = err.error || 'Invalid request. Please check your input.';
+        // Handle RFC 7807 Problem Details response (object with detail field)
+        const errorBody = err.error;
+        if (typeof errorBody === 'object' && errorBody !== null && errorBody.detail) {
+          this.formError = errorBody.detail;
+        } else if (typeof errorBody === 'string') {
+          this.formError = errorBody;
+        } else {
+          this.formError = 'Invalid request. Please check your input.';
+        }
       } else {
         this.formError = 'Failed to save terms and conditions. Please try again.';
       }

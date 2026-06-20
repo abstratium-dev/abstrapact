@@ -46,7 +46,8 @@ describe('ProductDefinitionsModelService', () => {
         description: 'Test Product 1',
         billingModel: 'FIXED_PRICE',
         productValidFrom: '2024-01-01',
-        productValidUntil: '2024-12-31'
+        productValidUntil: '2024-12-31',
+        termsAndConditionsCode: null
       },
       {
         id: '2',
@@ -55,7 +56,8 @@ describe('ProductDefinitionsModelService', () => {
         description: 'Test Product 2',
         billingModel: 'SUBSCRIPTION',
         productValidFrom: null,
-        productValidUntil: null
+        productValidUntil: null,
+        termsAndConditionsCode: null
       }
     ];
 
@@ -200,7 +202,8 @@ describe('ProductDefinitionsModelService', () => {
         description: 'Test Product',
         billingModel: 'FIXED_PRICE',
         productValidFrom: null,
-        productValidUntil: null
+        productValidUntil: null,
+        termsAndConditionsCode: null
       };
       const mockPart: PartDefinition = {
         id: '2',

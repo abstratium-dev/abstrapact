@@ -107,8 +107,9 @@ export async function signOut(page: Page) {
 
 export async function assertHeaderSignedIn(page: Page) {
     console.log('[Header] Asserting header shows signed-in state');
-    await expect(headerTodoLink(page)).toBeVisible({ timeout: 10000 });
-    await expect(headerHomeLink(page)).toBeVisible();
+    await expect(headerHomeLink(page)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#terms-link')).toBeVisible();
+    await expect(page.locator('#products-link')).toBeVisible();
     await expect(headerSignOutLink(page)).toBeVisible();
 }
 

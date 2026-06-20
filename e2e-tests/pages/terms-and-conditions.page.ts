@@ -1,5 +1,20 @@
 import { expect, Page } from '@playwright/test';
 
+// ─── Cookie Notice Helper ─────────────────────────────────────────────────────
+
+export async function dismissCookieNoticeIfPresent(page: Page) {
+    console.log('[CookieNotice] Checking for cookie notice');
+    const gotItButton = page.locator('.cookie-notice-actions button', { hasText: 'Got it!' });
+    try {
+        await gotItButton.waitFor({ state: 'visible', timeout: 3000 });
+        console.log('[CookieNotice] Dismissing cookie notice');
+        await gotItButton.click();
+        await gotItButton.waitFor({ state: 'hidden', timeout: 3000 });
+    } catch (e) {
+        console.log('[CookieNotice] No cookie notice found or already dismissed');
+    }
+}
+
 // ─── Terms and Conditions List Page ───────────────────────────────────────────
 
 export function termsAndConditionsListPage(page: Page) {
@@ -30,6 +45,7 @@ export async function assertOnTermsAndConditionsListPage(page: Page) {
 
 export async function navigateToTermsAndConditions(page: Page) {
     console.log('[TermsAndConditionsListPage] Navigating to terms and conditions via header');
+    await dismissCookieNoticeIfPresent(page);
     await page.locator('#terms-link').click();
     await assertOnTermsAndConditionsListPage(page);
 }

@@ -6,11 +6,10 @@ import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
+import dev.abstratium.conditions.boundary.dto.TermsAndConditionsCodeSummary;
+
 import java.time.LocalDate;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @ApplicationScoped
 public class TermsAndConditionsService {
@@ -139,5 +138,29 @@ public class TermsAndConditionsService {
                         + expectedNextFrom + " but starts on " + next.getEffectiveFrom());
             }
         }
+    }
+
+    public List<TermsAndConditionsCodeSummary> findDistinctCodes() {
+        List<TermsAndConditions> all = findAll();
+        Map<String, TermsAndConditions> latestByCode = new HashMap<>();
+        LocalDate defaultDate = LocalDate.of(1, 1, 1);
+
+        for (TermsAndConditions t : all) {
+            TermsAndConditions existing = latestByCode.get(t.getCode());
+            if (existing == null) {
+                latestByCode.put(t.getCode(), t);
+            } else {
+                LocalDate existingDate = existing.getEffectiveFrom() != null ? existing.getEffectiveFrom() : defaultDate;
+                LocalDate newDate = t.getEffectiveFrom() != null ? t.getEffectiveFrom() : defaultDate;
+                if (newDate.isAfter(existingDate)) {
+                    latestByCode.put(t.getCode(), t);
+                }
+            }
+        }
+
+        return latestByCode.values().stream()
+            .map(t -> new TermsAndConditionsCodeSummary(t.getCode(), t.getTitle()))
+            .sorted(Comparator.comparing(TermsAndConditionsCodeSummary::getCode))
+            .toList();
     }
 }

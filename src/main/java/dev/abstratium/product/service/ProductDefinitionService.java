@@ -88,6 +88,7 @@ public class ProductDefinitionService {
         product.setBillingModel(request.getBillingModel());
         product.setProductValidFrom(request.getProductValidFrom());
         product.setProductValidUntil(request.getProductValidUntil());
+        product.setTermsAndConditionsCode(request.getTermsAndConditionsCode());
         em.persist(product);
 
         if (request.getParts() != null) {
@@ -111,6 +112,7 @@ public class ProductDefinitionService {
         product.setBillingModel(request.getBillingModel());
         product.setProductValidFrom(request.getProductValidFrom());
         product.setProductValidUntil(request.getProductValidUntil());
+        product.setTermsAndConditionsCode(request.getTermsAndConditionsCode());
         product = em.merge(product);
 
         // Delete existing parts and recreate
@@ -161,6 +163,7 @@ public class ProductDefinitionService {
         response.setBillingModel(product.getBillingModel());
         response.setProductValidFrom(product.getProductValidFrom());
         response.setProductValidUntil(product.getProductValidUntil());
+        response.setTermsAndConditionsCode(product.getTermsAndConditionsCode());
 
         List<PartDefinition> rootParts = findPartsByProductId(productId);
         response.setParts(rootParts.stream()

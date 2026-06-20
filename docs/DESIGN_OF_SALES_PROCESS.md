@@ -23,7 +23,7 @@ Both variants share the same early steps (draft, offer, acceptance, approval). T
 | 4 | **Approval** (if required) | `ACCEPTED -> AWAITING_APPROVAL -> APPROVED` | SME |
 | 4 | **Approval** (if not required) | `ACCEPTED -> APPROVED` | -- |
 | 5 | **Document Preparation** | (no contract state change) | System / SME |
-| 6 | **Payment Handling** | `APPROVED -> RUNNING` (or `CANCELLED`) | System / Customer |
+| 6 | **Payment Handling** | `APPROVED -> AWAITING_PAYMENT -> RUNNING` (pay-first)<br>`APPROVED -> RUNNING` (bill-over-time) | System / Customer |
 
 ### Payment Handling Divergence
 
@@ -31,11 +31,12 @@ Both variants share the same early steps (draft, offer, acceptance, approval). T
 stateDiagram-v2
     APPROVED --> AWAITING_PAYMENT : Pay-first model
     AWAITING_PAYMENT --> RUNNING : Payment confirmed
+    AWAITING_PAYMENT --> AWAITING_PAYMENT : Payment failed (retry allowed)
     AWAITING_PAYMENT --> CANCELLED : Timeout
     APPROVED --> RUNNING : Bill-over-time model
 ```
 
-- **Pay-first**: the contract stays `APPROVED` while an initial invoice is issued. A background job monitors payment; on confirmation the contract moves to `RUNNING`. Unpaid invoices past a grace period may result in `CANCELLED`.
+- **Pay-first**: the contract moves to `AWAITING_PAYMENT` once approved. An invoice is issued and a background job monitors payment events from the external payment service. The contract remains in `AWAITING_PAYMENT` across multiple payment attempts; only a confirmed successful payment transitions it to `RUNNING`. A system timeout (grace period expiry) is the only event that moves the contract from `AWAITING_PAYMENT` to `CANCELLED`.
 - **Bill-over-time**: the contract moves immediately to `RUNNING`. Invoices are generated after activation; unpaid invoices are handled by the [after-sales process](DESIGN_OF_AFTER_SALES_PROCESS.md).
 
 ---
@@ -52,7 +53,11 @@ stateDiagram-v2
     AWAITING_APPROVAL --> APPROVED : SME approves
     AWAITING_APPROVAL --> DRAFT : SME rejects
     ACCEPTED --> APPROVED : No approval needed
-    APPROVED --> RUNNING : Activate
+    APPROVED --> AWAITING_PAYMENT : Pay-first
+    AWAITING_PAYMENT --> RUNNING : Payment confirmed
+    AWAITING_PAYMENT --> AWAITING_PAYMENT : Payment failed (retry)
+    AWAITING_PAYMENT --> CANCELLED : Timeout
+    APPROVED --> RUNNING : Bill-over-time
     RUNNING --> EXPIRED : Natural end
     RUNNING --> TERMINATED : Early termination
     DRAFT --> CANCELLED : Withdraw
@@ -64,6 +69,18 @@ stateDiagram-v2
 ```
 
 ---
+
+## Payment State Semantics
+
+The contract's `state` column is the single source of truth for where the contract sits in its lifecycle, including payment-related waiting. There is no separate payment-status field. This allows the service to know whether a contract is awaiting payment, has been paid, or was cancelled due to timeout, without querying the external payment microservice at runtime.
+
+| Contract State | Meaning for Payment | Allowed Next States |
+|----------------|---------------------|---------------------|
+| `APPROVED` | No payment action yet (pay-first) or bill-over-time | `AWAITING_PAYMENT`, `RUNNING`, `CANCELLED` |
+| `AWAITING_PAYMENT` | Invoice issued; waiting for confirmation from payment service | `RUNNING`, `CANCELLED` |
+| `RUNNING` | Payment confirmed (pay-first) or immediate (bill-over-time) | `EXPIRED`, `TERMINATED`, `CANCELLED` |
+
+A failed payment attempt leaves the contract in `AWAITING_PAYMENT`; the customer may retry. The contract is only moved to `CANCELLED` by a system timeout job once the grace period expires.
 
 ## Process Tracking
 

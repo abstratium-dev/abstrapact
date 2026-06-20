@@ -97,12 +97,14 @@ class ProductDefinitionServiceTest {
         product.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
         product.setProductValidFrom(LocalDate.now());
         product.setProductValidUntil(LocalDate.now().plusYears(1));
+        product.setTermsAndConditionsCode("ABSTRATIUM-001");
 
         ProductDefinition created = service.createProductDefinition(product);
 
         assertNotNull(created.getId());
         assertEquals("PROD-NEW", created.getProductCode());
         assertEquals("New Test Product", created.getDescription());
+        assertEquals("ABSTRATIUM-001", created.getTermsAndConditionsCode());
         assertEquals(ProductDefinition.BillingModel.FIXED_PRICE, created.getBillingModel());
     }
 

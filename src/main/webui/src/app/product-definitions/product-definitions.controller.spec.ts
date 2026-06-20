@@ -32,7 +32,7 @@ describe('ProductDefinitionsController', () => {
   describe('loadProductDefinitions', () => {
     it('should load product definitions and update model service', () => {
       const mockDefinitions: ProductDefinition[] = [
-        { id: '1', organisationId: 'org-1', productCode: 'PROD-001', description: 'Test', billingModel: 'FIXED_PRICE', productValidFrom: null, productValidUntil: null }
+        { id: '1', organisationId: 'org-1', productCode: 'PROD-001', description: 'Test', billingModel: 'FIXED_PRICE', productValidFrom: null, productValidUntil: null, termsAndConditionsCode: null }
       ];
 
       controller.loadProductDefinitions();
@@ -60,7 +60,7 @@ describe('ProductDefinitionsController', () => {
 
   describe('getProductDefinition', () => {
     it('should get a product definition and update model', async () => {
-      const mockDefinition: ProductDefinition = { id: '1', organisationId: 'org-1', productCode: 'PROD-001', description: 'Test', billingModel: 'FIXED_PRICE', productValidFrom: null, productValidUntil: null };
+      const mockDefinition: ProductDefinition = { id: '1', organisationId: 'org-1', productCode: 'PROD-001', description: 'Test', billingModel: 'FIXED_PRICE', productValidFrom: null, productValidUntil: null, termsAndConditionsCode: null };
 
       const promise = controller.getProductDefinition('1');
       const req = httpMock.expectOne('/api/product-definitions/1');
@@ -84,7 +84,7 @@ describe('ProductDefinitionsController', () => {
 
   describe('createProductDefinition', () => {
     it('should create and reload list', async () => {
-      const request: ProductDefinitionRequest = { productCode: 'NEW', description: 'New', billingModel: 'FIXED_PRICE', productValidFrom: null, productValidUntil: null };
+      const request: ProductDefinitionRequest = { productCode: 'NEW', description: 'New', billingModel: 'FIXED_PRICE', productValidFrom: null, productValidUntil: null, termsAndConditionsCode: null };
       const response = { id: '2', organisationId: 'org-1', ...request };
 
       const promise = controller.createProductDefinition(request);
@@ -101,7 +101,7 @@ describe('ProductDefinitionsController', () => {
     });
 
     it('should throw on error', async () => {
-      const request: ProductDefinitionRequest = { productCode: 'NEW', description: 'New', billingModel: 'FIXED_PRICE', productValidFrom: null, productValidUntil: null };
+      const request: ProductDefinitionRequest = { productCode: 'NEW', description: 'New', billingModel: 'FIXED_PRICE', productValidFrom: null, productValidUntil: null, termsAndConditionsCode: null };
 
       const promise = controller.createProductDefinition(request);
       const req = httpMock.expectOne('/api/product-definitions');
@@ -113,7 +113,7 @@ describe('ProductDefinitionsController', () => {
 
   describe('updateProductDefinition', () => {
     it('should update and reload list', async () => {
-      const request: ProductDefinitionRequest = { productCode: 'UPDATED', description: 'Updated', billingModel: 'SUBSCRIPTION', productValidFrom: null, productValidUntil: null };
+      const request: ProductDefinitionRequest = { productCode: 'UPDATED', description: 'Updated', billingModel: 'SUBSCRIPTION', productValidFrom: null, productValidUntil: null, termsAndConditionsCode: null };
       const response = { id: '1', organisationId: 'org-1', ...request };
 
       const promise = controller.updateProductDefinition('1', request);
@@ -130,7 +130,7 @@ describe('ProductDefinitionsController', () => {
     });
 
     it('should throw on error', async () => {
-      const request: ProductDefinitionRequest = { productCode: 'UPDATED', description: 'Updated', billingModel: 'SUBSCRIPTION', productValidFrom: null, productValidUntil: null };
+      const request: ProductDefinitionRequest = { productCode: 'UPDATED', description: 'Updated', billingModel: 'SUBSCRIPTION', productValidFrom: null, productValidUntil: null, termsAndConditionsCode: null };
 
       const promise = controller.updateProductDefinition('1', request);
       const req = httpMock.expectOne('/api/product-definitions/1');

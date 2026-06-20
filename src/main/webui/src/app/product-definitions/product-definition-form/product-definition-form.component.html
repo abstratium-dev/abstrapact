@@ -64,6 +64,24 @@
         </div>
       </div>
 
+      <div class="form-group">
+        <label for="termsAndConditionsCode">Terms and Conditions</label>
+        <select
+          id="termsAndConditionsCode"
+          name="termsAndConditionsCode"
+          [(ngModel)]="termsAndConditionsCode"
+          [disabled]="submitting || termsAndConditionsCodesLoading()"
+          data-testid="terms-and-conditions-select"
+        >
+          <option [value]="null">-- None --</option>
+          <option *ngFor="let tc of termsAndConditionsCodes()" [value]="tc.code">
+            {{ tc.code }} - {{ tc.title }}
+          </option>
+        </select>
+        <span class="form-hint">Select the general terms and conditions that apply to this product</span>
+        <div *ngIf="termsAndConditionsCodesLoading()" class="form-hint">Loading terms and conditions...</div>
+      </div>
+
       <div class="form-row">
         <div class="form-group">
           <label for="productValidFrom">Valid From</label>

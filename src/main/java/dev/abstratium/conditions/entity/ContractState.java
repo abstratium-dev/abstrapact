@@ -6,6 +6,7 @@ public enum ContractState {
     ACCEPTED,
     AWAITING_APPROVAL,
     APPROVED,
+    AWAITING_PAYMENT,
     RUNNING,
     CANCELLED,
     EXPIRED,

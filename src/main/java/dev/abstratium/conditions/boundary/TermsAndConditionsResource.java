@@ -1,5 +1,6 @@
 package dev.abstratium.conditions.boundary;
 
+import dev.abstratium.conditions.boundary.dto.TermsAndConditionsCodeSummary;
 import dev.abstratium.conditions.entity.TermsAndConditions;
 import dev.abstratium.conditions.service.TermsAndConditionsService;
 import jakarta.annotation.security.RolesAllowed;
@@ -85,5 +86,12 @@ public class TermsAndConditionsResource {
         }
         service.delete(id);
         return Response.noContent().build();
+    }
+
+    @GET
+    @Path("/codes")
+    @Operation(summary = "List distinct terms and conditions codes with titles")
+    public List<TermsAndConditionsCodeSummary> listDistinctCodes() {
+        return service.findDistinctCodes();
     }
 }

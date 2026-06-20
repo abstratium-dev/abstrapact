@@ -12,6 +12,7 @@ export interface ProductDefinition {
   billingModel: BillingModel;
   productValidFrom: string | null;
   productValidUntil: string | null;
+  termsAndConditionsCode: string | null;
 }
 
 export interface ProductDefinitionRequest {
@@ -20,6 +21,7 @@ export interface ProductDefinitionRequest {
   billingModel: BillingModel;
   productValidFrom: string | null;
   productValidUntil: string | null;
+  termsAndConditionsCode: string | null;
 }
 
 export interface PartAttributeAllowedValue {
@@ -84,6 +86,7 @@ export interface CompleteProductRequest {
   billingModel: BillingModel;
   productValidFrom: string | null;
   productValidUntil: string | null;
+  termsAndConditionsCode: string | null;
   parts: PartRequest[];
 }
 
@@ -94,6 +97,7 @@ export interface CompleteProductResponse {
   billingModel: BillingModel;
   productValidFrom: string | null;
   productValidUntil: string | null;
+  termsAndConditionsCode: string | null;
   parts: PartDefinition[];
 }
 

@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BillingModel, ProductDefinition, ProductDefinitionRequest, ProductDefinitionsModelService } from '../product-definitions.model.service';
 import { ProductDefinitionsController } from '../product-definitions.controller';
+import { TermsAndConditionsController } from '../../terms-and-conditions/terms-and-conditions.controller';
+import { TermsAndConditionsModelService, TermsAndConditionsCodeSummary } from '../../terms-and-conditions/terms-and-conditions.model.service';
 import { ToastService } from '../../core/toast/toast.service';
 
 @Component({
@@ -17,9 +19,13 @@ export class ProductDefinitionFormComponent implements OnInit {
   private router = inject(Router);
   private modelService = inject(ProductDefinitionsModelService);
   private controller = inject(ProductDefinitionsController);
+  private termsController = inject(TermsAndConditionsController);
+  private termsModelService = inject(TermsAndConditionsModelService);
   private toastService = inject(ToastService);
 
   selectedProduct: Signal<ProductDefinition | null> = this.modelService.selectedProductDefinition$;
+  termsAndConditionsCodes: Signal<TermsAndConditionsCodeSummary[]> = this.termsModelService.termsAndConditionsCodes$;
+  termsAndConditionsCodesLoading: Signal<boolean> = this.termsModelService.termsAndConditionsCodesLoading$;
 
   isEditMode = false;
   productId: string | null = null;
@@ -30,6 +36,7 @@ export class ProductDefinitionFormComponent implements OnInit {
   billingModel: BillingModel = 'FIXED_PRICE';
   productValidFrom: string | null = null;
   productValidUntil: string | null = null;
+  termsAndConditionsCode: string | null = null;
 
   // Form state
   submitting = false;
@@ -44,6 +51,8 @@ export class ProductDefinitionFormComponent implements OnInit {
   ngOnInit(): void {
     this.productId = this.route.snapshot.paramMap.get('id');
     this.isEditMode = !!this.productId;
+
+    this.termsController.loadTermsAndConditionsCodes();
 
     if (this.isEditMode && this.productId) {
       this.loadProductDefinition(this.productId);
@@ -65,6 +74,7 @@ export class ProductDefinitionFormComponent implements OnInit {
     this.billingModel = definition.billingModel;
     this.productValidFrom = definition.productValidFrom;
     this.productValidUntil = definition.productValidUntil;
+    this.termsAndConditionsCode = definition.termsAndConditionsCode;
   }
 
   validateForm(): boolean {
@@ -110,7 +120,8 @@ export class ProductDefinitionFormComponent implements OnInit {
       description: this.description.trim(),
       billingModel: this.billingModel,
       productValidFrom: this.productValidFrom || null,
-      productValidUntil: this.productValidUntil || null
+      productValidUntil: this.productValidUntil || null,
+      termsAndConditionsCode: this.termsAndConditionsCode || null
     };
 
     try {

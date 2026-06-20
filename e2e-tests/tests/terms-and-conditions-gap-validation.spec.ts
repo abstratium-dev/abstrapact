@@ -14,6 +14,7 @@ import {
     assertNoFormError,
     assertTermsExists,
     deleteTermsByCode,
+    dismissCookieNoticeIfPresent,
 } from '../pages/terms-and-conditions.page';
 
 const EMAIL = 'test@abstratium.dev';
@@ -24,6 +25,7 @@ const BASE = 'http://localhost:8081';
 
 async function signInViaHeader(page: Page) {
     console.log('[TestHelper] Signing in via header');
+    await dismissCookieNoticeIfPresent(page);
     await headerSignInLink(page).click();
     await handleAuthServer(page, EMAIL, PASSWORD);
     await assertHeaderSignedIn(page);
@@ -31,6 +33,7 @@ async function signInViaHeader(page: Page) {
 
 async function cleanupTestData(page: Page, codes: string[]) {
     console.log(`[TestHelper] Cleaning up test data for codes: ${codes.join(', ')}`);
+    await dismissCookieNoticeIfPresent(page);
     await navigateToTermsAndConditions(page);
     for (const code of codes) {
         try {

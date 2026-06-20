@@ -35,6 +35,9 @@ public class ProductDefinition {
     @Column(name = "product_valid_until")
     private LocalDate productValidUntil;
 
+    @Column(name = "terms_and_conditions_code", length = 50)
+    private String termsAndConditionsCode;
+
     public ProductDefinition() {
     }
 
@@ -92,6 +95,14 @@ public class ProductDefinition {
 
     public void setProductValidUntil(LocalDate productValidUntil) {
         this.productValidUntil = productValidUntil;
+    }
+
+    public String getTermsAndConditionsCode() {
+        return termsAndConditionsCode;
+    }
+
+    public void setTermsAndConditionsCode(String termsAndConditionsCode) {
+        this.termsAndConditionsCode = termsAndConditionsCode;
     }
 
     public enum BillingModel {

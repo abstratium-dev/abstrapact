@@ -14,6 +14,7 @@ public class CompleteProductResponse {
     private ProductDefinition.BillingModel billingModel;
     private LocalDate productValidFrom;
     private LocalDate productValidUntil;
+    private String termsAndConditionsCode;
     private List<PartResponse> parts;
 
     public String getId() {
@@ -62,6 +63,14 @@ public class CompleteProductResponse {
 
     public void setProductValidUntil(LocalDate productValidUntil) {
         this.productValidUntil = productValidUntil;
+    }
+
+    public String getTermsAndConditionsCode() {
+        return termsAndConditionsCode;
+    }
+
+    public void setTermsAndConditionsCode(String termsAndConditionsCode) {
+        this.termsAndConditionsCode = termsAndConditionsCode;
     }
 
     public List<PartResponse> getParts() {

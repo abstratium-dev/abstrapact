@@ -37,6 +37,7 @@ class ProductDefinitionResourceTest {
         definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
         definition.setProductValidFrom(LocalDate.now());
         definition.setProductValidUntil(LocalDate.now().plusYears(1));
+        definition.setTermsAndConditionsCode("ABSTRATIUM-001");
 
         String id = given()
             .contentType(ContentType.JSON)
@@ -48,6 +49,7 @@ class ProductDefinitionResourceTest {
             .body("productCode", equalTo(productCode))
             .body("description", equalTo("Test Product Description"))
             .body("billingModel", equalTo("FIXED_PRICE"))
+            .body("termsAndConditionsCode", equalTo("ABSTRATIUM-001"))
             .body("id", notNullValue())
             .extract()
             .path("id");
@@ -451,6 +453,7 @@ class ProductDefinitionResourceTest {
         request.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
         request.setProductValidFrom(LocalDate.now());
         request.setProductValidUntil(LocalDate.now().plusYears(1));
+        request.setTermsAndConditionsCode("ABSTRATIUM-001");
 
         // Add a part with attributes
         List<PartRequest> parts = new ArrayList<>();
@@ -485,6 +488,7 @@ class ProductDefinitionResourceTest {
             .statusCode(201)
             .body("productCode", equalTo(productCode))
             .body("description", equalTo("Complete Product via REST"))
+            .body("termsAndConditionsCode", equalTo("ABSTRATIUM-001"))
             .body("id", notNullValue())
             .extract()
             .path("id");

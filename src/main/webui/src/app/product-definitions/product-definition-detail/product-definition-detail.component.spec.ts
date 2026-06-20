@@ -27,7 +27,8 @@ describe('ProductDefinitionDetailComponent', () => {
     description: 'Test Product',
     billingModel: 'FIXED_PRICE',
     productValidFrom: '2024-01-01',
-    productValidUntil: '2024-12-31'
+    productValidUntil: '2024-12-31',
+    termsAndConditionsCode: null
   };
 
   const mockPart: PartDefinition = {

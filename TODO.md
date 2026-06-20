@@ -13,6 +13,8 @@
 
 - e2e test for product management.
 
+- T&Cs should include policy on what we do with their data to be EU GDPR and Swiss DSG conform
+
 - connect product to t&c - or how is that in the design docs?
 
 - implement contract and the process to work thru the states.

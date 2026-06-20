@@ -28,7 +28,8 @@ describe('ProductDefinitionsListComponent', () => {
       description: 'Test Product 1',
       billingModel: 'FIXED_PRICE',
       productValidFrom: '2024-01-01',
-      productValidUntil: '2024-12-31'
+      productValidUntil: '2024-12-31',
+      termsAndConditionsCode: null
     },
     {
       id: '2',
@@ -37,7 +38,8 @@ describe('ProductDefinitionsListComponent', () => {
       description: 'Test Product 2',
       billingModel: 'SUBSCRIPTION',
       productValidFrom: null,
-      productValidUntil: null
+      productValidUntil: null,
+      termsAndConditionsCode: null
     }
   ];
 

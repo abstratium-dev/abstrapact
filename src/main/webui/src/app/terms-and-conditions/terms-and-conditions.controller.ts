@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { TermsAndConditions, TermsAndConditionsRequest, TermsAndConditionsModelService } from './terms-and-conditions.model.service';
+import { TermsAndConditions, TermsAndConditionsRequest, TermsAndConditionsModelService, TermsAndConditionsCodeSummary } from './terms-and-conditions.model.service';
 
 @Injectable({
   providedIn: 'root',
@@ -79,5 +79,23 @@ export class TermsAndConditionsController {
       console.error('Error deleting terms and conditions:', error);
       throw error;
     }
+  }
+
+  loadTermsAndConditionsCodes() {
+    this.modelService.setTermsAndConditionsCodesLoading(true);
+    this.modelService.setTermsAndConditionsCodesError(null);
+
+    this.http.get<TermsAndConditionsCodeSummary[]>('/api/terms-and-conditions/codes').subscribe({
+      next: (codes) => {
+        this.modelService.setTermsAndConditionsCodes(codes);
+        this.modelService.setTermsAndConditionsCodesLoading(false);
+      },
+      error: (err) => {
+        console.error('Error loading terms and conditions codes:', err);
+        this.modelService.setTermsAndConditionsCodes([]);
+        this.modelService.setTermsAndConditionsCodesError('Failed to load terms and conditions codes');
+        this.modelService.setTermsAndConditionsCodesLoading(false);
+      }
+    });
   }
 }

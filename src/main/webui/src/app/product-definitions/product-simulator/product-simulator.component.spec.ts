@@ -20,6 +20,7 @@ describe('ProductSimulatorComponent', () => {
     billingModel: 'FIXED_PRICE',
     productValidFrom: null,
     productValidUntil: null,
+        termsAndConditionsCode: null,
     parts: [
       {
         id: 'part-1',

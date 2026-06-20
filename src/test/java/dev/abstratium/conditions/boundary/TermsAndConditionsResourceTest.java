@@ -1,5 +1,6 @@
 package dev.abstratium.conditions.boundary;
 
+import dev.abstratium.conditions.boundary.dto.TermsAndConditionsCodeSummary;
 import dev.abstratium.conditions.entity.TermsAndConditions;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -9,11 +10,13 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Base64;
+import java.util.List;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
 class TermsAndConditionsResourceTest {
@@ -300,6 +303,64 @@ class TermsAndConditionsResourceTest {
             .get("/api/terms-and-conditions/code/NON-EXISTENT-CODE-XYZ")
             .then()
             .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldListDistinctCodesWithLatestTitle() {
+        String code = "DISTINCT-CODE-" + System.currentTimeMillis();
+
+        TermsAndConditions t1 = new TermsAndConditions();
+        t1.setOrganisationId("00000000-0000-0000-0000-000000000000");
+        t1.setCode(code);
+        t1.setTitle("Old Title");
+        t1.setContentEn("Old");
+        t1.setCurrentVersion("1.0");
+        t1.setEffectiveFrom(LocalDate.of(2024, 1, 1));
+        t1.setEffectiveUntil(LocalDate.of(2024, 6, 30));
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(t1)
+            .when()
+            .post("/api/terms-and-conditions")
+            .then()
+            .statusCode(201);
+
+        TermsAndConditions t2 = new TermsAndConditions();
+        t2.setOrganisationId("00000000-0000-0000-0000-000000000000");
+        t2.setCode(code);
+        t2.setTitle("New Title");
+        t2.setContentEn("New");
+        t2.setCurrentVersion("2.0");
+        t2.setEffectiveFrom(LocalDate.of(2024, 7, 1));
+        t2.setEffectiveUntil(null);
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(t2)
+            .when()
+            .post("/api/terms-and-conditions")
+            .then()
+            .statusCode(201);
+
+        List<TermsAndConditionsCodeSummary> codes = given()
+            .when()
+            .get("/api/terms-and-conditions/codes")
+            .then()
+            .statusCode(200)
+            .body("$", isA(java.util.List.class))
+            .extract()
+            .jsonPath()
+            .getList(".", TermsAndConditionsCodeSummary.class);
+
+        assertFalse(codes.isEmpty());
+        TermsAndConditionsCodeSummary found = codes.stream()
+            .filter(c -> c.getCode().equals(code))
+            .findFirst()
+            .orElse(null);
+        assertNotNull(found);
+        assertEquals("New Title", found.getTitle());
     }
 
     @Test

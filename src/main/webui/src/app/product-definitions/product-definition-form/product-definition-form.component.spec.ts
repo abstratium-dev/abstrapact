@@ -25,7 +25,8 @@ describe('ProductDefinitionFormComponent', () => {
     description: 'Test Product',
     billingModel: 'FIXED_PRICE',
     productValidFrom: '2024-01-01',
-    productValidUntil: '2024-12-31'
+    productValidUntil: '2024-12-31',
+    termsAndConditionsCode: null
   };
 
   beforeEach(async () => {
@@ -203,7 +204,8 @@ describe('ProductDefinitionFormComponent', () => {
         description: 'Test Product',
         billingModel: 'FIXED_PRICE',
         productValidFrom: null,
-        productValidUntil: null
+        productValidUntil: null,
+        termsAndConditionsCode: null
       });
       expect(toastService.success).toHaveBeenCalledWith('Product definition created successfully');
       expect(router.navigate).toHaveBeenCalledWith(['/product-definitions']);
