@@ -60,15 +60,27 @@ class ProductDefinitionServiceTest {
         userTransaction.begin();
         try {
             // Delete in correct order respecting foreign keys
-            // 1. Delete allowed values
+            // 1. Delete part instance attributes
+            em.createQuery("DELETE FROM PartInstanceAttribute").executeUpdate();
+            // 2. Delete child part instances
+            em.createQuery("DELETE FROM PartInstance p WHERE p.parentPartInstance IS NOT NULL").executeUpdate();
+            // 3. Delete root part instances
+            em.createQuery("DELETE FROM PartInstance").executeUpdate();
+            // 4. Delete contract line items (reference product instances)
+            em.createQuery("DELETE FROM ContractLineItem").executeUpdate();
+            // 5. Delete contracts
+            em.createQuery("DELETE FROM Contract").executeUpdate();
+            // 6. Delete product instances
+            em.createQuery("DELETE FROM ProductInstance").executeUpdate();
+            // 7. Delete allowed values
             em.createQuery("DELETE FROM PartAttributeAllowedValue").executeUpdate();
-            // 2. Delete attributes
+            // 8. Delete attributes
             em.createQuery("DELETE FROM PartAttributeDefinition").executeUpdate();
-            // 3. Delete child parts first (where parent_part_definition_id is not null)
+            // 9. Delete child parts first (where parent_part_definition_id is not null)
             em.createQuery("DELETE FROM PartDefinition p WHERE p.parentPart IS NOT NULL").executeUpdate();
-            // 4. Delete parent parts
+            // 10. Delete parent parts
             em.createQuery("DELETE FROM PartDefinition").executeUpdate();
-            // 5. Delete products
+            // 11. Delete products
             em.createQuery("DELETE FROM ProductDefinition").executeUpdate();
             userTransaction.commit();
         } catch (Exception e) {

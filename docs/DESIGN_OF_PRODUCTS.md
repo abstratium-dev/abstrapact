@@ -28,7 +28,16 @@ A unique, human-readable identifier (e.g. `PROD-001`, `SUBS-ANNUAL`). Used for l
 
 A display name and optional long-form description intended for the UI and for customer-facing documents.
 
-### 3. Part Tree (Definition)
+### 3. Payment Model
+
+Each product definition declares a `PaymentModel` that controls when the customer must pay for products based on this definition:
+
+- `PREPAID` -- payment is required before the contract can enter `RUNNING`.
+- `POSTPAID` -- the contract can enter `RUNNING` as soon as it is approved; invoices are issued later.
+
+The payment model is independent of the `BillingModel` (fixed-price vs. subscription). This allows combinations such as a fixed-price installation that is paid in advance (`FIXED_PRICE` + `PREPAID`) alongside a subscription service that is invoiced monthly (`SUBSCRIPTION` + `POSTPAID`) within the same contract.
+
+### 4. Part Tree (Definition)
 
 A definition is not a flat list of line items. It is a **tree of parts**.
 
@@ -44,7 +53,7 @@ This allows modelling of:
 - Bundles (root with multiple child parts).
 - Configurable products with nested options (e.g. a laptop with a processor choice, and each processor choice has a warranty sub-choice).
 
-### 4. Price per Part
+### 5. Price per Part
 
 Every part definition carries its own unit price.
 
@@ -53,7 +62,7 @@ Every part definition carries its own unit price.
 - For a bundle, the root part may have a price of zero and each child part carries its own price; or the root may carry a bundled price that overrides the sum of its children.
 - The rules for price resolution are defined in the **Pricing Rules** section below.
 
-### 5. Part Attributes
+### 6. Part Attributes
 
 Each part definition has a list of **attributes** that describe the actual product.
 
@@ -63,7 +72,7 @@ Each part definition has a list of **attributes** that describe the actual produ
 - Attributes may influence downstream behaviour (e.g. filtering, reporting) but the core product model treats them as opaque data.
 - An instance may later override or extend these attributes if the business rules allow it.
 
-### 6. Discounts
+### 7. Discounts
 
 Discounts can be attached to **any path in the definition tree**.
 
@@ -204,10 +213,11 @@ ProductDefinition
 - id (PK)
 - product_code (unique, not null)
 - description
-- category (FIXED_PRICE | SUBSCRIPTION)
-- subscription_valid_from (nullable)
-- subscription_valid_until (nullable)
-- subscription_redemption_limit (nullable)
+- billing_model (FIXED_PRICE | SUBSCRIPTION)
+- payment_model (PREPAID | POSTPAID)
+- product_valid_from (nullable)
+- product_valid_until (nullable)
+- terms_and_conditions_code (nullable)
 
 PartDefinition
 - id (PK)
@@ -255,8 +265,6 @@ SubscriptionServiceLink
 ProductInstance
 - id (PK)
 - product_definition_id (FK)
-- reference_type (e.g. CONTRACT_LINE, ORDER_LINE)
-- reference_id
 
 PartInstance
 - id (PK)
@@ -273,8 +281,9 @@ PartInstanceAttribute
 - attribute_value
 ```
 
-A definition with `category = FIXED_PRICE` has a part-definition tree and may have discount definitions.
-A definition with `category = SUBSCRIPTION` has a part-definition tree (typically minimal), a date range, and a set of `SubscriptionServiceLink` entries connecting it to `ServiceDefinition` records that describe the entitlements.
+A definition with `billing_model = FIXED_PRICE` has a part-definition tree and may have discount definitions.
+A definition with `billing_model = SUBSCRIPTION` has a part-definition tree (typically minimal), a date range, and a set of `SubscriptionServiceLink` entries connecting it to `ServiceDefinition` records that describe the entitlements.
+Every definition also has a `payment_model` (PREPAID or POSTPAID) that is independent of the billing model.
 An instance is created from a fixed-price definition either directly or when a subscription holder consumes a product-access service.
 
 ---

@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ProductDefinition, PartDefinition, PartAttributeDefinition, ProductDefinitionsModelService } from '../product-definitions.model.service';
+import { PaymentModel, ProductDefinition, PartDefinition, PartAttributeDefinition, ProductDefinitionsModelService } from '../product-definitions.model.service';
 import { ProductDefinitionsController } from '../product-definitions.controller';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
@@ -103,6 +103,10 @@ export class ProductDefinitionDetailComponent implements OnInit {
 
   getBillingModelLabel(model: string): string {
     return model === 'FIXED_PRICE' ? 'Fixed Price' : 'Subscription';
+  }
+
+  getPaymentModelLabel(model: string): string {
+    return model === 'PREPAID' ? 'Prepaid' : 'Postpaid';
   }
 
   formatDate(date: string | null): string {

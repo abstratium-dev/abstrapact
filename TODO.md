@@ -11,15 +11,23 @@
 
 ## Today
 
+- does the DB do cascade deletes? if so, do only JPA cascade removes and never with remove orphans
+
+- orgId to be taken from productId which is a query parameter or header that overrides the orgId taken from elsewhere in @JwtOrgResolver. 
+  - this should depend on the URL! only "public" urls should allow the product to determine the org so that when managing definitions or instances, the user cannot do cross org stuff.
+
 - e2e test for product management.
+
+- default: data is managed for the orgId from your cert
+- special case: create an offer using the productId
+- that returns an offerId which is used to manage the offer; the offer should be linked to the accountId and when managing that you either have be be a user in the owning orgId or you have to be the user with the accountId that the offer is linked to
+
 
 - T&Cs should include policy on what we do with their data to be EU GDPR and Swiss DSG conform
 
 - connect product to t&c - or how is that in the design docs?
 
 - implement contract and the process to work thru the states.
-
-- orgId to be taken from productId which is a query parameter or header that overrides the orgId taken from elsewhere in @JwtOrgResolver
 
 - how to deal with overlaps in t&c? return a warning when loading t&c. logic during contract creation is to take the newest version with the given code.
 

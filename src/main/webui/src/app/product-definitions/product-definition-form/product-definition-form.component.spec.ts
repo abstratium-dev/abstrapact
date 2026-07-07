@@ -203,6 +203,7 @@ describe('ProductDefinitionFormComponent', () => {
         productCode: 'PROD-001',
         description: 'Test Product',
         billingModel: 'FIXED_PRICE',
+        paymentModel: 'PREPAID',
         productValidFrom: null,
         productValidUntil: null,
         termsAndConditionsCode: null

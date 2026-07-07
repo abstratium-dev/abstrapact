@@ -22,3 +22,9 @@ globs: e2e-tests/**/*.ts
 - when you write page object models and tests, make sure that you add logging, so that you can debug the tests when they are failing
 - you can use the playwright-cli (see .devin/skills/playwright-cli/SKILL.md)
 - to access files in the .playwright-cli folder use command line tools as they are blocked by .gitignore and your other tools cannot access them.
+- tests should delete relevant test data before running. 
+- tests should never deleted data right at the end!
+- tests should create isolated data if possible
+- read the relevant angular files to understand how the application works
+- stop and ask for help if you get stuck and are repeatedly getting the same failure.
+- add numbered logging to tests so that you can debug them easily

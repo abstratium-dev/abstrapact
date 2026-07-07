@@ -41,11 +41,14 @@ export async function assertOnTermsAndConditionsListPage(page: Page) {
     console.log('[TermsAndConditionsListPage] Asserting on terms and conditions list page');
     await expect(termsAndConditionsListPage(page)).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('heading', { name: 'Terms and Conditions' })).toBeVisible();
+    // Wait for the list data to finish loading so callers can safely interact with tiles.
+    const loadingIndicator = page.getByText('Loading terms and conditions...');
+    await loadingIndicator.waitFor({ state: 'visible', timeout: 2000 }).catch(() => null);
+    await loadingIndicator.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => null);
 }
 
 export async function navigateToTermsAndConditions(page: Page) {
     console.log('[TermsAndConditionsListPage] Navigating to terms and conditions via header');
-    await dismissCookieNoticeIfPresent(page);
     await page.locator('#terms-link').click();
     await assertOnTermsAndConditionsListPage(page);
 }
@@ -62,14 +65,30 @@ export async function assertTermsExists(page: Page, code: string) {
 }
 
 export async function deleteTermsByCode(page: Page, code: string) {
-    console.log(`[TermsAndConditionsListPage] Deleting terms with code '${code}'`);
-    const deleteBtn = deleteTermsButton(page, code);
-    await deleteBtn.click();
-    // Wait for confirm dialog and click delete
-    const confirmDeleteBtn = page.getByRole('button', { name: 'Delete' });
-    await confirmDeleteBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await confirmDeleteBtn.click();
-    await page.waitForTimeout(500); // Small wait for deletion to process
+    console.log(`[TermsAndConditionsListPage] Deleting all terms with code '${code}'`);
+    while (true) {
+        // Wait for the list to be stable (not reloading) before checking for a tile.
+        const loadingIndicator = page.getByText('Loading terms and conditions...');
+        await loadingIndicator.waitFor({ state: 'visible', timeout: 2000 }).catch(() => null);
+        await loadingIndicator.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => null);
+
+        const tile = termsTileByCode(page, code).first();
+        if (!(await tile.isVisible().catch(() => false))) {
+            break;
+        }
+
+        // The controller reloads the list after a successful delete.
+        const reloadPromise = page.waitForResponse(
+            response => new URL(response.url()).pathname === '/api/terms-and-conditions' && response.request().method() === 'GET',
+            { timeout: 10000 }
+        );
+        const deleteBtn = tile.locator('.btn-icon-danger');
+        await deleteBtn.click();
+        const confirmDeleteBtn = page.getByRole('button', { name: 'Delete' });
+        await confirmDeleteBtn.waitFor({ state: 'visible', timeout: 5000 });
+        await confirmDeleteBtn.click();
+        await reloadPromise;
+    }
 }
 
 // ─── Terms and Conditions Form Page ───────────────────────────────────────────

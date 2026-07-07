@@ -29,6 +29,10 @@ public class ProductDefinition {
     @Column(name = "billing_model", length = 20, nullable = false)
     private BillingModel billingModel;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_model", length = 20, nullable = false)
+    private PaymentModel paymentModel;
+
     @Column(name = "product_valid_from")
     private LocalDate productValidFrom;
 
@@ -81,6 +85,14 @@ public class ProductDefinition {
         this.billingModel = billingModel;
     }
 
+    public PaymentModel getPaymentModel() {
+        return paymentModel;
+    }
+
+    public void setPaymentModel(PaymentModel paymentModel) {
+        this.paymentModel = paymentModel;
+    }
+
     public LocalDate getProductValidFrom() {
         return productValidFrom;
     }
@@ -108,5 +120,10 @@ public class ProductDefinition {
     public enum BillingModel {
         FIXED_PRICE,
         SUBSCRIPTION
+    }
+
+    public enum PaymentModel {
+        PREPAID,
+        POSTPAID
     }
 }

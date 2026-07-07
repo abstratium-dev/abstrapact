@@ -2,7 +2,7 @@ import { Component, inject, OnInit, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { BillingModel, ProductDefinition, ProductDefinitionRequest, ProductDefinitionsModelService } from '../product-definitions.model.service';
+import { BillingModel, PaymentModel, ProductDefinition, ProductDefinitionRequest, ProductDefinitionsModelService } from '../product-definitions.model.service';
 import { ProductDefinitionsController } from '../product-definitions.controller';
 import { TermsAndConditionsController } from '../../terms-and-conditions/terms-and-conditions.controller';
 import { TermsAndConditionsModelService, TermsAndConditionsCodeSummary } from '../../terms-and-conditions/terms-and-conditions.model.service';
@@ -34,6 +34,7 @@ export class ProductDefinitionFormComponent implements OnInit {
   productCode = '';
   description = '';
   billingModel: BillingModel = 'FIXED_PRICE';
+  paymentModel: PaymentModel = 'PREPAID';
   productValidFrom: string | null = null;
   productValidUntil: string | null = null;
   termsAndConditionsCode: string | null = null;
@@ -46,6 +47,11 @@ export class ProductDefinitionFormComponent implements OnInit {
   billingModels: { value: BillingModel; label: string }[] = [
     { value: 'FIXED_PRICE', label: 'Fixed Price' },
     { value: 'SUBSCRIPTION', label: 'Subscription' }
+  ];
+
+  paymentModels: { value: PaymentModel; label: string }[] = [
+    { value: 'PREPAID', label: 'Prepaid' },
+    { value: 'POSTPAID', label: 'Postpaid' }
   ];
 
   ngOnInit(): void {
@@ -72,6 +78,7 @@ export class ProductDefinitionFormComponent implements OnInit {
     this.productCode = definition.productCode;
     this.description = definition.description || '';
     this.billingModel = definition.billingModel;
+    this.paymentModel = definition.paymentModel ?? 'PREPAID';
     this.productValidFrom = definition.productValidFrom;
     this.productValidUntil = definition.productValidUntil;
     this.termsAndConditionsCode = definition.termsAndConditionsCode;
@@ -92,6 +99,10 @@ export class ProductDefinitionFormComponent implements OnInit {
 
     if (!this.billingModel) {
       this.fieldErrors['billingModel'] = 'Billing model is required';
+    }
+
+    if (!this.paymentModel) {
+      this.fieldErrors['paymentModel'] = 'Payment model is required';
     }
 
     // Validate date range if both dates are provided
@@ -119,6 +130,7 @@ export class ProductDefinitionFormComponent implements OnInit {
       productCode: this.productCode.trim(),
       description: this.description.trim(),
       billingModel: this.billingModel,
+      paymentModel: this.paymentModel,
       productValidFrom: this.productValidFrom || null,
       productValidUntil: this.productValidUntil || null,
       termsAndConditionsCode: this.termsAndConditionsCode || null

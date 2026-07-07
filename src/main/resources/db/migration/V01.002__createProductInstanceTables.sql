@@ -6,14 +6,11 @@ CREATE TABLE T_product_instance (
     id VARCHAR(36) PRIMARY KEY,
     organisation_id VARCHAR(36) NOT NULL,
     product_definition_id VARCHAR(36) NOT NULL,
-    reference_type VARCHAR(50) NOT NULL,
-    reference_id VARCHAR(36) NOT NULL,
     CONSTRAINT FK_product_instance_product_definition_id
         FOREIGN KEY (product_definition_id) REFERENCES T_product_definition(id)
 );
 
 CREATE INDEX I_product_instance_product ON T_product_instance(product_definition_id);
-CREATE INDEX I_product_instance_reference ON T_product_instance(reference_type, reference_id);
 
 -- T_part_instance: Tree structure of included parts within a product instance
 CREATE TABLE T_part_instance (

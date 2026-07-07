@@ -50,6 +50,15 @@
         </div>
 
         <div class="detail-row">
+          <span class="label">Payment Model</span>
+          <span class="value">
+            <span class="badge" [class.badge-primary]="selectedProduct()?.paymentModel === 'PREPAID'" [class.badge-secondary]="selectedProduct()?.paymentModel === 'POSTPAID'">
+              {{ getPaymentModelLabel(selectedProduct()?.paymentModel || '') }}
+            </span>
+          </span>
+        </div>
+
+        <div class="detail-row">
           <span class="label">Valid From</span>
           <span class="value">{{ formatDate(selectedProduct()?.productValidFrom || null) }}</span>
         </div>

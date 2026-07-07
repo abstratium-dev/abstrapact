@@ -25,7 +25,7 @@ CREATE TABLE T_contract (
     internal_notes TEXT,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    CONSTRAINT CHK_payment_model CHECK (payment_model IN ('PAY_FIRST', 'BILL_OVER_TIME')),
+    CONSTRAINT CHK_payment_model CHECK (payment_model IN ('PREPAID', 'POSTPAID')),
     CONSTRAINT CHK_contract_state CHECK (state IN ('DRAFT', 'OFFERED', 'ACCEPTED', 'AWAITING_APPROVAL', 'APPROVED', 'RUNNING', 'CANCELLED', 'EXPIRED', 'TERMINATED'))
 );
 

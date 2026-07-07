@@ -326,7 +326,7 @@ public class Contract {
     }
 
     public enum PaymentModel {
-        PAY_FIRST,
-        BILL_OVER_TIME
+        PREPAID,
+        POSTPAID
     }
 }

@@ -149,7 +149,7 @@ Contract instances. Each row represents a concrete agreement for a specific cust
 | delivery_postcode | VARCHAR(20) | Delivery postal code |
 | delivery_country | VARCHAR(2) | Delivery country ISO code |
 | payment_terms | VARCHAR(50) | Human-readable payment terms |
-| payment_model | VARCHAR(20) | PAY_FIRST or BILL_OVER_TIME |
+| payment_model | VARCHAR(20) | PREPAID or POSTPAID |
 | state | VARCHAR(20) | Current lifecycle state |
 | public_notes | TEXT | Notes visible to the customer |
 | internal_notes | TEXT | Internal-only notes |
@@ -159,7 +159,7 @@ Contract instances. Each row represents a concrete agreement for a specific cust
 **Constraints:**
 - Primary Key: `id`
 - Unique: `contract_reference`
-- Check: `payment_model` must be either 'PAY_FIRST' or 'BILL_OVER_TIME'
+- Check: `payment_model` must be either 'PREPAID' or 'POSTPAID'
 - Check: `state` must be one of 'DRAFT', 'OFFERED', 'ACCEPTED', 'AWAITING_APPROVAL', 'APPROVED', 'RUNNING', 'CANCELLED', 'EXPIRED', 'TERMINATED'
 
 ---

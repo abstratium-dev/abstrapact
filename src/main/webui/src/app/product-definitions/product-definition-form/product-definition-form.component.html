@@ -65,6 +65,26 @@
       </div>
 
       <div class="form-group">
+        <label for="paymentModel">Payment Model *</label>
+        <select
+          id="paymentModel"
+          name="paymentModel"
+          [(ngModel)]="paymentModel"
+          [disabled]="submitting"
+          required
+          data-testid="payment-model-select"
+        >
+          <option *ngFor="let model of paymentModels" [value]="model.value">
+            {{ model.label }}
+          </option>
+        </select>
+        <span class="form-hint">Choose when the customer must pay for this product</span>
+        <div *ngIf="fieldErrors['paymentModel']" class="error" data-testid="payment-model-error">
+          {{ fieldErrors['paymentModel'] }}
+        </div>
+      </div>
+
+      <div class="form-group">
         <label for="termsAndConditionsCode">Terms and Conditions</label>
         <select
           id="termsAndConditionsCode"

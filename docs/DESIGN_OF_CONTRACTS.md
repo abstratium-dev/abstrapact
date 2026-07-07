@@ -123,15 +123,21 @@ The contract declares which payment model governs how and when the customer pays
 ```java
 enum PaymentModel {
     /** The contract does not enter RUNNING until the initial invoice is paid in full. */
-    PAY_FIRST,
+    PREPAID,
 
     /** The contract enters RUNNING as soon as it is approved;
-        invoices are issued periodically over the life of the contract. */
-    BILL_OVER_TIME
+        if the billing model is `SUBSCRIPTION` then invoices are issued periodically over the life of the contract. */
+    POSTPAID
 }
 ```
 
-- The payment model is selected when the contract is drafted and cannot be changed once the contract has been offered.
+- Each `ProductDefinition` carries its own `PaymentModel`.
+- The contract's payment model is **derived from its line items** when the draft is created:
+  - if **any** line item product is `PREPAID`, the contract is `PREPAID`;
+  - if **all** line item products are `POSTPAID`, the contract is `POSTPAID`;
+  - a draft with no line items defaults to `PREPAID`.
+- The contract can contain products with different `BillingModel` values (e.g. a fixed-price installation and a subscription service). The payment model is independent of the billing model.
+- The payment model cannot be changed once the contract has been offered.
 - It determines the behaviour of the [sales process](DESIGN_OF_SALES_PROCESS.md) after the contract reaches `APPROVED`.
 
 ### 8. Contract State

@@ -2,6 +2,8 @@ import { Injectable, signal, Signal } from '@angular/core';
 
 export type BillingModel = 'FIXED_PRICE' | 'SUBSCRIPTION';
 
+export type PaymentModel = 'PREPAID' | 'POSTPAID';
+
 export type DataType = 'STRING' | 'INTEGER' | 'DECIMAL' | 'BOOLEAN' | 'DATE';
 
 export interface ProductDefinition {
@@ -10,6 +12,7 @@ export interface ProductDefinition {
   productCode: string;
   description: string;
   billingModel: BillingModel;
+  paymentModel?: PaymentModel;
   productValidFrom: string | null;
   productValidUntil: string | null;
   termsAndConditionsCode: string | null;
@@ -19,6 +22,7 @@ export interface ProductDefinitionRequest {
   productCode: string;
   description: string;
   billingModel: BillingModel;
+  paymentModel?: PaymentModel;
   productValidFrom: string | null;
   productValidUntil: string | null;
   termsAndConditionsCode: string | null;
@@ -84,6 +88,7 @@ export interface CompleteProductRequest {
   productCode: string;
   description: string;
   billingModel: BillingModel;
+  paymentModel?: PaymentModel;
   productValidFrom: string | null;
   productValidUntil: string | null;
   termsAndConditionsCode: string | null;
@@ -95,6 +100,7 @@ export interface CompleteProductResponse {
   productCode: string;
   description: string;
   billingModel: BillingModel;
+  paymentModel?: PaymentModel;
   productValidFrom: string | null;
   productValidUntil: string | null;
   termsAndConditionsCode: string | null;

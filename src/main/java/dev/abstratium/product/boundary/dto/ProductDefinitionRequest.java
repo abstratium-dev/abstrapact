@@ -20,6 +20,7 @@ public class ProductDefinitionRequest {
     private String productCode;
     private String description;
     private ProductDefinition.BillingModel billingModel;
+    private ProductDefinition.PaymentModel paymentModel;
     private LocalDate productValidFrom;
     private LocalDate productValidUntil;
     private String termsAndConditionsCode;
@@ -55,6 +56,14 @@ public class ProductDefinitionRequest {
 
     public void setBillingModel(ProductDefinition.BillingModel billingModel) {
         this.billingModel = billingModel;
+    }
+
+    public ProductDefinition.PaymentModel getPaymentModel() {
+        return paymentModel;
+    }
+
+    public void setPaymentModel(ProductDefinition.PaymentModel paymentModel) {
+        this.paymentModel = paymentModel;
     }
 
     public LocalDate getProductValidFrom() {

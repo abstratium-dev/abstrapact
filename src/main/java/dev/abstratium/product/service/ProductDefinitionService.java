@@ -22,12 +22,21 @@ public class ProductDefinitionService {
         if (definition.getId() == null) {
             definition.setId(UUID.randomUUID().toString());
         }
+        if (definition.getPaymentModel() == null) {
+            definition.setPaymentModel(ProductDefinition.PaymentModel.PREPAID);
+        }
         em.persist(definition);
         return definition;
     }
 
     @Transactional
     public ProductDefinition updateProductDefinition(ProductDefinition definition) {
+        if (definition.getPaymentModel() == null) {
+            ProductDefinition existing = em.find(ProductDefinition.class, definition.getId());
+            definition.setPaymentModel(existing != null && existing.getPaymentModel() != null
+                ? existing.getPaymentModel()
+                : ProductDefinition.PaymentModel.PREPAID);
+        }
         return em.merge(definition);
     }
 
@@ -86,6 +95,7 @@ public class ProductDefinitionService {
         product.setProductCode(request.getProductCode());
         product.setDescription(request.getDescription());
         product.setBillingModel(request.getBillingModel());
+        product.setPaymentModel(request.getPaymentModel() != null ? request.getPaymentModel() : ProductDefinition.PaymentModel.PREPAID);
         product.setProductValidFrom(request.getProductValidFrom());
         product.setProductValidUntil(request.getProductValidUntil());
         product.setTermsAndConditionsCode(request.getTermsAndConditionsCode());
@@ -110,6 +120,7 @@ public class ProductDefinitionService {
         product.setProductCode(request.getProductCode());
         product.setDescription(request.getDescription());
         product.setBillingModel(request.getBillingModel());
+        product.setPaymentModel(request.getPaymentModel() != null ? request.getPaymentModel() : product.getPaymentModel());
         product.setProductValidFrom(request.getProductValidFrom());
         product.setProductValidUntil(request.getProductValidUntil());
         product.setTermsAndConditionsCode(request.getTermsAndConditionsCode());
@@ -161,6 +172,7 @@ public class ProductDefinitionService {
         response.setProductCode(product.getProductCode());
         response.setDescription(product.getDescription());
         response.setBillingModel(product.getBillingModel());
+        response.setPaymentModel(product.getPaymentModel());
         response.setProductValidFrom(product.getProductValidFrom());
         response.setProductValidUntil(product.getProductValidUntil());
         response.setTermsAndConditionsCode(product.getTermsAndConditionsCode());

@@ -93,8 +93,6 @@ classDiagram
         VARCHAR(36) id
         VARCHAR(36) organisation_id
         VARCHAR(36) product_definition_id
-        VARCHAR(50) reference_type
-        VARCHAR(36) reference_id
     }
 
     class T_part_instance {

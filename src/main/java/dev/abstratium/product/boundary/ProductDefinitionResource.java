@@ -339,6 +339,9 @@ public class ProductDefinitionResource {
             } else if (line.startsWith("billing_model:")) {
                 String model = line.substring("billing_model:".length()).trim().toUpperCase();
                 definition.setBillingModel(ProductDefinition.BillingModel.valueOf(model));
+            } else if (line.startsWith("payment_model:")) {
+                String model = line.substring("payment_model:".length()).trim().toUpperCase();
+                definition.setPaymentModel(ProductDefinition.PaymentModel.valueOf(model));
             } else if (line.startsWith("valid_from:")) {
                 definition.setProductValidFrom(LocalDate.parse(line.substring("valid_from:".length()).trim()));
             } else if (line.startsWith("valid_until:")) {
@@ -357,6 +360,7 @@ public class ProductDefinitionResource {
         yaml.append("product_code: ").append(definition.getProductCode()).append("\n");
         yaml.append("description: ").append(definition.getDescription()).append("\n");
         yaml.append("billing_model: ").append(definition.getBillingModel().name()).append("\n");
+        yaml.append("payment_model: ").append(definition.getPaymentModel().name()).append("\n");
         if (definition.getProductValidFrom() != null) {
             yaml.append("valid_from: ").append(definition.getProductValidFrom()).append("\n");
         }

@@ -160,8 +160,6 @@ CREATE TABLE T_product_instance_AUD (
     id VARCHAR(36) NOT NULL,
     organisation_id VARCHAR(36),
     product_definition_id VARCHAR(36),
-    reference_type VARCHAR(50),
-    reference_id VARCHAR(36),
     REV BIGINT NOT NULL,
     REVTYPE TINYINT,
     PRIMARY KEY (id, REV),
