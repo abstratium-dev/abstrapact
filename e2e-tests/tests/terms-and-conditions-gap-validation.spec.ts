@@ -1,9 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import {
-    handleAuthServer,
-    assertHeaderSignedIn,
-    headerSignInLink,
-} from '../pages/TODO.page';
+import { signInViaHeader, testStepLogger } from '../pages/test-helpers';
 import {
     navigateToTermsAndConditions,
     clickAddTermsAndConditions,
@@ -14,41 +10,18 @@ import {
     assertNoFormError,
     assertTermsExists,
     deleteTermsByCode,
-    dismissCookieNoticeIfPresent,
 } from '../pages/terms-and-conditions.page';
-
-const EMAIL = 'test@abstratium.dev';
-const PASSWORD = 'secretLong';
-const BASE = 'http://localhost:8081';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-async function signInViaHeader(page: Page) {
-    console.log('[TestHelper] Signing in via header');
-    await dismissCookieNoticeIfPresent(page);
-    await headerSignInLink(page).click();
-    await handleAuthServer(page, EMAIL, PASSWORD);
-    await assertHeaderSignedIn(page);
-}
 
 async function cleanupTestData(page: Page, codes: string[]) {
     console.log(`[TestHelper] Cleaning up test data for codes: ${codes.join(', ')}`);
     await navigateToTermsAndConditions(page);
     for (const code of codes) {
         try {
-            const tile = page.locator('.tile').filter({ hasText: code });
-            if (await tile.isVisible().catch(() => false)) {
-                await deleteTermsByCode(page, code);
-            }
+            await deleteTermsByCode(page, code);
         } catch (e) {
-            console.log(`[TestHelper] Could not delete ${code}, may not exist`);
+            console.log(`[TestHelper] Could not delete ${code}, may not exist: ${e}`);
         }
     }
-}
-
-function testStepLogger(testName: string) {
-    let step = 0;
-    return (message: string) => console.log(`[${testName} ${++step}] ${message}`);
 }
 
 // ─── Terms and Conditions Gap Validation Tests ────────────────────────────────
@@ -60,6 +33,8 @@ test.describe('Terms and Conditions Gap Validation', () => {
         await signInViaHeader(page);
         // Remove any stale test data from previous runs/failed cleanups before this test creates anything.
         await cleanupTestData(page, ['GAP-TEST', 'OVERLAP-TEST', 'CHAIN-TEST', 'NULL-TEST']);
+        console.log('[TestHelper] Cleanup complete, taking screenshot of current list state');
+        await page.screenshot({ path: `test-results/after-cleanup-${Date.now()}.png` }).catch(() => null);
     });
 
     // GV1: Create two terms with same code - valid continuous chain (no gap)

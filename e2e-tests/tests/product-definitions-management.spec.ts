@@ -1,9 +1,5 @@
 import { test, Page } from '@playwright/test';
-import {
-    handleAuthServer,
-    assertHeaderSignedIn,
-    headerSignInLink,
-} from '../pages/TODO.page';
+import { signInViaHeader, testStepLogger } from '../pages/test-helpers';
 import {
     navigateToProductDefinitions,
     clickAddProductDefinition,
@@ -22,21 +18,9 @@ import {
     clickEditOnDetailPage,
     deleteProductDefinitionByCode,
     productDefinitionTileByCode,
-    dismissCookieNoticeIfPresent,
 } from '../pages/product-definitions.page';
 
-const EMAIL = 'test@abstratium.dev';
-const PASSWORD = 'secretLong';
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-async function signInViaHeader(page: Page) {
-    console.log('[TestHelper] Signing in via header');
-    await dismissCookieNoticeIfPresent(page);
-    await headerSignInLink(page).click();
-    await handleAuthServer(page, EMAIL, PASSWORD);
-    await assertHeaderSignedIn(page);
-}
 
 async function cleanupTestData(page: Page, codes: string[]) {
     console.log(`[TestHelper] Cleaning up product definitions for codes: ${codes.join(', ')}`);
@@ -51,11 +35,6 @@ async function cleanupTestData(page: Page, codes: string[]) {
             console.log(`[TestHelper] Could not delete product definition ${code}, may not exist`);
         }
     }
-}
-
-function testStepLogger(testName: string) {
-    let step = 0;
-    return (message: string) => console.log(`[${testName} ${++step}] ${message}`);
 }
 
 // ─── Product Definitions Management Tests ───────────────────────────────────────
