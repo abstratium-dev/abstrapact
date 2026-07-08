@@ -2,7 +2,9 @@
 
 ## Overview
 
-The sales process transforms a draft contract into a running agreement. It is implemented as a specific `ProcessInstance` (see [DATABASE_PROCESSES.md](./DATABASE_PROCESSES.md)) linked to the contract, with each transition recorded as a `ProcessInstanceStep`.
+The sales process transforms a draft contract into a running agreement. It is implemented with an application-scoped bean in the `dev.abstratium.sales_process` package. This "service" bean is used to drive the contract through its lifecycle, validating each transition and recording the work as a specific `ProcessInstanceStep` (see [DATABASE_PROCESSES.md](./DATABASE_PROCESSES.md)) linked to the contract.
+
+A contract in `DRAFT` can still be changed: products may be configured, line items may be added or removed, and pricing may be recalculated. Once the customer is satisfied with the configuration, they move it to `OFFERED` so that it can be added to a shopping cart and considered before acceptance.
 
 Two variants exist, chosen at draft time based on the payment model:
 

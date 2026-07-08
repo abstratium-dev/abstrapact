@@ -11,6 +11,10 @@
 
 ## Today
 
+- implement choice groups on `PartDefinition` so that mutually exclusive alternatives can be validated by the non-multitenant API. see `DESIGN_OF_PRODUCTS.md` for the model (`T_part_definition_choice_group`, `choice_group_id`, `minChoices`, `maxChoices`) and create the corresponding Flyway migration and JPA entities.
+
+- delete CreateDraftContractRequest and co, as they aren't needed except for the NonMultitenant API. there are probably a few such DTOs, defo an endpoint and maybe a service class or two
+
 - does the DB do cascade deletes? if so, do only JPA cascade removes and never with remove orphans
 
 - orgId to be taken from productId which is a query parameter or header that overrides the orgId taken from elsewhere in @JwtOrgResolver. 

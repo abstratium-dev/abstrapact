@@ -45,7 +45,8 @@ A definition is not a flat list of line items. It is a **tree of parts**.
 - Each node in the tree is a **part definition**.
 - A part may contain zero or more child parts.
 - There is no enforced depth limit; trees can be as deep or as wide as required.
-- Where a product offers choices (e.g. "pick one processor"), the definition lists all the alternative child parts under the parent. The actual choice is recorded later in the **instance**.
+- Where a product offers choices (e.g. "pick one processor"), the definition lists all the alternative child parts under the parent.
+- Alternatives are grouped into **choice groups**. Each group declares the minimum and maximum number of child parts that must be selected from it. The actual choices are recorded later in the **instance**.
 
 This allows modelling of:
 
@@ -53,7 +54,70 @@ This allows modelling of:
 - Bundles (root with multiple child parts).
 - Configurable products with nested options (e.g. a laptop with a processor choice, and each processor choice has a warranty sub-choice).
 
-### 5. Price per Part
+### 5. Choice Groups
+
+When a parent part offers alternatives, its direct children can be assigned to a **choice group**. The group declares how many of those children must appear in a valid instance.
+
+- A choice group belongs to a parent `PartDefinition`.
+- Sibling child parts with the same non-null `choiceGroupId` are members of the group.
+- Each group has `minChoices` and `maxChoices`.
+- A child part that is not in a choice group is independent: it is governed only by its own `minCardinality` and `maxCardinality`.
+- Validation must reject any instance that selects too few or too many parts from a group.
+
+Example: a `Processor` parent with children `i5`, `i7`, and `AMD Ryzen 5` in a choice group with `minChoices = 1` and `maxChoices = 1` forces the customer to pick exactly one processor.
+
+#### Database Schema
+
+Add a new table for choice groups and a foreign key on `T_part_definition`:
+
+```sql
+CREATE TABLE T_part_definition_choice_group (
+    id VARCHAR(36) PRIMARY KEY,
+    parent_part_definition_id VARCHAR(36) NOT NULL,
+    min_choices INT NOT NULL DEFAULT 1,
+    max_choices INT NOT NULL DEFAULT 1,
+    CONSTRAINT FK_part_definition_choice_group_parent
+        FOREIGN KEY (parent_part_definition_id) REFERENCES T_part_definition(id)
+);
+
+ALTER TABLE T_part_definition
+ADD COLUMN choice_group_id VARCHAR(36),
+ADD CONSTRAINT FK_part_definition_choice_group_id
+    FOREIGN KEY (choice_group_id) REFERENCES T_part_definition_choice_group(id);
+
+ALTER TABLE T_part_definition_AUD
+ADD COLUMN choice_group_id VARCHAR(36);
+```
+
+#### Entity
+
+```java
+@Entity
+@Table(name = "T_part_definition_choice_group")
+@Audited
+public class PartDefinitionChoiceGroup {
+
+    @Id
+    @Column(name = "id", length = 36)
+    private String id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_part_definition_id", nullable = false)
+    private PartDefinition parentPartDefinition;
+
+    @Column(name = "min_choices", nullable = false)
+    private Integer minChoices = 1;
+
+    @Column(name = "max_choices", nullable = false)
+    private Integer maxChoices = 1;
+
+    // getters / setters
+}
+```
+
+`PartDefinition` gets a nullable `@ManyToOne` reference to `PartDefinitionChoiceGroup`.
+
+### 6. Price per Part
 
 Every part definition carries its own unit price.
 
@@ -62,7 +126,7 @@ Every part definition carries its own unit price.
 - For a bundle, the root part may have a price of zero and each child part carries its own price; or the root may carry a bundled price that overrides the sum of its children.
 - The rules for price resolution are defined in the **Pricing Rules** section below.
 
-### 6. Part Attributes
+### 7. Part Attributes
 
 Each part definition has a list of **attributes** that describe the actual product.
 
@@ -72,7 +136,7 @@ Each part definition has a list of **attributes** that describe the actual produ
 - Attributes may influence downstream behaviour (e.g. filtering, reporting) but the core product model treats them as opaque data.
 - An instance may later override or extend these attributes if the business rules allow it.
 
-### 7. Discounts
+### 8. Discounts
 
 Discounts can be attached to **any path in the definition tree**.
 
@@ -290,7 +354,6 @@ An instance is created from a fixed-price definition either directly or when a s
 
 ## Open Questions
 
-1. Should the part-definition tree support **mutually exclusive choices** (e.g. "choose exactly one processor") at the model level, or is that a UI/validation concern?
-2. Should discounts support **conditional rules** (e.g. "apply only if total node count > 10") or remain simple and unconditional?
-3. Should subscription service consumption be tracked as separate **contract line items** or as a ledger of usage against the subscription?
-4. Is there a need for **definition versioning** so that price or structure changes do not affect historical instances?
+1. Should discounts support **conditional rules** (e.g. "apply only if total node count > 10") or remain simple and unconditional?
+2. Should subscription service consumption be tracked as separate **contract line items** or as a ledger of usage against the subscription?
+3. Is there a need for **definition versioning** so that price or structure changes do not affect historical instances?

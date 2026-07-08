@@ -146,10 +146,11 @@ The contract moves through a defined lifecycle. The states are listed below in t
 
 ```java
 enum ContractState {
-    /** The SME has created a draft which the customer may see. */
+    /** The SME or customer has created a draft. Products can still be configured
+        and line items can still be changed while in this state. */
     DRAFT,
 
-    /** The SME has offered the draft to the customer so that they can review it. */
+    /** The draft has been finalised and the configuration is frozen. The contract is effectively in the shopping cart, offered to the customer, waiting for them to consider it and accept it. */
     OFFERED,
 
     /** The customer has accepted the offer. */
