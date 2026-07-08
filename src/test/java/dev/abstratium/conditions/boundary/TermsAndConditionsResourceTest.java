@@ -27,7 +27,7 @@ class TermsAndConditionsResourceTest {
         String code = "TEST-TERMS-" + System.currentTimeMillis();
 
         TermsAndConditions terms = new TermsAndConditions();
-        terms.setOrganisationId("00000000-0000-0000-0000-000000000000");
+
         terms.setCode(code);
         terms.setTitle("Test Terms Title");
         terms.setContentEn("Test terms content");
@@ -94,7 +94,7 @@ class TermsAndConditionsResourceTest {
         String code = "DUP-TERMS-" + System.currentTimeMillis();
 
         TermsAndConditions terms = new TermsAndConditions();
-        terms.setOrganisationId("00000000-0000-0000-0000-000000000000");
+
         terms.setCode(code);
         terms.setTitle("First Terms");
         terms.setContentEn("First content");
@@ -110,7 +110,6 @@ class TermsAndConditionsResourceTest {
             .statusCode(201);
 
         TermsAndConditions duplicate = new TermsAndConditions();
-        duplicate.setOrganisationId("00000000-0000-0000-0000-000000000000");
         duplicate.setCode(code);
         duplicate.setTitle("Duplicate Terms");
         duplicate.setContentEn("Duplicate content");
@@ -132,7 +131,7 @@ class TermsAndConditionsResourceTest {
         String code = "UPDATE-TEST-" + System.currentTimeMillis();
 
         TermsAndConditions terms = new TermsAndConditions();
-        terms.setOrganisationId("00000000-0000-0000-0000-000000000000");
+
         terms.setCode(code);
         terms.setTitle("Original Title");
         terms.setContentEn("Original content");
@@ -150,7 +149,6 @@ class TermsAndConditionsResourceTest {
             .path("id");
 
         TermsAndConditions update = new TermsAndConditions();
-        update.setOrganisationId("00000000-0000-0000-0000-000000000000");
         update.setCode(code);
         update.setTitle("Updated Title");
         update.setContentEn("Updated content");
@@ -175,7 +173,7 @@ class TermsAndConditionsResourceTest {
         LocalDate untilDate = LocalDate.of(2025, 12, 31);
 
         TermsAndConditions terms = new TermsAndConditions();
-        terms.setOrganisationId("00000000-0000-0000-0000-000000000000");
+
         terms.setCode(code);
         terms.setTitle("Original Title");
         terms.setContentEn("Original content");
@@ -195,7 +193,6 @@ class TermsAndConditionsResourceTest {
             .path("id");
 
         TermsAndConditions update = new TermsAndConditions();
-        update.setOrganisationId("00000000-0000-0000-0000-000000000000");
         update.setCode(code);
         update.setTitle("Updated Title");
         update.setContentEn("Updated content");
@@ -221,7 +218,7 @@ class TermsAndConditionsResourceTest {
         String code = "DELETE-TEST-" + System.currentTimeMillis();
 
         TermsAndConditions terms = new TermsAndConditions();
-        terms.setOrganisationId("00000000-0000-0000-0000-000000000000");
+
         terms.setCode(code);
         terms.setTitle("To be deleted");
         terms.setContentEn("Delete me");
@@ -255,7 +252,7 @@ class TermsAndConditionsResourceTest {
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
     void shouldReturn400ForNullCode() {
         TermsAndConditions terms = new TermsAndConditions();
-        terms.setOrganisationId("00000000-0000-0000-0000-000000000000");
+
         terms.setTitle("No code");
         terms.setContentEn("Content without code");
 
@@ -272,7 +269,6 @@ class TermsAndConditionsResourceTest {
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
     void shouldReturn404WhenUpdatingNonExistentTerms() {
         TermsAndConditions update = new TermsAndConditions();
-        update.setOrganisationId("00000000-0000-0000-0000-000000000000");
         update.setCode("NO-SUCH-CODE");
         update.setTitle("Does not exist");
 
@@ -311,7 +307,6 @@ class TermsAndConditionsResourceTest {
         String code = "DISTINCT-CODE-" + System.currentTimeMillis();
 
         TermsAndConditions t1 = new TermsAndConditions();
-        t1.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t1.setCode(code);
         t1.setTitle("Old Title");
         t1.setContentEn("Old");
@@ -328,7 +323,6 @@ class TermsAndConditionsResourceTest {
             .statusCode(201);
 
         TermsAndConditions t2 = new TermsAndConditions();
-        t2.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t2.setCode(code);
         t2.setTitle("New Title");
         t2.setContentEn("New");
@@ -369,7 +363,6 @@ class TermsAndConditionsResourceTest {
         String code = "CHAIN-RES-" + System.currentTimeMillis();
 
         TermsAndConditions t1 = new TermsAndConditions();
-        t1.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t1.setCode(code);
         t1.setTitle("First");
         t1.setContentEn("First");
@@ -388,7 +381,6 @@ class TermsAndConditionsResourceTest {
             .path("id");
 
         TermsAndConditions t2 = new TermsAndConditions();
-        t2.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t2.setCode(code);
         t2.setTitle("Second");
         t2.setContentEn("Second");
@@ -422,7 +414,6 @@ class TermsAndConditionsResourceTest {
         String code = "GAP-RES-" + System.currentTimeMillis();
 
         TermsAndConditions t1 = new TermsAndConditions();
-        t1.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t1.setCode(code);
         t1.setTitle("First");
         t1.setContentEn("First");
@@ -439,7 +430,6 @@ class TermsAndConditionsResourceTest {
             .statusCode(201);
 
         TermsAndConditions t2 = new TermsAndConditions();
-        t2.setOrganisationId("00000000-0000-0000-0000-000000000000");
         t2.setCode(code);
         t2.setTitle("Second");
         t2.setContentEn("Second");

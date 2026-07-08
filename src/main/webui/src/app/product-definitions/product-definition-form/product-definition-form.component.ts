@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, Signal } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnInit, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -22,6 +22,7 @@ export class ProductDefinitionFormComponent implements OnInit {
   private termsController = inject(TermsAndConditionsController);
   private termsModelService = inject(TermsAndConditionsModelService);
   private toastService = inject(ToastService);
+  private cdr = inject(ChangeDetectorRef);
 
   selectedProduct: Signal<ProductDefinition | null> = this.modelService.selectedProductDefinition$;
   termsAndConditionsCodes: Signal<TermsAndConditionsCodeSummary[]> = this.termsModelService.termsAndConditionsCodes$;
@@ -72,6 +73,7 @@ export class ProductDefinitionFormComponent implements OnInit {
     } else {
       this.formError = 'Failed to load product definition';
     }
+    this.cdr.markForCheck();
   }
 
   populateForm(definition: ProductDefinition): void {

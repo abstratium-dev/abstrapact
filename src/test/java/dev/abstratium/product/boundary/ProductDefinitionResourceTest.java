@@ -31,7 +31,6 @@ class ProductDefinitionResourceTest {
         String productCode = "TEST-PROD-" + System.currentTimeMillis();
 
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId("00000000-0000-0000-0000-000000000000");
         definition.setProductCode(productCode);
         definition.setDescription("Test Product Description");
         definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -99,7 +98,6 @@ class ProductDefinitionResourceTest {
         String productCode = "DUP-TEST-" + System.currentTimeMillis();
 
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId("00000000-0000-0000-0000-000000000000");
         definition.setProductCode(productCode);
         definition.setDescription("First Product");
         definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -114,7 +112,6 @@ class ProductDefinitionResourceTest {
             .statusCode(201);
 
         ProductDefinition duplicate = new ProductDefinition();
-        duplicate.setOrganisationId("00000000-0000-0000-0000-000000000000");
         duplicate.setProductCode(productCode);
         duplicate.setDescription("Duplicate Product");
         duplicate.setBillingModel(ProductDefinition.BillingModel.SUBSCRIPTION);
@@ -135,7 +132,6 @@ class ProductDefinitionResourceTest {
         String productCode = "UPDATE-TEST-" + System.currentTimeMillis();
 
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId("00000000-0000-0000-0000-000000000000");
         definition.setProductCode(productCode);
         definition.setDescription("Original Description");
         definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -152,7 +148,6 @@ class ProductDefinitionResourceTest {
             .path("id");
 
         ProductDefinition update = new ProductDefinition();
-        update.setOrganisationId("00000000-0000-0000-0000-000000000000");
         update.setProductCode(productCode);
         update.setDescription("Updated Description");
         update.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -174,7 +169,6 @@ class ProductDefinitionResourceTest {
         String productCode = "DELETE-TEST-" + System.currentTimeMillis();
 
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId("00000000-0000-0000-0000-000000000000");
         definition.setProductCode(productCode);
         definition.setDescription("To be deleted");
         definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -243,7 +237,6 @@ class ProductDefinitionResourceTest {
         String productCode = "YAML-EXPORT-" + System.currentTimeMillis();
 
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId("00000000-0000-0000-0000-000000000000");
         definition.setProductCode(productCode);
         definition.setDescription("Export Test");
         definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -284,7 +277,6 @@ class ProductDefinitionResourceTest {
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
     void shouldReturn400ForNullProductCode() {
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId("00000000-0000-0000-0000-000000000000");
         definition.setDescription("No code");
         definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
         definition.setProductValidFrom(LocalDate.now());
@@ -302,7 +294,6 @@ class ProductDefinitionResourceTest {
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
     void shouldReturn404WhenUpdatingNonExistentProduct() {
         ProductDefinition update = new ProductDefinition();
-        update.setOrganisationId("00000000-0000-0000-0000-000000000000");
         update.setProductCode("NO-SUCH-CODE");
         update.setDescription("Does not exist");
         update.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -370,8 +361,7 @@ class ProductDefinitionResourceTest {
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
     void shouldImportYamlWithOrganisationIdAndValidUntil() {
         String productCode = "YAML-FULL-" + System.currentTimeMillis();
-        String yaml = "organisation_id: " + "00000000-0000-0000-0000-000000000000" + "\n" +
-                      "product_code: " + productCode + "\n" +
+        String yaml = "product_code: " + productCode + "\n" +
                       "description: Full YAML import\n" +
                       "billing_model: SUBSCRIPTION\n" +
                       "valid_from: " + LocalDate.now() + "\n" +
@@ -394,7 +384,6 @@ class ProductDefinitionResourceTest {
         String productCode = "YAML-EXP-UNTIL-" + System.currentTimeMillis();
 
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId("00000000-0000-0000-0000-000000000000");
         definition.setProductCode(productCode);
         definition.setDescription("Export with until");
         definition.setBillingModel(ProductDefinition.BillingModel.SUBSCRIPTION);
@@ -705,7 +694,6 @@ class ProductDefinitionResourceTest {
         String productCode = "PART-ADD-TEST-" + System.currentTimeMillis();
 
         ProductDefinition definition = new ProductDefinition();
-        definition.setOrganisationId("00000000-0000-0000-0000-000000000000");
         definition.setProductCode(productCode);
         definition.setDescription("Test Product for Part");
         definition.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
@@ -723,7 +711,6 @@ class ProductDefinitionResourceTest {
 
         // Add a part
         PartDefinition part = new PartDefinition();
-        part.setOrganisationId("00000000-0000-0000-0000-000000000000");
         part.setPartCode("ADDED-PART");
         part.setDescription("Added Part");
         part.setUnitPrice(new BigDecimal("25.00"));
@@ -744,7 +731,6 @@ class ProductDefinitionResourceTest {
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
     void shouldReturn404WhenAddingPartToNonExistentProduct() {
         PartDefinition part = new PartDefinition();
-        part.setOrganisationId("00000000-0000-0000-0000-000000000000");
         part.setPartCode("ORPHAN-PART");
         part.setDescription("Orphan Part");
         part.setUnitPrice(new BigDecimal("10.00"));
@@ -800,7 +786,6 @@ class ProductDefinitionResourceTest {
 
         // Update the part
         PartDefinition update = new PartDefinition();
-        update.setOrganisationId("00000000-0000-0000-0000-000000000000");
         update.setPartCode("UPDATE-ME");
         update.setDescription("Updated via REST");
         update.setUnitPrice(new BigDecimal("75.00"));
@@ -884,7 +869,6 @@ class ProductDefinitionResourceTest {
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
     void shouldReturn404WhenUpdatingNonExistentPart() {
         PartDefinition part = new PartDefinition();
-        part.setOrganisationId("00000000-0000-0000-0000-000000000000");
         part.setPartCode("NO-SUCH-PART");
         part.setDescription("Does not exist");
         part.setUnitPrice(new BigDecimal("10.00"));

@@ -33,6 +33,9 @@
             <span class="badge" [class.badge-primary]="definition.billingModel === 'FIXED_PRICE'" [class.badge-secondary]="definition.billingModel === 'SUBSCRIPTION'">
               {{ getBillingModelLabel(definition.billingModel) }}
             </span>
+            <span class="badge" [class.badge-primary]="definition.paymentModel === 'PREPAID'" [class.badge-secondary]="definition.paymentModel === 'POSTPAID'">
+              {{ getPaymentModelLabel(definition.paymentModel) }}
+            </span>
           </div>
         </div>
         <div class="tile-details">

@@ -24,7 +24,7 @@ globs: e2e-tests/**/*.ts
 - to access files in the .playwright-cli folder use command line tools as they are blocked by .gitignore and your other tools cannot access them.
 - tests should delete relevant test data before running. 
 - tests should never deleted data right at the end!
-- tests should create isolated data if possible
+- tests should create isolated data if possible, but tests within a single script may build up on top of each other 
 - read the relevant angular files to understand how the application works
 - stop and ask for help if you get stuck and are repeatedly getting the same failure.
 - add numbered logging to tests so that you can debug them easily

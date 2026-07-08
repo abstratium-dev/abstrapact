@@ -81,6 +81,10 @@ export class ProductDefinitionsListComponent implements OnInit {
     return model === 'FIXED_PRICE' ? 'Fixed Price' : 'Subscription';
   }
 
+  getPaymentModelLabel(model: string | null | undefined): string {
+    return model === 'POSTPAID' ? 'Postpaid' : 'Prepaid';
+  }
+
   formatDate(date: string | null): string {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString();

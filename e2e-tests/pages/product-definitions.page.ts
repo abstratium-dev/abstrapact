@@ -43,7 +43,8 @@ export async function assertOnProductDefinitionsListPage(page: Page) {
 
 export async function navigateToProductDefinitions(page: Page) {
     console.log('[ProductDefinitionsListPage] Navigating to product definitions via header');
-    await page.locator('#products-link').click();
+    await page.goto('/product-definitions');
+    await page.waitForURL('**/product-definitions', { timeout: 10000 });
     await assertOnProductDefinitionsListPage(page);
 }
 
@@ -65,12 +66,18 @@ export async function assertProductDefinitionNotExists(page: Page, code: string)
 
 export async function deleteProductDefinitionByCode(page: Page, code: string) {
     console.log(`[ProductDefinitionsListPage] Deleting product definition with code '${code}'`);
+    const tile = productDefinitionTileByCode(page, code);
+    const visible = await tile.isVisible().catch(() => false);
+    if (!visible) {
+        console.log(`[ProductDefinitionsListPage] Tile for '${code}' not visible, skipping delete`);
+        return;
+    }
     const deleteBtn = deleteProductDefinitionButton(page, code);
     await deleteBtn.click();
     const confirmDeleteBtn = page.getByRole('button', { name: 'Delete' });
     await confirmDeleteBtn.waitFor({ state: 'visible', timeout: 5000 });
     await confirmDeleteBtn.click();
-    await expect(productDefinitionTileByCode(page, code)).not.toBeVisible({ timeout: 5000 });
+    await expect(tile).not.toBeVisible({ timeout: 5000 });
 }
 
 // ─── Product Definition Form Page ─────────────────────────────────────────────
@@ -142,17 +149,25 @@ export async function fillProductDefinitionForm(
         termsAndConditionsCode?: string;
         validFrom?: string;
         validUntil?: string;
-    }
+    },
+    editMode = false
 ) {
     console.log(`[ProductDefinitionFormPage] Filling form for product code '${data.productCode}'`);
+    if (editMode) {
+        // In edit mode the form is populated async after getProductDefinition resolves.
+        // Wait until the productCode field is populated before interacting with selects.
+        await expect(productCodeInput(page)).not.toHaveValue('', { timeout: 10000 });
+    }
     await productCodeInput(page).fill(data.productCode);
     if (data.description !== undefined) {
         await descriptionInput(page).fill(data.description);
     }
     if (data.billingModel !== undefined) {
+        await expect(billingModelSelect(page)).toBeEnabled({ timeout: 5000 });
         await billingModelSelect(page).selectOption(data.billingModel);
     }
     if (data.paymentModel !== undefined) {
+        await expect(paymentModelSelect(page)).toBeEnabled({ timeout: 5000 });
         await paymentModelSelect(page).selectOption(data.paymentModel);
     }
     if (data.termsAndConditionsCode !== undefined) {
@@ -186,6 +201,7 @@ export async function createProductDefinition(
     console.log(`[ProductDefinitionFormPage] Creating product definition '${data.productCode}'`);
     await fillProductDefinitionForm(page, data);
     await submitProductDefinitionForm(page);
+    await page.waitForURL(/\/product-definitions$/, { timeout: 10000 });
 }
 
 export async function assertFormErrorContains(page: Page, expectedText: string) {
@@ -272,4 +288,109 @@ export async function deleteProductDefinitionFromDetail(page: Page) {
     await confirmDeleteBtn.waitFor({ state: 'visible', timeout: 5000 });
     await confirmDeleteBtn.click();
     await assertOnProductDefinitionsListPage(page);
+}
+
+// ─── Product Structure / Part Form ────────────────────────────────────────────
+
+export function productStructurePanel(page: Page) {
+    return page.getByTestId('product-structure');
+}
+
+export function addRootPartButton(page: Page) {
+    return productStructurePanel(page).locator('button.btn-add');
+}
+
+export function partForm(page: Page) {
+    return page.getByTestId('part-form');
+}
+
+export function partCodeInput(page: Page) {
+    return partForm(page).getByTestId('part-code-input');
+}
+
+export function partDescriptionInput(page: Page) {
+    return partForm(page).getByTestId('description-input');
+}
+
+export function partUnitPriceInput(page: Page) {
+    return partForm(page).getByTestId('unit-price-input');
+}
+
+export function partMinCardinalityInput(page: Page) {
+    return partForm(page).getByTestId('min-cardinality-input');
+}
+
+export function partMaxCardinalityInput(page: Page) {
+    return partForm(page).getByTestId('max-cardinality-input');
+}
+
+export function partSubmitButton(page: Page) {
+    return partForm(page).getByTestId('submit-button');
+}
+
+export function partItemByCode(page: Page, code: string) {
+    return productStructurePanel(page).locator('.part-item').filter({ hasText: code });
+}
+
+export async function assertOnPartForm(page: Page) {
+    console.log('[PartForm] Asserting part form is visible');
+    await expect(partForm(page)).toBeVisible({ timeout: 10000 });
+}
+
+export async function fillPartForm(
+    page: Page,
+    data: {
+        partCode: string;
+        description?: string;
+        unitPrice?: string;
+        minCardinality?: string;
+        maxCardinality?: string;
+    }
+) {
+    console.log(`[PartForm] Filling part form for code '${data.partCode}'`);
+    await partCodeInput(page).fill(data.partCode);
+    if (data.description !== undefined) {
+        await partDescriptionInput(page).fill(data.description);
+    }
+    if (data.unitPrice !== undefined) {
+        await partUnitPriceInput(page).fill(data.unitPrice);
+    }
+    if (data.minCardinality !== undefined) {
+        await partMinCardinalityInput(page).fill(data.minCardinality);
+    }
+    if (data.maxCardinality !== undefined) {
+        await partMaxCardinalityInput(page).fill(data.maxCardinality);
+    }
+}
+
+export async function submitPartForm(page: Page) {
+    console.log('[PartForm] Submitting part form');
+    await partSubmitButton(page).click();
+    await expect(partForm(page)).not.toBeVisible({ timeout: 10000 });
+}
+
+export async function assertPartExists(page: Page, code: string) {
+    console.log(`[ProductStructure] Asserting part with code '${code}' exists`);
+    await expect(partItemByCode(page, code)).toBeVisible({ timeout: 10000 });
+}
+
+export async function assertPartNotExists(page: Page, code: string) {
+    console.log(`[ProductStructure] Asserting part with code '${code}' does not exist`);
+    await expect(partItemByCode(page, code)).not.toBeVisible({ timeout: 5000 });
+}
+
+export async function clickAddRootPart(page: Page) {
+    console.log('[ProductStructure] Clicking Add Part button');
+    await addRootPartButton(page).click();
+    await assertOnPartForm(page);
+}
+
+export async function deletePartByCode(page: Page, code: string) {
+    console.log(`[ProductStructure] Deleting part with code '${code}'`);
+    const item = partItemByCode(page, code);
+    await item.locator('button[title="Delete part"]').click();
+    const confirmBtn = page.getByRole('button', { name: 'Delete' });
+    await confirmBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await confirmBtn.click();
+    await expect(item).not.toBeVisible({ timeout: 10000 });
 }

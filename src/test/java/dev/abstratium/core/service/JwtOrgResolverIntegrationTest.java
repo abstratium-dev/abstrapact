@@ -2,6 +2,8 @@ package dev.abstratium.core.service;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -23,7 +25,9 @@ import static org.hamcrest.Matchers.is;
 @QuarkusTest
 class JwtOrgResolverIntegrationTest {
 
-    public static final String DEFAULT_ORG_ID = "00000000-0000-0000-0000-000000000000";
+    @Inject
+    @ConfigProperty(name = "default.org.uuid")
+    String defaultOrgId;
 
     private String buildBearerToken(String payloadJson) {
         String header = Base64.getUrlEncoder().withoutPadding()
@@ -37,7 +41,7 @@ class JwtOrgResolverIntegrationTest {
     @TestSecurity(user = "testuser", roles = {"jwt-test-user"})
     void resolveTenantId_withOrgIdInBearer_usesOrgId() {
         String token = buildBearerToken(
-                "{\"sub\":\"testuser\",\"orgId\":\"" + DEFAULT_ORG_ID + "\",\"groups\":[\"jwt-test-user\"]}");
+                "{\"sub\":\"testuser\",\"orgId\":\"" + defaultOrgId + "\",\"groups\":[\"jwt-test-user\"]}");
 
         given()
             .header("Authorization", "Bearer " + token)
@@ -45,7 +49,7 @@ class JwtOrgResolverIntegrationTest {
             .get("/api/test/jwt-org")
             .then()
             .statusCode(200)
-            .body(is("\"" + DEFAULT_ORG_ID + "\""));
+            .body(is("\"" + defaultOrgId + "\""));
     }
 
     @Test
@@ -60,7 +64,7 @@ class JwtOrgResolverIntegrationTest {
             .get("/api/test/jwt-org")
             .then()
             .statusCode(200)
-            .body(is("\"" + DEFAULT_ORG_ID + "\""));
+            .body(is("\"" + defaultOrgId + "\""));
     }
 
     @Test
@@ -72,7 +76,7 @@ class JwtOrgResolverIntegrationTest {
             .get("/api/test/jwt-org")
             .then()
             .statusCode(200)
-            .body(is("\"" + DEFAULT_ORG_ID + "\""));
+            .body(is("\"" + defaultOrgId + "\""));
     }
 
     @Test
@@ -87,6 +91,6 @@ class JwtOrgResolverIntegrationTest {
             .get("/api/test/jwt-org")
             .then()
             .statusCode(200)
-            .body(is("\"" + DEFAULT_ORG_ID + "\""));
+            .body(is("\"" + defaultOrgId + "\""));
     }
 }

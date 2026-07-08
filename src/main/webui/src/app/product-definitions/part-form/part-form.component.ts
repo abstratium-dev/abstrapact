@@ -73,8 +73,8 @@ export class PartFormComponent implements OnInit {
       this.fieldErrors['displayOrder'] = 'Display order cannot be negative';
     }
 
-    if (this.minCardinality < 1) {
-      this.fieldErrors['minCardinality'] = 'Minimum cardinality must be at least 1';
+    if (this.minCardinality < 0) {
+      this.fieldErrors['minCardinality'] = 'Minimum cardinality cannot be negative';
     }
 
     if (this.maxCardinality < 1) {

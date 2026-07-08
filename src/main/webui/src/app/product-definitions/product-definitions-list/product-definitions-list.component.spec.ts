@@ -251,7 +251,7 @@ describe('ProductDefinitionsListComponent', () => {
       fixture.detectChanges();
 
       const badges = fixture.nativeElement.querySelectorAll('.badge');
-      expect(badges.length).toBe(2);
+      expect(badges.length).toBe(4);
     });
   });
 });

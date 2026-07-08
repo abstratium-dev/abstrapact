@@ -109,6 +109,37 @@ describe('PartFormComponent', () => {
     expect(component.fieldErrors['displayOrder']).toBe('Display order cannot be negative');
   });
 
+  it('should validate negative min cardinality', () => {
+    component.partCode = 'PART-001';
+    component.minCardinality = -1;
+    expect(component.validateForm()).toBe(false);
+    expect(component.fieldErrors['minCardinality']).toBe('Minimum cardinality cannot be negative');
+  });
+
+  it('should allow min cardinality of zero (optional part)', () => {
+    component.partCode = 'PART-001';
+    component.minCardinality = 0;
+    component.maxCardinality = 1;
+    expect(component.validateForm()).toBe(true);
+    expect(component.fieldErrors['minCardinality']).toBeUndefined();
+  });
+
+  it('should validate max cardinality less than one', () => {
+    component.partCode = 'PART-001';
+    component.minCardinality = 0;
+    component.maxCardinality = 0;
+    expect(component.validateForm()).toBe(false);
+    expect(component.fieldErrors['maxCardinality']).toBe('Maximum cardinality must be at least 1');
+  });
+
+  it('should validate min cardinality greater than max cardinality', () => {
+    component.partCode = 'PART-001';
+    component.minCardinality = 3;
+    component.maxCardinality = 2;
+    expect(component.validateForm()).toBe(false);
+    expect(component.fieldErrors['maxCardinality']).toBe('Maximum cardinality must be greater than or equal to minimum cardinality');
+  });
+
   it('should pass validation with valid data', () => {
     component.partCode = 'PART-001';
     component.description = 'Test Part';
