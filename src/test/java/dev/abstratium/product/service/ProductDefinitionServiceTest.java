@@ -4,6 +4,7 @@ import dev.abstratium.product.boundary.dto.*;
 import dev.abstratium.product.entity.PartAttributeDefinition;
 import dev.abstratium.product.entity.PartDefinition;
 import dev.abstratium.product.entity.ProductDefinition;
+import dev.abstratium.test.TestDataCleaner;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -33,6 +34,9 @@ class ProductDefinitionServiceTest {
     @Inject
     UserTransaction userTransaction;
 
+    @Inject
+    TestDataCleaner cleaner;
+
     @BeforeEach
     void setUp() {
         // Create test products using the service which handles transactions
@@ -55,36 +59,7 @@ class ProductDefinitionServiceTest {
 
     @AfterEach
     void tearDown() throws Exception {
-        userTransaction.begin();
-        try {
-            // Delete in correct order respecting foreign keys
-            // 1. Delete part instance attributes
-            em.createQuery("DELETE FROM PartInstanceAttribute").executeUpdate();
-            // 2. Delete child part instances
-            em.createQuery("DELETE FROM PartInstance p WHERE p.parentPartInstance IS NOT NULL").executeUpdate();
-            // 3. Delete root part instances
-            em.createQuery("DELETE FROM PartInstance").executeUpdate();
-            // 4. Delete contract line items (reference product instances)
-            em.createQuery("DELETE FROM ContractLineItem").executeUpdate();
-            // 5. Delete contracts
-            em.createQuery("DELETE FROM Contract").executeUpdate();
-            // 6. Delete product instances
-            em.createQuery("DELETE FROM ProductInstance").executeUpdate();
-            // 7. Delete allowed values
-            em.createQuery("DELETE FROM PartAttributeAllowedValue").executeUpdate();
-            // 8. Delete attributes
-            em.createQuery("DELETE FROM PartAttributeDefinition").executeUpdate();
-            // 9. Delete child parts first (where parent_part_definition_id is not null)
-            em.createQuery("DELETE FROM PartDefinition p WHERE p.parentPart IS NOT NULL").executeUpdate();
-            // 10. Delete parent parts
-            em.createQuery("DELETE FROM PartDefinition").executeUpdate();
-            // 11. Delete products
-            em.createQuery("DELETE FROM ProductDefinition").executeUpdate();
-            userTransaction.commit();
-        } catch (Exception e) {
-            userTransaction.rollback();
-            throw e;
-        }
+        cleaner.deleteAll();
     }
 
     private ProductDefinition createTestProduct(String code, String description, ProductDefinition.BillingModel billingModel) {

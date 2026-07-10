@@ -22,7 +22,7 @@ public class ProductDefinition {
     @Column(name = "organisation_id", length = 36, nullable = false)
     private String organisationId;
 
-    @Column(name = "product_code", length = 50, nullable = false, unique = true)
+    @Column(name = "product_code", length = 100, nullable = false, unique = true)
     private String productCode;
 
     @Column(name = "description", length = 255)
@@ -44,6 +44,9 @@ public class ProductDefinition {
 
     @Column(name = "terms_and_conditions_code", length = 50)
     private String termsAndConditionsCode;
+
+    @Column(name = "cross_tenant_api_allowed", nullable = false)
+    private boolean crossTenantApiAllowed = false;
 
     @OneToMany(mappedBy = "productDefinition", cascade = CascadeType.REMOVE)
     @JsonIgnore
@@ -126,6 +129,14 @@ public class ProductDefinition {
 
     public void setTermsAndConditionsCode(String termsAndConditionsCode) {
         this.termsAndConditionsCode = termsAndConditionsCode;
+    }
+
+    public boolean isCrossTenantApiAllowed() {
+        return crossTenantApiAllowed;
+    }
+
+    public void setCrossTenantApiAllowed(boolean crossTenantApiAllowed) {
+        this.crossTenantApiAllowed = crossTenantApiAllowed;
     }
 
     public List<PartDefinition> getParts() {

@@ -101,6 +101,10 @@ public class Contract {
     @JsonIgnore
     private List<Signatory> signatories = new ArrayList<>();
 
+    @OneToMany(mappedBy = "contract", cascade = CascadeType.REMOVE)
+    @JsonIgnore
+    private List<ContractAccountRole> accountRoles = new ArrayList<>();
+
     public Contract() {
     }
 
@@ -310,6 +314,14 @@ public class Contract {
 
     public void setSignatories(List<Signatory> signatories) {
         this.signatories = signatories;
+    }
+
+    public List<ContractAccountRole> getAccountRoles() {
+        return accountRoles;
+    }
+
+    public void setAccountRoles(List<ContractAccountRole> accountRoles) {
+        this.accountRoles = accountRoles;
     }
 
     public enum PaymentModel {
