@@ -1,7 +1,6 @@
 package dev.abstratium.process.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import dev.abstratium.conditions.entity.Contract;
 import jakarta.persistence.*;
 import org.hibernate.annotations.TenantId;
 import org.hibernate.envers.Audited;
@@ -22,11 +21,6 @@ public class ProcessInstance {
     @Column(name = "organisation_id", length = 36, nullable = false)
     private String organisationId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "contract_id")
-    @JsonIgnore
-    private Contract contract;
-
     @Column(name = "process_name", length = 100, nullable = false)
     private String processName;
 
@@ -37,7 +31,7 @@ public class ProcessInstance {
     @Column(name = "state", length = 20, nullable = false)
     private ProcessInstanceState state;
 
-    @OneToMany(mappedBy = "processInstance", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "processInstance", cascade = CascadeType.REMOVE)
     @JsonIgnore
     private List<ProcessInstanceStep> steps = new ArrayList<>();
 
@@ -58,14 +52,6 @@ public class ProcessInstance {
 
     public void setOrganisationId(String organisationId) {
         this.organisationId = organisationId;
-    }
-
-    public Contract getContract() {
-        return contract;
-    }
-
-    public void setContract(Contract contract) {
-        this.contract = contract;
     }
 
     public String getProcessName() {

@@ -88,6 +88,8 @@ A failed payment attempt leaves the contract in `AWAITING_PAYMENT`; the customer
 
 The generic `ProcessInstance` / `ProcessInstanceStep` tables track the sales workflow. A contract may have one active `ProcessInstance` with `process_name = "sales-process"`. Each state transition (including retries and rollbacks) becomes a step.
 
+> **Lifecycle separation.** Process data is volatile and has a different lifecycle than contract data. `T_process_instance` stores a `contract_id` column for correlation/audit purposes, but there is **no JPA relationship** from `ProcessInstance` to `Contract`. Deleting a contract does not cascade to process instances, and process-tracking data is managed independently.
+
 ---
 
 ## Decision: Payment Model

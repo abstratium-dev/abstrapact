@@ -1,7 +1,6 @@
 package dev.abstratium.conditions.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import dev.abstratium.process.entity.ProcessInstance;
 import jakarta.persistence.*;
 import org.hibernate.annotations.TenantId;
 import org.hibernate.envers.Audited;
@@ -90,21 +89,17 @@ public class Contract {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "contract", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "contract", cascade = CascadeType.REMOVE)
     @JsonIgnore
     private List<ContractLineItem> lineItems = new ArrayList<>();
 
-    @OneToMany(mappedBy = "contract", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "contract", cascade = CascadeType.REMOVE)
     @JsonIgnore
     private List<ContractTermsLink> termsLinks = new ArrayList<>();
 
-    @OneToMany(mappedBy = "contract", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "contract", cascade = CascadeType.REMOVE)
     @JsonIgnore
     private List<Signatory> signatories = new ArrayList<>();
-
-    @OneToMany(mappedBy = "contract", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
-    private List<ProcessInstance> processInstances = new ArrayList<>();
 
     public Contract() {
     }
@@ -315,14 +310,6 @@ public class Contract {
 
     public void setSignatories(List<Signatory> signatories) {
         this.signatories = signatories;
-    }
-
-    public List<ProcessInstance> getProcessInstances() {
-        return processInstances;
-    }
-
-    public void setProcessInstances(List<ProcessInstance> processInstances) {
-        this.processInstances = processInstances;
     }
 
     public enum PaymentModel {

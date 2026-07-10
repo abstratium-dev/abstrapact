@@ -37,7 +37,7 @@ public class PartInstance {
     @JsonIgnore
     private PartInstance parentPartInstance;
 
-    @OneToMany(mappedBy = "parentPartInstance", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "parentPartInstance", cascade = CascadeType.REMOVE)
     @JsonIgnore
     private List<PartInstance> childPartInstances = new ArrayList<>();
 
@@ -47,7 +47,7 @@ public class PartInstance {
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder = 0;
 
-    @OneToMany(mappedBy = "partInstance", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "partInstance", cascade = CascadeType.REMOVE)
     @JsonIgnore
     private List<PartInstanceAttribute> attributes = new ArrayList<>();
 

@@ -538,3 +538,75 @@ Use this codec consistently in the service layer. Never expose prefixed values i
 - Tests must verify that a customer cannot read another customer's contracts.
 - Tests must verify that product configuration violates `minChoices`/`maxChoices` choice group constraints are rejected.
 
+---
+
+## Implementation Task List
+
+### Prerequisites
+
+- [ ] **Choice group support** — implement `T_part_definition_choice_group` table, `choice_group_id` FK on `T_part_definition`, and corresponding entities/migrations before any cross-tenant work begins (see `Implementation Notes` above).
+
+### Database Migrations (next available: `V01.019`)
+
+- [ ] **V01.019** — add `cross_tenant_api_allowed BOOLEAN NOT NULL DEFAULT FALSE` column to `T_product_definition` and `T_product_definition_AUD`.
+- [ ] **V01.020** — create `T_contract_account_role` and `T_contract_account_role_AUD` tables with indexes and FK constraints.
+- [ ] **Prefix existing product codes** — one-off data migration to prepend `{orgId}::` to all existing `T_product_definition.product_code` values.
+
+### Domain Model
+
+- [ ] Add `crossTenantApiAllowed` field to the existing `ProductDefinition` entity.
+- [ ] Create `ContractAccountRole` entity (in `dev.abstratium.conditions.entity`) with `RoleType.CUSTOMER` enum.
+- [ ] Create all `NonMultitenancy*` entity copies (remove `@TenantId`; keep table mappings, column names, relationships, and `@Audited`):
+  - [ ] `product`: `ProductDefinition`, `PartDefinition`, `PartDefinitionChoiceGroup`, `PartDefinitionAttribute`, `ProductInstance`, `PartInstance`, `PartInstanceAttribute`
+  - [ ] `conditions`: `Contract`, `ContractLineItem`, `ContractTermsLink`, `TermsAndConditions`, `Signatory`
+  - [ ] `process`: `ProcessInstance`, `ProcessInstanceStep`
+  - [ ] `core`: `Config`
+
+### Utilities
+
+- [ ] Implement `ProductCodeCodec` (`encode`, `decode`, `extractOrgId`) in `non_multitenancy.product`.
+- [ ] Update the existing tenant-scoped product definition create/update logic to store prefixed product codes.
+
+### Services
+
+- [ ] `NonMultitenancyOrganisationResolutionService` — resolve and validate seller `orgId` from prefixed product codes.
+- [ ] `NonMultitenancyCustomerProductInstanceService` — instantiate product and part trees, enforce cardinality and choice-group constraints, calculate line totals.
+- [ ] `NonMultitenancyCustomerContractService` — orchestrate contract create/update, link `ContractAccountRole`, resolve terms links, delegate state transitions to `SalesProcessBean`.
+- [ ] Update `SalesProcessBean` to add `startSalesProcess`, `offerContract`, and `acceptContract` methods operating via non-tenant entities.
+
+### DTOs
+
+- [ ] `NonMultitenancyCreateCustomerContractRequest` / `UpdateCustomerContractRequest`
+- [ ] `NonMultitenancyCustomerLineItemRequest`
+- [ ] `NonMultitenancyPartInstanceRequest` / `PartInstanceAttributeRequest`
+- [ ] `NonMultitenancyCustomerContractSummary`
+- [ ] `NonMultitenancyCustomerContractResponse` / `CustomerContractLineItemResponse`
+
+### REST Resource
+
+- [ ] Implement `NonMultitenancyCustomerContractResource` under `/api/public/contracts`:
+  - [ ] `POST /` — create draft (resolve seller `orgId`, set `CurrentOrgContext`, call service)
+  - [ ] `GET /` — list caller's contracts (non-tenant query, scoped by `sub`)
+  - [ ] `GET /{id}` — get single contract (non-tenant query, verify ownership)
+  - [ ] `PUT /{id}` — update draft
+  - [ ] `DELETE /{id}/line-items/{lineItemId}` — remove line item
+  - [ ] `POST /{id}/offer` — delegate to `salesProcessBean.offerContract`
+  - [ ] `POST /{id}/accept` — delegate to `salesProcessBean.acceptContract`
+- [ ] Ensure resource methods are **not** `@Transactional`; set `CurrentOrgContext` before calling any `@Transactional` service.
+
+### Security
+
+- [ ] Protect all endpoints with role `abstratium-abstrapact_user`.
+- [ ] Scope all list/get queries to the caller's `sub` claim via `T_contract_account_role`.
+
+### Tests
+
+- [ ] Unit tests for `ProductCodeCodec` (encode, decode, extractOrgId, malformed input).
+- [ ] Integration tests (`@QuarkusTest`) for:
+  - [ ] Organisation resolution: mixed seller orgs → 422; `crossTenantApiAllowed = false` → 422.
+  - [ ] Contract create: happy path; invalid part cardinality; violated choice-group constraints.
+  - [ ] Contract update and line-item deletion (DRAFT only).
+  - [ ] State transitions: DRAFT → OFFERED → ACCEPTED; invalid transitions rejected.
+  - [ ] Account scoping: customer cannot read another customer's contracts.
+  - [ ] `ProductCodeCodec` round-trip in service layer.
+

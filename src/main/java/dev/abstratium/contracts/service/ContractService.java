@@ -94,7 +94,6 @@ public class ContractService {
             if (contract.getState() != ContractState.DRAFT) {
                 throw new IllegalStateException("Only DRAFT contracts can be deleted");
             }
-            deleteProductInstancesForContract(id, contract.getOrganisationId());
             em.remove(contract);
             em.flush();
         }
@@ -126,7 +125,7 @@ public class ContractService {
         lineItem.setId(UUID.randomUUID().toString());
         lineItem.setOrganisationId(orgId);
         lineItem.setContract(contract);
-        lineItem.setProductInstanceId(productInstance.getId());
+        lineItem.setProductInstance(productInstance);
         lineItem.setDisplayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : displayOrder);
         lineItem.setLineTotal(calculateProductInstanceTotal(productInstance.getId(), orgId));
         em.persist(lineItem);
@@ -209,36 +208,6 @@ public class ContractService {
         return anyPrepaid ? Contract.PaymentModel.PREPAID : Contract.PaymentModel.POSTPAID;
     }
 
-    private void deleteProductInstancesForContract(String contractId, String orgId) {
-        List<ContractLineItem> lineItems = em.createQuery(
-                "SELECT li FROM ContractLineItem li WHERE li.contract.id = :contractId",
-                ContractLineItem.class)
-            .setParameter("contractId", contractId)
-            .getResultList();
-
-        for (ContractLineItem li : lineItems) {
-            deleteProductInstance(li.getProductInstanceId());
-        }
-    }
-
-    private void deleteProductInstance(String productInstanceId) {
-        List<PartInstance> partInstances = em.createQuery(
-                "SELECT p FROM PartInstance p WHERE p.productInstance.id = :id",
-                PartInstance.class)
-            .setParameter("id", productInstanceId)
-            .getResultList();
-
-        for (PartInstance pi : partInstances) {
-            em.remove(pi);
-        }
-        em.flush();
-
-        ProductInstance productInstance = em.find(ProductInstance.class, productInstanceId);
-        if (productInstance != null) {
-            em.remove(productInstance);
-            em.flush();
-        }
-    }
 
     private ContractSummary toSummary(Contract contract) {
         ContractSummary summary = new ContractSummary();

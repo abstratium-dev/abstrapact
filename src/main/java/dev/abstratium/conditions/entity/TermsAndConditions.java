@@ -1,10 +1,13 @@
 package dev.abstratium.conditions.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.TenantId;
 import org.hibernate.envers.Audited;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "T_terms_and_conditions")
@@ -42,6 +45,10 @@ public class TermsAndConditions {
 
     @Column(name = "effective_until")
     private LocalDate effectiveUntil;
+
+    @OneToMany(mappedBy = "termsAndConditions")
+    @JsonIgnore
+    private List<ContractTermsLink> contractTermsLinks = new ArrayList<>();
 
     public TermsAndConditions() {
     }
@@ -124,5 +131,13 @@ public class TermsAndConditions {
 
     public void setEffectiveUntil(LocalDate effectiveUntil) {
         this.effectiveUntil = effectiveUntil;
+    }
+
+    public List<ContractTermsLink> getContractTermsLinks() {
+        return contractTermsLinks;
+    }
+
+    public void setContractTermsLinks(List<ContractTermsLink> contractTermsLinks) {
+        this.contractTermsLinks = contractTermsLinks;
     }
 }

@@ -1,10 +1,13 @@
 package dev.abstratium.product.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.TenantId;
 import org.hibernate.envers.Audited;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "T_product_definition")
@@ -41,6 +44,14 @@ public class ProductDefinition {
 
     @Column(name = "terms_and_conditions_code", length = 50)
     private String termsAndConditionsCode;
+
+    @OneToMany(mappedBy = "productDefinition", cascade = CascadeType.REMOVE)
+    @JsonIgnore
+    private List<PartDefinition> parts = new ArrayList<>();
+
+    @OneToMany(mappedBy = "productDefinition")
+    @JsonIgnore
+    private List<ProductInstance> productInstances = new ArrayList<>();
 
     public ProductDefinition() {
     }
@@ -115,6 +126,22 @@ public class ProductDefinition {
 
     public void setTermsAndConditionsCode(String termsAndConditionsCode) {
         this.termsAndConditionsCode = termsAndConditionsCode;
+    }
+
+    public List<PartDefinition> getParts() {
+        return parts;
+    }
+
+    public void setParts(List<PartDefinition> parts) {
+        this.parts = parts;
+    }
+
+    public List<ProductInstance> getProductInstances() {
+        return productInstances;
+    }
+
+    public void setProductInstances(List<ProductInstance> productInstances) {
+        this.productInstances = productInstances;
     }
 
     public enum BillingModel {

@@ -15,8 +15,6 @@
 
 - delete CreateDraftContractRequest and co, as they aren't needed except for the NonMultitenant API. there are probably a few such DTOs, defo an endpoint and maybe a service class or two
 
-- does the DB do cascade deletes? if so, do only JPA cascade removes and never with remove orphans
-
 - orgId to be taken from productId which is a query parameter or header that overrides the orgId taken from elsewhere in @JwtOrgResolver. 
   - this should depend on the URL! only "public" urls should allow the product to determine the org so that when managing definitions or instances, the user cannot do cross org stuff.
 

@@ -39,7 +39,7 @@ public class PartAttributeDefinition {
     @Column(name = "default_value", length = 255)
     private String defaultValue;
 
-    @OneToMany(mappedBy = "attributeDefinition", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "attributeDefinition", cascade = CascadeType.REMOVE)
     @JsonIgnore
     private List<PartAttributeAllowedValue> allowedValues = new ArrayList<>();
 

@@ -32,7 +32,7 @@ public class PartDefinition {
     @JsonIgnore
     private PartDefinition parentPart;
 
-    @OneToMany(mappedBy = "parentPart", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "parentPart", cascade = CascadeType.REMOVE)
     @JsonIgnore
     private List<PartDefinition> childParts = new ArrayList<>();
 
@@ -54,9 +54,13 @@ public class PartDefinition {
     @Column(name = "max_cardinality", nullable = false)
     private Integer maxCardinality = 1;
 
-    @OneToMany(mappedBy = "partDefinition", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "partDefinition", cascade = CascadeType.REMOVE)
     @JsonIgnore
     private List<PartAttributeDefinition> attributes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "partDefinition")
+    @JsonIgnore
+    private List<PartInstance> partInstances = new ArrayList<>();
 
     public PartDefinition() {
     }
@@ -155,5 +159,13 @@ public class PartDefinition {
 
     public void setAttributes(List<PartAttributeDefinition> attributes) {
         this.attributes = attributes;
+    }
+
+    public List<PartInstance> getPartInstances() {
+        return partInstances;
+    }
+
+    public void setPartInstances(List<PartInstance> partInstances) {
+        this.partInstances = partInstances;
     }
 }

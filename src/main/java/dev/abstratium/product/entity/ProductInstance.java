@@ -26,7 +26,7 @@ public class ProductInstance {
     @JsonIgnore
     private ProductDefinition productDefinition;
 
-    @OneToMany(mappedBy = "productInstance", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "productInstance", cascade = CascadeType.REMOVE)
     @JsonIgnore
     private List<PartInstance> partInstances = new ArrayList<>();
 

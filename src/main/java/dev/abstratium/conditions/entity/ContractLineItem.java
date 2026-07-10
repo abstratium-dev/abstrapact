@@ -1,6 +1,7 @@
 package dev.abstratium.conditions.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import dev.abstratium.product.entity.ProductInstance;
 import jakarta.persistence.*;
 import org.hibernate.annotations.TenantId;
 import org.hibernate.envers.Audited;
@@ -27,8 +28,10 @@ public class ContractLineItem {
     @JsonIgnore
     private Contract contract;
 
-    @Column(name = "product_instance_id", length = 36, nullable = false)
-    private String productInstanceId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_instance_id", nullable = false)
+    @JsonIgnore
+    private ProductInstance productInstance;
 
     @Column(name = "line_total", precision = 19, scale = 4, nullable = false)
     private BigDecimal lineTotal = BigDecimal.ZERO;
@@ -36,7 +39,7 @@ public class ContractLineItem {
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder = 0;
 
-    @OneToMany(mappedBy = "contractLineItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "contractLineItem", cascade = CascadeType.REMOVE)
     @JsonIgnore
     private List<ContractTermsLink> specialTermsLinks = new ArrayList<>();
 
@@ -67,12 +70,12 @@ public class ContractLineItem {
         this.contract = contract;
     }
 
-    public String getProductInstanceId() {
-        return productInstanceId;
+    public ProductInstance getProductInstance() {
+        return productInstance;
     }
 
-    public void setProductInstanceId(String productInstanceId) {
-        this.productInstanceId = productInstanceId;
+    public void setProductInstance(ProductInstance productInstance) {
+        this.productInstance = productInstance;
     }
 
     public BigDecimal getLineTotal() {
