@@ -20,30 +20,32 @@ The product instances and contracts are physically stored in the **seller's orga
 
 - **Seller organisation** -- the organisation that owns the `ProductDefinition` and the resulting `Contract`.
 - **Customer account** -- the external user, identified by the JWT `sub` claim.
-- **Prefixed product code** -- the product code the caller provides, including the seller organisation id and a double colon: `{orgId}::{productCode}`, e.g. `00000000-0000-0000-0000-000000000000::PROD-001`.
-- **Raw product code** -- the human-readable code without the prefix, e.g. `PROD-001`.
+- **Raw product/part/terms code** -- the human-readable code without the prefix, e.g. `PROD-001`; this is what the caller supplies inside the request body.
+- **Prefixed code** -- the code as stored in the database, including the seller organisation id and a double colon: `{orgId}::{rawCode}`, e.g. `00000000-0000-0000-0000-000000000000::PROD-001`.
 
 ---
 
 ## Package and Module Structure
 
-All new code lives under the root package `dev.abstratium.abstrapact.non_multitenancy`.
+All new code lives under the root package `dev.abstratium.non_multitenancy`.
 
 ```
-dev.abstratium.abstrapact.non_multitenancy
+dev.abstratium.non_multitenancy
 ├── contract
 │   ├── boundary
 │   │   └── NonMultitenancyCustomerContractResource.java
 │   ├── boundary/dto
-│   │   ├── NonMultitenancyCreateCustomerContractRequest.java
-│   │   ├── NonMultitenancyCustomerContractSummary.java
-│   │   ├── NonMultitenancyCustomerContractResponse.java
-│   │   ├── NonMultitenancyCustomerLineItemRequest.java
-│   │   ├── NonMultitenancyPartInstanceRequest.java
-│   │   └── ... (other DTOs as needed)
+│   │   ├── CreateCustomerContractRequest.java
+│   │   ├── CustomerContractSummary.java
+│   │   ├── CustomerContractResponse.java
+│   │   ├── CustomerLineItemRequest.java
+│   │   ├── PartInstanceRequest.java
+│   │   └── PartInstanceAttributeRequest.java
 │   ├── service
 │   │   ├── NonMultitenancyCustomerContractService.java
-│   │   └── NonMultitenancyOrganisationResolutionService.java
+│   │   ├── NonMultitenancyCustomerProductInstanceService.java
+│   │   ├── NonMultitenancyOrganisationResolutionService.java
+│   │   └── SalesProcessService.java
 │   └── entity
 │       └── NonMultitenancyContractAccountRole.java
 ├── product
@@ -182,35 +184,36 @@ private boolean crossTenantApiAllowed;
 
 ---
 
-## Product Code Encoding
+## Product, Part, and Terms Code Encoding
 
-The existing `T_product_definition.product_code` column is unique. To allow the same raw product code in multiple organisations, the stored value is prefixed with the seller organisation ID: `{orgId}::{productCode}`.
+The existing `T_product_definition.product_code`, `T_part_definition.part_code`, and `T_terms_and_conditions.code` columns store values prefixed with the seller organisation ID: `{orgId}::{rawCode}`. Prefixing is handled by `OrgScopedCodec` in `dev.abstratium.core.service`.
 
-The cross-tenant API expects the caller to supply the full prefixed code in the request body. The service must:
+The cross-tenant API request carries a top-level `orgId` field. Product codes, part codes, and terms codes inside the request body are sent as raw short codes; the resource prefixes them with the supplied `orgId` before validation and persistence. The service must:
 
-1. **Validate:** look up the exact prefixed code in the non-tenant `ProductDefinition` table to confirm the product exists and that its stored organisation matches the prefix.
+1. **Validate:** look up the exact prefixed code in the non-tenant table to confirm the entity exists and that its stored organisation matches the prefix.
 2. **On read:** strip the prefix from the stored value before returning it in API responses.
 
 Example:
 
 ```
-Caller provides: 00000000-0000-0000-0000-000000000000::PROD-001
-Stored code:     00000000-0000-0000-0000-000000000000::PROD-001
-Returned code:   PROD-001
+Caller provides orgId: 00000000-0000-0000-0000-000000000000
+Caller provides productCode: PROD-001
+Prefixed/stored code: 00000000-0000-0000-0000-000000000000::PROD-001
+Returned code: PROD-001
 ```
 
-> **Important:** The database always stores prefixed product codes so that the same raw code can exist in different organisations. The standard tenant-scoped product definition API uses raw values in DTOs and prepends the current tenant's orgId before storing. The cross-tenant API receives prefixed values from the caller and must not leak the prefix in responses.
+> **Important:** The database always stores prefixed codes so that the same raw code can exist in different organisations. The standard tenant-scoped product definition API uses raw values in DTOs and prepends the current tenant's orgId before storing. The cross-tenant API carries the seller orgId at the request level and prefixes all contained codes before looking them up; prefixed values must not leak in responses.
 
 ---
 
 ## Organisation Resolution
 
-The seller organisation is not taken from the JWT. It is derived from the product codes supplied by the customer.
+The seller organisation is not taken from the JWT. It is supplied by the caller as the top-level `orgId` field and then validated against the product codes in the request.
 
-1. The customer sends one or more **prefixed product codes** in the request body (one per line item).
-2. For each prefixed code, the service looks up the exact value in the non-tenant `ProductDefinition` table and confirms that the product exists and that its stored `organisation_id` matches the prefix.
-3. The service validates that **all resolved product definitions belong to the same organisation** and that **each product definition is flagged as allowed for the cross-tenant API** (`crossTenantApiAllowed = true`). If either check fails, the request fails with `422 Unprocessable Entity`.
-4. The common organisation ID becomes the seller organisation for the new contract, product instances, line items, process instances, and terms links.
+1. The customer sends a top-level **orgId** together with one or more **raw product codes** in the request body (one per line item).
+2. The resource prefixes each product code with the supplied `orgId`.
+3. For each prefixed code, `NonMultitenancyOrganisationResolutionService` looks up the exact value in the non-tenant `ProductDefinition` table and confirms that the product exists, that its stored `organisation_id` matches the prefix, and that `crossTenantApiAllowed = true`. If any check fails, the request fails with `422 Unprocessable Entity`.
+4. The validated `orgId` becomes the seller organisation for the new contract, product instances, line items, process instances, and terms links.
 
 The currency for the contract is read from the seller organisation's `Config` record.
 
@@ -230,7 +233,7 @@ Therefore every write operation in the cross-tenant API must follow this pattern
 
 1. The JAX-RS resource method is **not** annotated with `@Transactional`.
 2. The resource method resolves the seller `orgId` using a non-tenant read:
-   - For `POST /api/public/contracts` and `PUT /api/public/contracts/{id}`: resolve the seller `orgId` from the prefixed product codes in the request body.
+   - For `POST /api/public/contracts` and `PUT /api/public/contracts/{id}`: prefix each raw product code with the supplied `orgId`, then resolve and validate the seller `orgId`.
    - For `POST /api/public/contracts/{id}/offer`, `POST /api/public/contracts/{id}/accept`, and `DELETE /api/public/contracts/{id}/line-items/{lineItemId}`: load the existing `NonMultitenancyContract` by id and read its `organisationId`.
 3. The resource method calls `CurrentOrgContext.setOrgId(sellerOrgId)`.
 4. Only after the context has been updated does the resource method call the `@Transactional` service that creates or updates tenant-scoped entities.
@@ -273,6 +276,7 @@ Payment endpoints (`/purchase`, `/pay`) are out of scope and will be added later
 
 ```java
 public class CreateCustomerContractRequest {
+    private String orgId;              // seller organisation id; all raw codes are prefixed with it
     private String contractReference;
     private String publicNotes;
     private List<CustomerLineItemRequest> lineItems;
@@ -284,7 +288,7 @@ public class CreateCustomerContractRequest {
 
 ```java
 public class CustomerLineItemRequest {
-    private String productCode;          // prefixed code including orgId, e.g. orgId::PROD-001
+    private String productCode;          // raw code, e.g. PROD-001
     private Integer displayOrder;
     private List<PartInstanceRequest> partInstances; // root-level part instances
     // getters / setters
@@ -297,7 +301,7 @@ Models one concrete part instance, including attribute values and selected child
 
 ```java
 public class PartInstanceRequest {
-    private String partDefinitionId;   // UUID of the PartDefinition
+    private String partCode;             // raw part code, e.g. CPU-I7
     private List<PartInstanceAttributeRequest> attributeValues;
     private List<PartInstanceRequest> childPartInstances;
     // getters / setters
@@ -354,12 +358,12 @@ public class CustomerContractResponse {
 ### Behaviour
 
 1. Authenticate the caller and extract the JWT `sub` claim as `accountId`.
-2. Validate that `lineItems` is non-empty.
-3. Resolve each prefixed `productCode` to a non-tenant `ProductDefinition`.
+2. Validate that `orgId` is present and that `lineItems` is non-empty.
+3. Prefix each raw `productCode` with the supplied `orgId`.
+4. Resolve each prefixed `productCode` to a non-tenant `ProductDefinition`.
    - If any code cannot be resolved, return `422`.
    - If any resolved product is not flagged as allowed for the cross-tenant API (`crossTenantApiAllowed = false`), return `422`.
-4. Validate that **all resolved product definitions belong to the same seller organisation**.
-5. Determine the seller `orgId`.
+5. Validate that **all resolved product definitions belong to the same seller organisation**; this `orgId` is the contract seller.
 6. For each line item:
    - Instantiate a `ProductInstance` linked to the product definition.
    - Build the `PartInstance` tree from the request, validating cardinality, required attributes, and allowed values against the `PartDefinition` tree.
@@ -376,7 +380,7 @@ public class CustomerContractResponse {
 
 ### Validation Rules
 
-- Product codes must exist and be prefixed with a valid seller organisation id.
+- `orgId` must be supplied and must match the organisation stored for every resolved product.
 - All product codes must resolve to the same organisation.
 - Each resolved product definition must be flagged as allowed for the cross-tenant API (`crossTenantApiAllowed = true`).
 - Each requested part tree must be a valid instantiation of its product definition:
@@ -420,15 +424,15 @@ Removes a single line item from a contract in `DRAFT`.
 
 ## State Transitions and the Sales Process
 
-The cross-tenant API does **not** manipulate the contract state directly. It delegates every transition to an application-scoped bean in the `dev.abstratium.sales_process` package (see [DESIGN_OF_SALES_PROCESS.md](./DESIGN_OF_SALES_PROCESS.md)).
+The cross-tenant API does **not** manipulate the contract state directly. It delegates every transition to an application-scoped service in the `dev.abstratium.non_multitenancy.contract.service` package (see [DESIGN_OF_SALES_PROCESS.md](./DESIGN_OF_SALES_PROCESS.md)).
 
-The expected bean contract is:
+The expected service contract is:
 
 ```java
 @ApplicationScoped
-public class SalesProcessBean {
+public class SalesProcessService {
 
-    public ProcessInstance startSalesProcess(Contract contract, String actorAccountId);
+    public NonMultitenancyProcessInstance startSalesProcess(NonMultitenancyContract contract, String actorAccountId);
 
     public void offerContract(String contractId, String actorAccountId);
 
@@ -448,8 +452,8 @@ Each method:
 
 The endpoint only needs to:
 
-- Call `salesProcessBean.offerContract(contractId, accountId)` for `POST /api/public/contracts/{id}/offer`.
-- Call `salesProcessBean.acceptContract(contractId, accountId)` for `POST /api/public/contracts/{id}/accept`.
+- Call `salesProcessService.offerContract(contractId, accountId)` for `POST /api/public/contracts/{id}/offer`.
+- Call `salesProcessService.acceptContract(contractId, accountId)` for `POST /api/public/contracts/{id}/accept`.
 
 ### DRAFT Semantics
 
@@ -508,19 +512,20 @@ The caller can only view contracts linked to their own account. The endpoint mus
 
 When duplicating entities, remove only the `@TenantId` annotation and the corresponding `organisationId` setter logic. Keep the same table mappings, column names, relationships, and Envers `@Audited` annotations so that the duplicated entities read and write the same physical rows.
 
-### Product Code Prefix Handling
+### Code Prefix Handling
 
-Introduce a helper class (e.g. `ProductCodeCodec`) in the `non_multitenancy.product` package:
+Prefixing is handled by `OrgScopedCodec` in `dev.abstratium.core.service`:
 
 ```java
-public final class ProductCodeCodec {
-    public static String encode(String orgId, String rawProductCode);
-    public static String decode(String storedValue); // returns raw product code
-    public static String extractOrgId(String storedValue);
+public final class OrgScopedCodec {
+    public static String encode(String orgId, String rawCode, String context);
+    public static String decode(String storedValue, String context);
+    public static String extractOrgId(String storedValue, String context);
+    public static boolean isPrefixed(String value);
 }
 ```
 
-Use this codec consistently in the service layer. Never expose prefixed values in boundary DTOs.
+The `context` string (e.g. `"Product"`, `"Part"`, `"Conditions"`) is included in validation error messages. Use this codec consistently for product, part, and terms-and-conditions codes. Never expose prefixed values in boundary DTOs.
 
 ### Process Instance Ownership
 
@@ -564,49 +569,49 @@ Use this codec consistently in the service layer. Never expose prefixed values i
 
 ### Utilities
 
-- [x] Implement `ProductCodeCodec` (`encode`, `decode`, `extractOrgId`) in `product.service`.
-- [x] Update the existing tenant-scoped product definition create/update logic to store prefixed product codes.
+- [x] Implement generic `OrgScopedCodec` (`encode`, `decode`, `extractOrgId`, `isPrefixed`) in `dev.abstratium.core.service`; replaces the earlier `ProductCodeCodec`.
+- [x] Update the existing tenant-scoped product definition create/update logic to store prefixed product, part, and terms codes.
 
 ### Services
 
 - [x] `NonMultitenancyOrganisationResolutionService` — resolve and validate seller `orgId` from prefixed product codes.
-- [ ] `NonMultitenancyCustomerProductInstanceService` — instantiate product and part trees, enforce cardinality and choice-group constraints, calculate line totals.
-- [ ] `NonMultitenancyCustomerContractService` — orchestrate contract create/update, link `ContractAccountRole`, resolve terms links, delegate state transitions to `SalesProcessBean`.
-- [ ] Update `SalesProcessBean` to add `startSalesProcess`, `offerContract`, and `acceptContract` methods operating via non-tenant entities.
+- [x] `NonMultitenancyCustomerProductInstanceService` — instantiate product and part trees, enforce cardinality and choice-group constraints, calculate line totals.
+- [x] `NonMultitenancyCustomerContractService` — orchestrate contract create/update, link `ContractAccountRole`, resolve terms links, delegate state transitions to `SalesProcessService`.
+- [x] `SalesProcessService` provides `startSalesProcess`, `offerContract`, and `acceptContract` methods operating via non-tenant entities.
 
 ### DTOs
 
-- [ ] `NonMultitenancyCreateCustomerContractRequest` / `UpdateCustomerContractRequest`
-- [ ] `NonMultitenancyCustomerLineItemRequest`
-- [ ] `NonMultitenancyPartInstanceRequest` / `PartInstanceAttributeRequest`
-- [ ] `NonMultitenancyCustomerContractSummary`
-- [ ] `NonMultitenancyCustomerContractResponse` / `CustomerContractLineItemResponse`
+- [x] `CreateCustomerContractRequest`
+- [x] `CustomerLineItemRequest`
+- [x] `PartInstanceRequest` / `PartInstanceAttributeRequest`
+- [x] `CustomerContractSummary`
+- [x] `CustomerContractResponse` / `CustomerContractLineItemResponse`
 
 ### REST Resource
 
-- [ ] Implement `NonMultitenancyCustomerContractResource` under `/api/public/contracts`:
-  - [ ] `POST /` — create draft (resolve seller `orgId`, set `CurrentOrgContext`, call service)
-  - [ ] `GET /` — list caller's contracts (non-tenant query, scoped by `sub`)
-  - [ ] `GET /{id}` — get single contract (non-tenant query, verify ownership)
-  - [ ] `PUT /{id}` — update draft
-  - [ ] `DELETE /{id}/line-items/{lineItemId}` — remove line item
-  - [ ] `POST /{id}/offer` — delegate to `salesProcessBean.offerContract`
-  - [ ] `POST /{id}/accept` — delegate to `salesProcessBean.acceptContract`
-- [ ] Ensure resource methods are **not** `@Transactional`; set `CurrentOrgContext` before calling any `@Transactional` service.
+- [x] Implement `NonMultitenancyCustomerContractResource` under `/api/public/contracts`:
+  - [x] `POST /` — create draft (resolve seller `orgId`, set `CurrentOrgContext`, call service)
+  - [x] `GET /` — list caller's contracts (non-tenant query, scoped by `sub`)
+  - [x] `GET /{id}` — get single contract (non-tenant query, verify ownership)
+  - [x] `PUT /{id}` — update draft
+  - [x] `DELETE /{id}/line-items/{lineItemId}` — remove line item
+  - [x] `POST /{id}/offer` — delegate to `salesProcessService.offerContract`
+  - [x] `POST /{id}/accept` — delegate to `salesProcessService.acceptContract`
+- [x] Resource methods are **not** `@Transactional`; `CurrentOrgContext` is set before calling any `@Transactional` service.
 
 ### Security
 
-- [ ] Protect all endpoints with role `abstratium-abstrapact_user`.
-- [ ] Scope all list/get queries to the caller's `sub` claim via `T_contract_account_role`.
+- [x] Protect all endpoints with role `abstratium-abstrapact_user`.
+- [x] Scope all list/get queries to the caller's `sub` claim via `T_contract_account_role`.
 
 ### Tests
 
-- [ ] Unit tests for `ProductCodeCodec` (encode, decode, extractOrgId, malformed input).
-- [ ] Integration tests (`@QuarkusTest`) for:
-  - [ ] Organisation resolution: mixed seller orgs → 422; `crossTenantApiAllowed = false` → 422.
-  - [ ] Contract create: happy path; invalid part cardinality; violated choice-group constraints.
-  - [ ] Contract update and line-item deletion (DRAFT only).
-  - [ ] State transitions: DRAFT → OFFERED → ACCEPTED; invalid transitions rejected.
-  - [ ] Account scoping: customer cannot read another customer's contracts.
-  - [ ] `ProductCodeCodec` round-trip in service layer.
+- [x] Unit tests for `OrgScopedCodec` (encode, decode, extractOrgId, malformed input, context-aware errors).
+- [x] Integration tests (`@QuarkusTest`) for:
+  - [x] Organisation resolution: mixed seller orgs → 422; `crossTenantApiAllowed = false` → 422.
+  - [x] Contract create: happy path; invalid part cardinality; violated choice-group constraints.
+  - [x] Contract update and line-item deletion (DRAFT only).
+  - [x] State transitions: DRAFT → OFFERED → ACCEPTED; invalid transitions rejected.
+  - [x] Account scoping: customer cannot read another customer's contracts.
+  - [x] `OrgScopedCodec` round-trip in service layer.
 

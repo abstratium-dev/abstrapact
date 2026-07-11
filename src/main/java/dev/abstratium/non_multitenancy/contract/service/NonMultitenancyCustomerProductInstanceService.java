@@ -6,6 +6,7 @@ import dev.abstratium.product.non_multitenancy.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 
@@ -46,6 +47,7 @@ public class NonMultitenancyCustomerProductInstanceService {
      * @param sellerOrgId the seller organisation id to stamp on every persisted entity
      * @return the persisted product instance
      */
+    @Transactional
     public NonMultitenancyProductInstance createProductInstance(
             NonMultitenancyProductDefinition productDefinition,
             List<PartInstanceRequest> partInstanceRequests,
