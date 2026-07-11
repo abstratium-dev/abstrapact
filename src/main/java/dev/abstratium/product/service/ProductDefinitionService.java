@@ -1,6 +1,7 @@
 package dev.abstratium.product.service;
 
 import dev.abstratium.core.service.CurrentOrgContext;
+import dev.abstratium.core.service.OrgScopedCodec;
 import dev.abstratium.product.boundary.dto.*;
 import dev.abstratium.product.entity.*;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -26,14 +27,14 @@ public class ProductDefinitionService {
     // ==================== Product Definition ====================
 
     private String prefixedCode(String rawCode) {
-        if (rawCode != null && rawCode.contains("::")) {
+        if (OrgScopedCodec.isPrefixed(rawCode)) {
             return rawCode;
         }
         String orgId = currentOrgContext.getOrgId();
         if (orgId == null || orgId.isBlank()) {
             orgId = defaultOrgId;
         }
-        return ProductCodeCodec.encode(orgId, rawCode);
+        return OrgScopedCodec.encode(orgId, rawCode, "Product");
     }
 
     @Transactional
@@ -45,6 +46,7 @@ public class ProductDefinitionService {
             definition.setPaymentModel(ProductDefinition.PaymentModel.PREPAID);
         }
         definition.setProductCode(prefixedCode(definition.getProductCode()));
+        definition.setTermsAndConditionsCode(prefixedTacCode(definition.getTermsAndConditionsCode()));
         em.persist(definition);
         return definition;
     }
@@ -58,6 +60,7 @@ public class ProductDefinitionService {
                 : ProductDefinition.PaymentModel.PREPAID);
         }
         definition.setProductCode(prefixedCode(definition.getProductCode()));
+        definition.setTermsAndConditionsCode(prefixedTacCode(definition.getTermsAndConditionsCode()));
         return em.merge(definition);
     }
 
@@ -123,7 +126,7 @@ public class ProductDefinitionService {
         product.setPaymentModel(request.getPaymentModel() != null ? request.getPaymentModel() : ProductDefinition.PaymentModel.PREPAID);
         product.setProductValidFrom(request.getProductValidFrom());
         product.setProductValidUntil(request.getProductValidUntil());
-        product.setTermsAndConditionsCode(request.getTermsAndConditionsCode());
+        product.setTermsAndConditionsCode(prefixedTacCode(request.getTermsAndConditionsCode()));
         em.persist(product);
 
         if (request.getParts() != null) {
@@ -148,7 +151,7 @@ public class ProductDefinitionService {
         product.setPaymentModel(request.getPaymentModel() != null ? request.getPaymentModel() : product.getPaymentModel());
         product.setProductValidFrom(request.getProductValidFrom());
         product.setProductValidUntil(request.getProductValidUntil());
-        product.setTermsAndConditionsCode(request.getTermsAndConditionsCode());
+        product.setTermsAndConditionsCode(prefixedTacCode(request.getTermsAndConditionsCode()));
         product = em.merge(product);
 
         // Delete existing parts and recreate
@@ -254,12 +257,37 @@ public class ProductDefinitionService {
         return response;
     }
 
+    private String prefixedPartCode(String rawCode) {
+        if (OrgScopedCodec.isPrefixed(rawCode)) {
+            return rawCode;
+        }
+        String orgId = currentOrgContext.getOrgId();
+        if (orgId == null || orgId.isBlank()) {
+            orgId = defaultOrgId;
+        }
+        return OrgScopedCodec.encode(orgId, rawCode, "Part");
+    }
+
+    private String prefixedTacCode(String rawCode) {
+        if (rawCode == null || rawCode.isBlank()) {
+            return rawCode;
+        }
+        if (OrgScopedCodec.isPrefixed(rawCode)) {
+            return rawCode;
+        }
+        String orgId = currentOrgContext.getOrgId();
+        if (orgId == null || orgId.isBlank()) {
+            orgId = defaultOrgId;
+        }
+        return OrgScopedCodec.encode(orgId, rawCode, "Conditions");
+    }
+
     // ==================== Part Management ====================
 
     private PartDefinition createPartRecursive(ProductDefinition product, PartRequest request, PartDefinition parentPart) {
         PartDefinition part = new PartDefinition();
         part.setId(request.getId() != null ? request.getId() : UUID.randomUUID().toString());
-        part.setPartCode(request.getPartCode());
+        part.setPartCode(prefixedPartCode(request.getPartCode()));
         part.setDescription(request.getDescription());
         part.setUnitPrice(request.getUnitPrice() != null ? request.getUnitPrice() : java.math.BigDecimal.ZERO);
         part.setDisplayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0);
@@ -357,12 +385,14 @@ public class ProductDefinitionService {
         if (part.getId() == null) {
             part.setId(UUID.randomUUID().toString());
         }
+        part.setPartCode(prefixedPartCode(part.getPartCode()));
         em.persist(part);
         return part;
     }
 
     @Transactional
     public PartDefinition updatePart(PartDefinition part) {
+        part.setPartCode(prefixedPartCode(part.getPartCode()));
         return em.merge(part);
     }
 

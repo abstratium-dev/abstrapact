@@ -1,5 +1,6 @@
 package dev.abstratium.product.service;
 
+import dev.abstratium.core.service.OrgScopedCodec;
 import dev.abstratium.product.boundary.dto.*;
 import dev.abstratium.product.entity.PartAttributeDefinition;
 import dev.abstratium.product.entity.PartDefinition;
@@ -31,7 +32,15 @@ class ProductDefinitionServiceTest {
     String defaultOrgId;
 
     private String pc(String raw) {
-        return ProductCodeCodec.encode(defaultOrgId, raw);
+        return OrgScopedCodec.encode(defaultOrgId, raw, "Product");
+    }
+
+    private String ppc(String raw) {
+        return OrgScopedCodec.encode(defaultOrgId, raw, "Part");
+    }
+
+    private String ptac(String raw) {
+        return OrgScopedCodec.encode(defaultOrgId, raw, "Conditions");
     }
 
     @Inject
@@ -97,7 +106,7 @@ class ProductDefinitionServiceTest {
         assertNotNull(created.getId());
         assertEquals(pc("PROD-NEW"), created.getProductCode());
         assertEquals("New Test Product", created.getDescription());
-        assertEquals("ABSTRATIUM-001", created.getTermsAndConditionsCode());
+        assertEquals(ptac("ABSTRATIUM-001"), created.getTermsAndConditionsCode());
         assertEquals(ProductDefinition.BillingModel.FIXED_PRICE, created.getBillingModel());
     }
 
@@ -277,7 +286,7 @@ class ProductDefinitionServiceTest {
             // Verify parts were created
             List<PartDefinition> productParts = service.findPartsByProductId(created.getId());
             assertEquals(1, productParts.size());
-            assertEquals("PART-001", productParts.get(0).getPartCode());
+            assertEquals(ppc("PART-001"), productParts.get(0).getPartCode());
 
             // Verify attributes
             List<PartAttributeDefinition> attributes = service.findAttributesByPartId(productParts.get(0).getId());
@@ -349,7 +358,7 @@ class ProductDefinitionServiceTest {
             // Verify parts were replaced
             List<PartDefinition> productParts = service.findPartsByProductId(productId);
             assertEquals(1, productParts.size());
-            assertEquals("UPDATED-PART", productParts.get(0).getPartCode());
+            assertEquals(ppc("UPDATED-PART"), productParts.get(0).getPartCode());
         } catch (Exception e) {
             userTransaction.rollback();
             throw e;
@@ -431,11 +440,11 @@ class ProductDefinitionServiceTest {
             userTransaction.commit();
 
             assertNotNull(created.getId());
-            assertEquals("INDEPENDENT-PART", created.getPartCode());
+            assertEquals(ppc("INDEPENDENT-PART"), created.getPartCode());
 
             Optional<PartDefinition> found = service.findPartById(created.getId());
             assertTrue(found.isPresent());
-            assertEquals("INDEPENDENT-PART", found.get().getPartCode());
+            assertEquals(ppc("INDEPENDENT-PART"), found.get().getPartCode());
         } catch (Exception e) {
             userTransaction.rollback();
             throw e;

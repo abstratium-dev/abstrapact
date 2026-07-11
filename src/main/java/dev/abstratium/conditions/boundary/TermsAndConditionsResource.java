@@ -1,5 +1,6 @@
 package dev.abstratium.conditions.boundary;
 
+import dev.abstratium.abstrapact.Roles;
 import dev.abstratium.conditions.boundary.dto.TermsAndConditionsCodeSummary;
 import dev.abstratium.conditions.entity.TermsAndConditions;
 import dev.abstratium.conditions.service.TermsAndConditionsService;
@@ -16,7 +17,7 @@ import java.util.Optional;
 
 @Path("/api/terms-and-conditions")
 @Tag(name = "Terms and Conditions", description = "Operations for managing terms and conditions documents")
-@RolesAllowed("abstratium-abstrapact_user")
+@RolesAllowed(Roles.USER)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class TermsAndConditionsResource {

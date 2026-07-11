@@ -64,6 +64,10 @@ public class NonMultitenancyContract {
     @JsonIgnore
     private List<NonMultitenancySignatory> signatories = new ArrayList<>();
 
+    @OneToMany(mappedBy = "contract", cascade = CascadeType.REMOVE)
+    @JsonIgnore
+    private List<NonMultitenancyContractAccountRole> accountRoles = new ArrayList<>();
+
     public NonMultitenancyContract() {
     }
 
@@ -177,6 +181,14 @@ public class NonMultitenancyContract {
 
     public void setSignatories(List<NonMultitenancySignatory> signatories) {
         this.signatories = signatories;
+    }
+
+    public List<NonMultitenancyContractAccountRole> getAccountRoles() {
+        return accountRoles;
+    }
+
+    public void setAccountRoles(List<NonMultitenancyContractAccountRole> accountRoles) {
+        this.accountRoles = accountRoles;
     }
 
     public enum PaymentModel {

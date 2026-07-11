@@ -1,5 +1,6 @@
 package dev.abstratium.contracts.boundary;
 
+import dev.abstratium.abstrapact.Roles;
 import dev.abstratium.conditions.entity.Contract;
 import dev.abstratium.conditions.entity.ContractState;
 import dev.abstratium.contracts.boundary.dto.ContractSummary;
@@ -19,7 +20,7 @@ import java.util.Optional;
 
 @Path("/api/contracts")
 @Tag(name = "Contracts", description = "Operations for managing contracts")
-@RolesAllowed("abstratium-abstrapact_user")
+@RolesAllowed(Roles.USER)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class ContractResource {

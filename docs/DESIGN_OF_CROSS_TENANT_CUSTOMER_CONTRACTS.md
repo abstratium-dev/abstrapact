@@ -564,12 +564,12 @@ Use this codec consistently in the service layer. Never expose prefixed values i
 
 ### Utilities
 
-- [x] Implement `ProductCodeCodec` (`encode`, `decode`, `extractOrgId`) in `non_multitenancy.product`.
+- [x] Implement `ProductCodeCodec` (`encode`, `decode`, `extractOrgId`) in `product.service`.
 - [x] Update the existing tenant-scoped product definition create/update logic to store prefixed product codes.
 
 ### Services
 
-- [ ] `NonMultitenancyOrganisationResolutionService` — resolve and validate seller `orgId` from prefixed product codes.
+- [x] `NonMultitenancyOrganisationResolutionService` — resolve and validate seller `orgId` from prefixed product codes.
 - [ ] `NonMultitenancyCustomerProductInstanceService` — instantiate product and part trees, enforce cardinality and choice-group constraints, calculate line totals.
 - [ ] `NonMultitenancyCustomerContractService` — orchestrate contract create/update, link `ContractAccountRole`, resolve terms links, delegate state transitions to `SalesProcessBean`.
 - [ ] Update `SalesProcessBean` to add `startSalesProcess`, `offerContract`, and `acceptContract` methods operating via non-tenant entities.

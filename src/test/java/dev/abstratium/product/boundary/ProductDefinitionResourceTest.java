@@ -4,7 +4,7 @@ import dev.abstratium.product.boundary.dto.*;
 import dev.abstratium.product.entity.PartAttributeDefinition;
 import dev.abstratium.product.entity.PartDefinition;
 import dev.abstratium.product.entity.ProductDefinition;
-import dev.abstratium.product.service.ProductCodeCodec;
+import dev.abstratium.core.service.OrgScopedCodec;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -31,7 +31,15 @@ class ProductDefinitionResourceTest {
     String defaultOrgId;
 
     private String pc(String raw) {
-        return ProductCodeCodec.encode(defaultOrgId, raw);
+        return OrgScopedCodec.encode(defaultOrgId, raw, "Product");
+    }
+
+    private String ppc(String raw) {
+        return OrgScopedCodec.encode(defaultOrgId, raw, "Part");
+    }
+
+    private String ptac(String raw) {
+        return OrgScopedCodec.encode(defaultOrgId, raw, "Conditions");
     }
 
     @Test
@@ -57,7 +65,7 @@ class ProductDefinitionResourceTest {
             .body("productCode", equalTo(pc(productCode)))
             .body("description", equalTo("Test Product Description"))
             .body("billingModel", equalTo("FIXED_PRICE"))
-            .body("termsAndConditionsCode", equalTo("ABSTRATIUM-001"))
+            .body("termsAndConditionsCode", equalTo(ptac("ABSTRATIUM-001")))
             .body("id", notNullValue())
             .extract()
             .path("id");
@@ -486,7 +494,7 @@ class ProductDefinitionResourceTest {
             .statusCode(201)
             .body("productCode", equalTo(pc(productCode)))
             .body("description", equalTo("Complete Product via REST"))
-            .body("termsAndConditionsCode", equalTo("ABSTRATIUM-001"))
+            .body("termsAndConditionsCode", equalTo(ptac("ABSTRATIUM-001")))
             .body("id", notNullValue())
             .extract()
             .path("id");
@@ -498,7 +506,7 @@ class ProductDefinitionResourceTest {
             .then()
             .statusCode(200)
             .body("$", hasSize(1))
-            .body("[0].partCode", equalTo("REST-PART-001"));
+            .body("[0].partCode", equalTo(ppc("REST-PART-001")));
     }
 
     @Test
@@ -565,7 +573,7 @@ class ProductDefinitionResourceTest {
             .then()
             .statusCode(200)
             .body("$", hasSize(1))
-            .body("[0].partCode", equalTo("UPDATED-PART"));
+            .body("[0].partCode", equalTo(ppc("UPDATED-PART")));
     }
 
     @Test
@@ -732,7 +740,7 @@ class ProductDefinitionResourceTest {
             .post("/api/product-definitions/" + productId + "/parts")
             .then()
             .statusCode(201)
-            .body("partCode", equalTo("ADDED-PART"))
+            .body("partCode", equalTo(ppc("ADDED-PART")))
             .body("id", notNullValue());
     }
 
@@ -974,14 +982,14 @@ class ProductDefinitionResourceTest {
             .body("productCode", equalTo(pc(productCode)))
             .body("description", equalTo("Complete Product Test"))
             .body("parts", hasSize(1))
-            .body("parts[0].partCode", equalTo("ROOT-PART"))
+            .body("parts[0].partCode", equalTo(ppc("ROOT-PART")))
             .body("parts[0].unitPrice", equalTo(100.00f))
             .body("parts[0].attributes", hasSize(1))
             .body("parts[0].attributes[0].attributeName", equalTo("COLOR"))
             .body("parts[0].attributes[0].allowedValues", hasSize(2))
             .body("parts[0].attributes[0].allowedValues[0].allowedValue", equalTo("RED"))
             .body("parts[0].childParts", hasSize(1))
-            .body("parts[0].childParts[0].partCode", equalTo("CHILD-PART"))
+            .body("parts[0].childParts[0].partCode", equalTo(ppc("CHILD-PART")))
             .body("parts[0].childParts[0].unitPrice", equalTo(50.00f));
     }
 

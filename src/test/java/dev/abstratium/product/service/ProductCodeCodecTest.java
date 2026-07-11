@@ -1,5 +1,6 @@
 package dev.abstratium.product.service;
 
+import dev.abstratium.core.service.OrgScopedCodec;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -12,71 +13,93 @@ class ProductCodeCodecTest {
 
     @Test
     void encodeProducesOrgColonColonRawCode() {
-        assertEquals(ENCODED, ProductCodeCodec.encode(ORG, RAW));
+        assertEquals(ENCODED, OrgScopedCodec.encode(ORG, RAW, "Product"));
     }
 
     @Test
     void decodeReturnsRawCode() {
-        assertEquals(RAW, ProductCodeCodec.decode(ENCODED));
+        assertEquals(RAW, OrgScopedCodec.decode(ENCODED, "Product"));
     }
 
     @Test
     void extractOrgIdReturnsOrg() {
-        assertEquals(ORG, ProductCodeCodec.extractOrgId(ENCODED));
+        assertEquals(ORG, OrgScopedCodec.extractOrgId(ENCODED, "Product"));
     }
 
     @Test
     void encodeDecodeRoundTrip() {
-        String encoded = ProductCodeCodec.encode(ORG, RAW);
-        assertEquals(RAW, ProductCodeCodec.decode(encoded));
-        assertEquals(ORG, ProductCodeCodec.extractOrgId(encoded));
+        String encoded = OrgScopedCodec.encode(ORG, RAW, "Product");
+        assertEquals(RAW, OrgScopedCodec.decode(encoded, "Product"));
+        assertEquals(ORG, OrgScopedCodec.extractOrgId(encoded, "Product"));
     }
 
     @Test
     void decodeHandlesRawCodeContainingDoubleColon() {
         String rawWithSep = "PLAN::PREMIUM";
-        String encoded = ProductCodeCodec.encode(ORG, rawWithSep);
-        assertEquals(rawWithSep, ProductCodeCodec.decode(encoded));
-        assertEquals(ORG, ProductCodeCodec.extractOrgId(encoded));
+        String encoded = OrgScopedCodec.encode(ORG, rawWithSep, "Product");
+        assertEquals(rawWithSep, OrgScopedCodec.decode(encoded, "Product"));
+        assertEquals(ORG, OrgScopedCodec.extractOrgId(encoded, "Product"));
     }
 
     @Test
     void encodeThrowsOnNullOrgId() {
-        assertThrows(IllegalArgumentException.class, () -> ProductCodeCodec.encode(null, RAW));
+        assertThrows(IllegalArgumentException.class, () -> OrgScopedCodec.encode(null, RAW, "Product"));
     }
 
     @Test
     void encodeThrowsOnBlankOrgId() {
-        assertThrows(IllegalArgumentException.class, () -> ProductCodeCodec.encode("  ", RAW));
+        assertThrows(IllegalArgumentException.class, () -> OrgScopedCodec.encode("  ", RAW, "Product"));
     }
 
     @Test
     void encodeThrowsOnNullRawCode() {
-        assertThrows(IllegalArgumentException.class, () -> ProductCodeCodec.encode(ORG, null));
+        assertThrows(IllegalArgumentException.class, () -> OrgScopedCodec.encode(ORG, null, "Product"));
     }
 
     @Test
     void encodeThrowsOnBlankRawCode() {
-        assertThrows(IllegalArgumentException.class, () -> ProductCodeCodec.encode(ORG, ""));
+        assertThrows(IllegalArgumentException.class, () -> OrgScopedCodec.encode(ORG, "", "Product"));
     }
 
     @Test
     void decodeThrowsOnNull() {
-        assertThrows(IllegalArgumentException.class, () -> ProductCodeCodec.decode(null));
+        assertThrows(IllegalArgumentException.class, () -> OrgScopedCodec.decode(null, "Product"));
     }
 
     @Test
     void decodeThrowsOnUnprefixedCode() {
-        assertThrows(IllegalArgumentException.class, () -> ProductCodeCodec.decode("PLAIN-CODE"));
+        assertThrows(IllegalArgumentException.class, () -> OrgScopedCodec.decode("PLAIN-CODE", "Product"));
     }
 
     @Test
     void extractOrgIdThrowsOnNull() {
-        assertThrows(IllegalArgumentException.class, () -> ProductCodeCodec.extractOrgId(null));
+        assertThrows(IllegalArgumentException.class, () -> OrgScopedCodec.extractOrgId(null, "Product"));
     }
 
     @Test
     void extractOrgIdThrowsOnUnprefixedCode() {
-        assertThrows(IllegalArgumentException.class, () -> ProductCodeCodec.extractOrgId("PLAIN-CODE"));
+        assertThrows(IllegalArgumentException.class, () -> OrgScopedCodec.extractOrgId("PLAIN-CODE", "Product"));
+    }
+
+    @Test
+    void isPrefixedReturnsTrueForPrefixedValue() {
+        assertTrue(OrgScopedCodec.isPrefixed(ENCODED));
+    }
+
+    @Test
+    void isPrefixedReturnsFalseForRawCode() {
+        assertFalse(OrgScopedCodec.isPrefixed(RAW));
+    }
+
+    @Test
+    void isPrefixedReturnsFalseForNull() {
+        assertFalse(OrgScopedCodec.isPrefixed(null));
+    }
+
+    @Test
+    void contextAppearsInErrorMessage() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            () -> OrgScopedCodec.decode("PLAIN-CODE", "Part"));
+        assertTrue(ex.getMessage().contains("Part"));
     }
 }

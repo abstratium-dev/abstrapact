@@ -1,5 +1,6 @@
 package dev.abstratium.core.boundary;
 
+import dev.abstratium.abstrapact.Roles;
 import dev.abstratium.core.entity.Config;
 import dev.abstratium.core.service.ConfigService;
 import jakarta.annotation.security.RolesAllowed;
@@ -12,7 +13,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 @Path("/api/config")
 @Tag(name = "Config", description = "Organisation configuration management")
-@RolesAllowed("abstratium-abstrapact_user")
+@RolesAllowed(Roles.USER)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class ConfigResource {

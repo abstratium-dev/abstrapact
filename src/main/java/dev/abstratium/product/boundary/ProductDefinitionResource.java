@@ -7,6 +7,7 @@ import dev.abstratium.product.entity.PartDefinition;
 import dev.abstratium.product.entity.ProductDefinition;
 import dev.abstratium.product.service.ProductDefinitionService;
 import jakarta.annotation.security.RolesAllowed;
+import dev.abstratium.abstrapact.Roles;
 import dev.abstratium.core.service.CurrentOrgContext;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -21,7 +22,7 @@ import java.util.Optional;
 
 @Path("/api/product-definitions")
 @Tag(name = "Product Definitions", description = "Operations for managing product definitions")
-@RolesAllowed("abstratium-abstrapact_user")
+@RolesAllowed(Roles.USER)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class ProductDefinitionResource {
