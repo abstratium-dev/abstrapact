@@ -4,8 +4,10 @@ import dev.abstratium.product.boundary.dto.*;
 import dev.abstratium.product.entity.PartAttributeDefinition;
 import dev.abstratium.product.entity.PartDefinition;
 import dev.abstratium.product.entity.ProductDefinition;
+import dev.abstratium.product.service.ProductCodeCodec;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import io.restassured.RestAssured;
 import io.restassured.config.EncoderConfig;
 import io.restassured.http.ContentType;
@@ -24,6 +26,13 @@ import static org.hamcrest.Matchers.hasSize;
 
 @QuarkusTest
 class ProductDefinitionResourceTest {
+
+    @ConfigProperty(name = "default.org.uuid")
+    String defaultOrgId;
+
+    private String pc(String raw) {
+        return ProductCodeCodec.encode(defaultOrgId, raw);
+    }
 
     @Test
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
@@ -45,7 +54,7 @@ class ProductDefinitionResourceTest {
             .post("/api/product-definitions")
             .then()
             .statusCode(201)
-            .body("productCode", equalTo(productCode))
+            .body("productCode", equalTo(pc(productCode)))
             .body("description", equalTo("Test Product Description"))
             .body("billingModel", equalTo("FIXED_PRICE"))
             .body("termsAndConditionsCode", equalTo("ABSTRATIUM-001"))
@@ -59,16 +68,16 @@ class ProductDefinitionResourceTest {
             .then()
             .statusCode(200)
             .body("id", equalTo(id))
-            .body("productCode", equalTo(productCode))
+            .body("productCode", equalTo(pc(productCode)))
             .body("description", equalTo("Test Product Description"));
 
         given()
             .when()
-            .get("/api/product-definitions/code/" + productCode)
+            .get("/api/product-definitions/code/" + pc(productCode))
             .then()
             .statusCode(200)
             .body("id", equalTo(id))
-            .body("productCode", equalTo(productCode));
+            .body("productCode", equalTo(pc(productCode)));
     }
 
     @Test
@@ -226,7 +235,7 @@ class ProductDefinitionResourceTest {
             .post("/api/product-definitions/import/yaml")
             .then()
             .statusCode(201)
-            .body("productCode", equalTo(productCode))
+            .body("productCode", equalTo(pc(productCode)))
             .body("description", equalTo("Imported from YAML"))
             .body("billingModel", equalTo("SUBSCRIPTION"));
     }
@@ -258,7 +267,7 @@ class ProductDefinitionResourceTest {
             .then()
             .statusCode(200)
             .contentType("application/x-yaml")
-            .body(containsString("product_code: " + productCode))
+            .body(containsString("product_code: " + pc(productCode)))
             .body(containsString("description: Export Test"))
             .body(containsString("billing_model: FIXED_PRICE"));
     }
@@ -375,7 +384,7 @@ class ProductDefinitionResourceTest {
             .post("/api/product-definitions/import/yaml")
             .then()
             .statusCode(201)
-            .body("productCode", equalTo(productCode));
+            .body("productCode", equalTo(pc(productCode)));
     }
 
     @Test
@@ -407,7 +416,7 @@ class ProductDefinitionResourceTest {
             .statusCode(200)
             .contentType("application/x-yaml")
             .body(containsString("valid_until:"))
-            .body(containsString("product_code: " + productCode));
+            .body(containsString("product_code: " + pc(productCode)));
     }
 
     @Test
@@ -475,7 +484,7 @@ class ProductDefinitionResourceTest {
             .post("/api/product-definitions/complete")
             .then()
             .statusCode(201)
-            .body("productCode", equalTo(productCode))
+            .body("productCode", equalTo(pc(productCode)))
             .body("description", equalTo("Complete Product via REST"))
             .body("termsAndConditionsCode", equalTo("ABSTRATIUM-001"))
             .body("id", notNullValue())
@@ -962,7 +971,7 @@ class ProductDefinitionResourceTest {
             .get("/api/product-definitions/" + id + "/complete")
             .then()
             .statusCode(200)
-            .body("productCode", equalTo(productCode))
+            .body("productCode", equalTo(pc(productCode)))
             .body("description", equalTo("Complete Product Test"))
             .body("parts", hasSize(1))
             .body("parts[0].partCode", equalTo("ROOT-PART"))

@@ -1,11 +1,13 @@
 package dev.abstratium.product.service;
 
+import dev.abstratium.core.service.CurrentOrgContext;
 import dev.abstratium.product.boundary.dto.*;
 import dev.abstratium.product.entity.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.*;
 
@@ -15,7 +17,24 @@ public class ProductDefinitionService {
     @Inject
     EntityManager em;
 
+    @Inject
+    CurrentOrgContext currentOrgContext;
+
+    @ConfigProperty(name = "default.org.uuid")
+    String defaultOrgId;
+
     // ==================== Product Definition ====================
+
+    private String prefixedCode(String rawCode) {
+        if (rawCode != null && rawCode.contains("::")) {
+            return rawCode;
+        }
+        String orgId = currentOrgContext.getOrgId();
+        if (orgId == null || orgId.isBlank()) {
+            orgId = defaultOrgId;
+        }
+        return ProductCodeCodec.encode(orgId, rawCode);
+    }
 
     @Transactional
     public ProductDefinition createProductDefinition(ProductDefinition definition) {
@@ -25,6 +44,7 @@ public class ProductDefinitionService {
         if (definition.getPaymentModel() == null) {
             definition.setPaymentModel(ProductDefinition.PaymentModel.PREPAID);
         }
+        definition.setProductCode(prefixedCode(definition.getProductCode()));
         em.persist(definition);
         return definition;
     }
@@ -37,6 +57,7 @@ public class ProductDefinitionService {
                 ? existing.getPaymentModel()
                 : ProductDefinition.PaymentModel.PREPAID);
         }
+        definition.setProductCode(prefixedCode(definition.getProductCode()));
         return em.merge(definition);
     }
 
@@ -86,13 +107,17 @@ public class ProductDefinitionService {
         return count > 0;
     }
 
+    public boolean existsByRawProductCode(String rawProductCode) {
+        return existsByProductCode(prefixedCode(rawProductCode));
+    }
+
     // ==================== Complete Product with Parts ====================
 
     @Transactional
     public ProductDefinition createCompleteProduct(ProductDefinitionRequest request) {
         ProductDefinition product = new ProductDefinition();
         product.setId(UUID.randomUUID().toString());
-        product.setProductCode(request.getProductCode());
+        product.setProductCode(prefixedCode(request.getProductCode()));
         product.setDescription(request.getDescription());
         product.setBillingModel(request.getBillingModel());
         product.setPaymentModel(request.getPaymentModel() != null ? request.getPaymentModel() : ProductDefinition.PaymentModel.PREPAID);
@@ -117,7 +142,7 @@ public class ProductDefinitionService {
             throw new IllegalArgumentException("Product not found: " + id);
         }
 
-        product.setProductCode(request.getProductCode());
+        product.setProductCode(prefixedCode(request.getProductCode()));
         product.setDescription(request.getDescription());
         product.setBillingModel(request.getBillingModel());
         product.setPaymentModel(request.getPaymentModel() != null ? request.getPaymentModel() : product.getPaymentModel());

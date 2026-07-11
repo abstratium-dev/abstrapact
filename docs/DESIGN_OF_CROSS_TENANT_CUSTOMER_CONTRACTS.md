@@ -565,7 +565,7 @@ Use this codec consistently in the service layer. Never expose prefixed values i
 ### Utilities
 
 - [x] Implement `ProductCodeCodec` (`encode`, `decode`, `extractOrgId`) in `non_multitenancy.product`.
-- [ ] Update the existing tenant-scoped product definition create/update logic to store prefixed product codes.
+- [x] Update the existing tenant-scoped product definition create/update logic to store prefixed product codes.
 
 ### Services
 

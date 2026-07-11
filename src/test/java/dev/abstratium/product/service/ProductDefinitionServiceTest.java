@@ -6,9 +6,11 @@ import dev.abstratium.product.entity.PartDefinition;
 import dev.abstratium.product.entity.ProductDefinition;
 import dev.abstratium.test.TestDataCleaner;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.UserTransaction;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,13 @@ import static org.junit.jupiter.api.Assertions.*;
 @QuarkusTest
 class ProductDefinitionServiceTest {
 
+    @ConfigProperty(name = "default.org.uuid")
+    String defaultOrgId;
+
+    private String pc(String raw) {
+        return ProductCodeCodec.encode(defaultOrgId, raw);
+    }
+
     @Inject
     ProductDefinitionService service;
 
@@ -38,6 +47,7 @@ class ProductDefinitionServiceTest {
     TestDataCleaner cleaner;
 
     @BeforeEach
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
     void setUp() {
         // Create test products using the service which handles transactions
         ProductDefinition product1 = new ProductDefinition();
@@ -85,7 +95,7 @@ class ProductDefinitionServiceTest {
         ProductDefinition created = service.createProductDefinition(product);
 
         assertNotNull(created.getId());
-        assertEquals("PROD-NEW", created.getProductCode());
+        assertEquals(pc("PROD-NEW"), created.getProductCode());
         assertEquals("New Test Product", created.getDescription());
         assertEquals("ABSTRATIUM-001", created.getTermsAndConditionsCode());
         assertEquals(ProductDefinition.BillingModel.FIXED_PRICE, created.getBillingModel());
@@ -105,10 +115,10 @@ class ProductDefinitionServiceTest {
 
     @Test
     void shouldFindByProductCode() {
-        Optional<ProductDefinition> found = service.findByProductCode("PROD-001");
+        Optional<ProductDefinition> found = service.findByProductCode(pc("PROD-001"));
 
         assertTrue(found.isPresent());
-        assertEquals("PROD-001", found.get().getProductCode());
+        assertEquals(pc("PROD-001"), found.get().getProductCode());
         assertEquals("Test Product 1", found.get().getDescription());
     }
 
@@ -130,14 +140,14 @@ class ProductDefinitionServiceTest {
 
     @Test
     void shouldCheckExistenceByProductCode() {
-        assertTrue(service.existsByProductCode("PROD-001"));
-        assertTrue(service.existsByProductCode("PROD-002"));
-        assertFalse(service.existsByProductCode("NON-EXISTENT"));
+        assertTrue(service.existsByProductCode(pc("PROD-001")));
+        assertTrue(service.existsByProductCode(pc("PROD-002")));
+        assertFalse(service.existsByProductCode(pc("NON-EXISTENT")));
     }
 
     @Test
     void shouldUpdateProductDefinition() throws Exception {
-        Optional<ProductDefinition> existing = service.findByProductCode("PROD-001");
+        Optional<ProductDefinition> existing = service.findByProductCode(pc("PROD-001"));
         assertTrue(existing.isPresent());
 
         ProductDefinition product = existing.get();
@@ -161,7 +171,7 @@ class ProductDefinitionServiceTest {
 
     @Test
     void shouldDeleteProductDefinition() {
-        Optional<ProductDefinition> existing = service.findByProductCode("PROD-001");
+        Optional<ProductDefinition> existing = service.findByProductCode(pc("PROD-001"));
         assertTrue(existing.isPresent());
 
         String id = existing.get().getId();
@@ -262,7 +272,7 @@ class ProductDefinitionServiceTest {
             userTransaction.commit();
 
             assertNotNull(created.getId());
-            assertEquals("COMPLETE-PROD-001", created.getProductCode());
+            assertEquals(pc("COMPLETE-PROD-001"), created.getProductCode());
 
             // Verify parts were created
             List<PartDefinition> productParts = service.findPartsByProductId(created.getId());
@@ -655,7 +665,7 @@ class ProductDefinitionServiceTest {
             userTransaction.commit();
 
             assertNotNull(created.getId());
-            assertEquals("NO-PARTS-001", created.getProductCode());
+            assertEquals(pc("NO-PARTS-001"), created.getProductCode());
 
             // Verify no parts exist
             List<PartDefinition> productParts = service.findPartsByProductId(created.getId());

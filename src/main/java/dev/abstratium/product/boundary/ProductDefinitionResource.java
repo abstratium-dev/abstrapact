@@ -67,7 +67,7 @@ public class ProductDefinitionResource {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity("Product code is required").build();
         }
-        if (service.existsByProductCode(definition.getProductCode())) {
+        if (service.existsByRawProductCode(definition.getProductCode())) {
             return Response.status(Response.Status.CONFLICT)
                 .entity("Product code already exists").build();
         }
@@ -110,7 +110,7 @@ public class ProductDefinitionResource {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity("Product code is required").build();
         }
-        if (service.existsByProductCode(request.getProductCode())) {
+        if (service.existsByRawProductCode(request.getProductCode())) {
             return Response.status(Response.Status.CONFLICT)
                 .entity("Product code already exists").build();
         }
@@ -301,7 +301,7 @@ public class ProductDefinitionResource {
     @Operation(summary = "Import a product definition from YAML")
     public Response importFromYaml(String yamlContent) {
         ProductDefinition definition = parseYamlToProductDefinition(yamlContent);
-        if (service.existsByProductCode(definition.getProductCode())) {
+        if (service.existsByRawProductCode(definition.getProductCode())) {
             return Response.status(Response.Status.CONFLICT)
                 .entity("Product code already exists").build();
         }

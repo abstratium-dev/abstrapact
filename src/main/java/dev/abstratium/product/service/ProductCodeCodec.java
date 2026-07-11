@@ -1,4 +1,4 @@
-package dev.abstratium.product.non_multitenancy;
+package dev.abstratium.product.service;
 
 public final class ProductCodeCodec {
 
