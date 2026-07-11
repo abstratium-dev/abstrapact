@@ -1,0 +1,141 @@
+package dev.abstratium.conditions.non_multitenancy;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import org.hibernate.envers.Audited;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "T_terms_and_conditions")
+@Audited
+public class NonMultitenancyTermsAndConditions {
+
+    @Id
+    @Column(name = "id", length = 36)
+    private String id;
+
+    @Column(name = "organisation_id", length = 36, nullable = false)
+    private String organisationId;
+
+    @Column(name = "code", length = 50, nullable = false)
+    private String code;
+
+    @Column(name = "title", length = 255)
+    private String title;
+
+    @Column(name = "content_fr", columnDefinition = "TEXT")
+    private String contentFr;
+
+    @Column(name = "content_de", columnDefinition = "TEXT")
+    private String contentDe;
+
+    @Column(name = "content_en", columnDefinition = "TEXT")
+    private String contentEn;
+
+    @Column(name = "current_version", length = 50)
+    private String currentVersion;
+
+    @Column(name = "effective_from")
+    private LocalDate effectiveFrom;
+
+    @Column(name = "effective_until")
+    private LocalDate effectiveUntil;
+
+    @OneToMany(mappedBy = "termsAndConditions")
+    @JsonIgnore
+    private List<NonMultitenancyContractTermsLink> contractTermsLinks = new ArrayList<>();
+
+    public NonMultitenancyTermsAndConditions() {
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getOrganisationId() {
+        return organisationId;
+    }
+
+    public void setOrganisationId(String organisationId) {
+        this.organisationId = organisationId;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getContentFr() {
+        return contentFr;
+    }
+
+    public void setContentFr(String contentFr) {
+        this.contentFr = contentFr;
+    }
+
+    public String getContentDe() {
+        return contentDe;
+    }
+
+    public void setContentDe(String contentDe) {
+        this.contentDe = contentDe;
+    }
+
+    public String getContentEn() {
+        return contentEn;
+    }
+
+    public void setContentEn(String contentEn) {
+        this.contentEn = contentEn;
+    }
+
+    public String getCurrentVersion() {
+        return currentVersion;
+    }
+
+    public void setCurrentVersion(String currentVersion) {
+        this.currentVersion = currentVersion;
+    }
+
+    public LocalDate getEffectiveFrom() {
+        return effectiveFrom;
+    }
+
+    public void setEffectiveFrom(LocalDate effectiveFrom) {
+        this.effectiveFrom = effectiveFrom;
+    }
+
+    public LocalDate getEffectiveUntil() {
+        return effectiveUntil;
+    }
+
+    public void setEffectiveUntil(LocalDate effectiveUntil) {
+        this.effectiveUntil = effectiveUntil;
+    }
+
+    public List<NonMultitenancyContractTermsLink> getContractTermsLinks() {
+        return contractTermsLinks;
+    }
+
+    public void setContractTermsLinks(List<NonMultitenancyContractTermsLink> contractTermsLinks) {
+        this.contractTermsLinks = contractTermsLinks;
+    }
+}

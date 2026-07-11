@@ -544,27 +544,27 @@ Use this codec consistently in the service layer. Never expose prefixed values i
 
 ### Prerequisites
 
-- [ ] **Choice group support** — implement `T_part_definition_choice_group` table, `choice_group_id` FK on `T_part_definition`, and corresponding entities/migrations before any cross-tenant work begins (see `Implementation Notes` above).
+- [x] **Choice group support** — implement `T_part_definition_choice_group` table, `choice_group_id` FK on `T_part_definition`, and corresponding entities/migrations before any cross-tenant work begins (see `Implementation Notes` above). Done in `V01.022`.
 
-### Database Migrations (next available: `V01.019`)
+### Database Migrations
 
-- [ ] **V01.019** — add `cross_tenant_api_allowed BOOLEAN NOT NULL DEFAULT FALSE` column to `T_product_definition` and `T_product_definition_AUD`.
-- [ ] **V01.020** — create `T_contract_account_role` and `T_contract_account_role_AUD` tables with indexes and FK constraints.
-- [ ] **Prefix existing product codes** — one-off data migration to prepend `{orgId}::` to all existing `T_product_definition.product_code` values.
+- [x] **V01.019** — add `cross_tenant_api_allowed BOOLEAN NOT NULL DEFAULT FALSE` column to `T_product_definition` and `T_product_definition_AUD`. Also widens `product_code` to `VARCHAR(100)`.
+- [x] **V01.020** — create `T_contract_account_role` and `T_contract_account_role_AUD` tables with indexes and FK constraints.
+- [x] **V01.021** — **Prefix existing product codes** — one-off data migration to prepend `{orgId}::` to all existing `T_product_definition.product_code` values.
 
 ### Domain Model
 
-- [ ] Add `crossTenantApiAllowed` field to the existing `ProductDefinition` entity.
-- [ ] Create `ContractAccountRole` entity (in `dev.abstratium.conditions.entity`) with `RoleType.CUSTOMER` enum.
-- [ ] Create all `NonMultitenancy*` entity copies (remove `@TenantId`; keep table mappings, column names, relationships, and `@Audited`):
-  - [ ] `product`: `ProductDefinition`, `PartDefinition`, `PartDefinitionChoiceGroup`, `PartDefinitionAttribute`, `ProductInstance`, `PartInstance`, `PartInstanceAttribute`
-  - [ ] `conditions`: `Contract`, `ContractLineItem`, `ContractTermsLink`, `TermsAndConditions`, `Signatory`
-  - [ ] `process`: `ProcessInstance`, `ProcessInstanceStep`
-  - [ ] `core`: `Config`
+- [x] Add `crossTenantApiAllowed` field to the existing `ProductDefinition` entity.
+- [x] Create `ContractAccountRole` entity (in `dev.abstratium.conditions.entity`) with `RoleType.CUSTOMER` enum.
+- [x] Create all `NonMultitenancy*` entity copies (remove `@TenantId`; keep table mappings, column names, relationships, and `@Audited`):
+  - [x] `product`: `ProductDefinition`, `PartDefinition`, `PartDefinitionChoiceGroup`, `PartAttributeDefinition`, `ProductInstance`, `PartInstance`, `PartInstanceAttribute`
+  - [x] `conditions`: `Contract`, `ContractLineItem`, `ContractTermsLink`, `TermsAndConditions`, `Signatory`
+  - [x] `process`: `ProcessInstance`, `ProcessInstanceStep`
+  - [x] `core`: `Config`
 
 ### Utilities
 
-- [ ] Implement `ProductCodeCodec` (`encode`, `decode`, `extractOrgId`) in `non_multitenancy.product`.
+- [x] Implement `ProductCodeCodec` (`encode`, `decode`, `extractOrgId`) in `non_multitenancy.product`.
 - [ ] Update the existing tenant-scoped product definition create/update logic to store prefixed product codes.
 
 ### Services

@@ -1,8 +1,7 @@
-package dev.abstratium.product.entity;
+package dev.abstratium.product.non_multitenancy;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import org.hibernate.annotations.TenantId;
 import org.hibernate.envers.Audited;
 
 import java.math.BigDecimal;
@@ -12,29 +11,28 @@ import java.util.List;
 @Entity
 @Table(name = "T_part_definition")
 @Audited
-public class PartDefinition {
+public class NonMultitenancyPartDefinition {
 
     @Id
     @Column(name = "id", length = 36)
     private String id;
 
-    @TenantId
     @Column(name = "organisation_id", length = 36, nullable = false)
     private String organisationId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_definition_id", nullable = false)
     @JsonIgnore
-    private ProductDefinition productDefinition;
+    private NonMultitenancyProductDefinition productDefinition;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_part_definition_id")
     @JsonIgnore
-    private PartDefinition parentPart;
+    private NonMultitenancyPartDefinition parentPart;
 
     @OneToMany(mappedBy = "parentPart", cascade = CascadeType.REMOVE)
     @JsonIgnore
-    private List<PartDefinition> childParts = new ArrayList<>();
+    private List<NonMultitenancyPartDefinition> childParts = new ArrayList<>();
 
     @Column(name = "part_code", length = 50, nullable = false)
     private String partCode;
@@ -56,21 +54,17 @@ public class PartDefinition {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "choice_group_id")
-    private PartDefinitionChoiceGroup choiceGroup;
+    private NonMultitenancyPartDefinitionChoiceGroup choiceGroup;
 
     @OneToMany(mappedBy = "parentPartDefinition", cascade = CascadeType.REMOVE)
     @JsonIgnore
-    private List<PartDefinitionChoiceGroup> choiceGroups = new ArrayList<>();
+    private List<NonMultitenancyPartDefinitionChoiceGroup> choiceGroups = new ArrayList<>();
 
     @OneToMany(mappedBy = "partDefinition", cascade = CascadeType.REMOVE)
     @JsonIgnore
-    private List<PartAttributeDefinition> attributes = new ArrayList<>();
+    private List<NonMultitenancyPartAttributeDefinition> attributes = new ArrayList<>();
 
-    @OneToMany(mappedBy = "partDefinition")
-    @JsonIgnore
-    private List<PartInstance> partInstances = new ArrayList<>();
-
-    public PartDefinition() {
+    public NonMultitenancyPartDefinition() {
     }
 
     public String getId() {
@@ -89,27 +83,27 @@ public class PartDefinition {
         this.organisationId = organisationId;
     }
 
-    public ProductDefinition getProductDefinition() {
+    public NonMultitenancyProductDefinition getProductDefinition() {
         return productDefinition;
     }
 
-    public void setProductDefinition(ProductDefinition productDefinition) {
+    public void setProductDefinition(NonMultitenancyProductDefinition productDefinition) {
         this.productDefinition = productDefinition;
     }
 
-    public PartDefinition getParentPart() {
+    public NonMultitenancyPartDefinition getParentPart() {
         return parentPart;
     }
 
-    public void setParentPart(PartDefinition parentPart) {
+    public void setParentPart(NonMultitenancyPartDefinition parentPart) {
         this.parentPart = parentPart;
     }
 
-    public List<PartDefinition> getChildParts() {
+    public List<NonMultitenancyPartDefinition> getChildParts() {
         return childParts;
     }
 
-    public void setChildParts(List<PartDefinition> childParts) {
+    public void setChildParts(List<NonMultitenancyPartDefinition> childParts) {
         this.childParts = childParts;
     }
 
@@ -161,35 +155,27 @@ public class PartDefinition {
         this.maxCardinality = maxCardinality;
     }
 
-    public PartDefinitionChoiceGroup getChoiceGroup() {
+    public NonMultitenancyPartDefinitionChoiceGroup getChoiceGroup() {
         return choiceGroup;
     }
 
-    public void setChoiceGroup(PartDefinitionChoiceGroup choiceGroup) {
+    public void setChoiceGroup(NonMultitenancyPartDefinitionChoiceGroup choiceGroup) {
         this.choiceGroup = choiceGroup;
     }
 
-    public List<PartDefinitionChoiceGroup> getChoiceGroups() {
+    public List<NonMultitenancyPartDefinitionChoiceGroup> getChoiceGroups() {
         return choiceGroups;
     }
 
-    public void setChoiceGroups(List<PartDefinitionChoiceGroup> choiceGroups) {
+    public void setChoiceGroups(List<NonMultitenancyPartDefinitionChoiceGroup> choiceGroups) {
         this.choiceGroups = choiceGroups;
     }
 
-    public List<PartAttributeDefinition> getAttributes() {
+    public List<NonMultitenancyPartAttributeDefinition> getAttributes() {
         return attributes;
     }
 
-    public void setAttributes(List<PartAttributeDefinition> attributes) {
+    public void setAttributes(List<NonMultitenancyPartAttributeDefinition> attributes) {
         this.attributes = attributes;
-    }
-
-    public List<PartInstance> getPartInstances() {
-        return partInstances;
-    }
-
-    public void setPartInstances(List<PartInstance> partInstances) {
-        this.partInstances = partInstances;
     }
 }

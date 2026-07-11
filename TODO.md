@@ -11,14 +11,10 @@
 
 ## Today
 
-- implement choice groups on `PartDefinition` so that mutually exclusive alternatives can be validated by the non-multitenant API. see `DESIGN_OF_PRODUCTS.md` for the model (`T_part_definition_choice_group`, `choice_group_id`, `minChoices`, `maxChoices`) and create the corresponding Flyway migration and JPA entities.
-
 - delete CreateDraftContractRequest and co, as they aren't needed except for the NonMultitenant API. there are probably a few such DTOs, defo an endpoint and maybe a service class or two
 
 - orgId to be taken from productId which is a query parameter or header that overrides the orgId taken from elsewhere in @JwtOrgResolver. 
-  - this should depend on the URL! only "public" urls should allow the product to determine the org so that when managing definitions or instances, the user cannot do cross org stuff.
-
-- e2e test for product management.
+  - this should depend on the URL! only "cross tenant" urls should allow the product to determine the org so that when managing definitions or instances, the user cannot do cross org stuff.
 
 - default: data is managed for the orgId from your cert
 - special case: create an offer using the productId
@@ -27,13 +23,11 @@
 
 - T&Cs should include policy on what we do with their data to be EU GDPR and Swiss DSG conform
 
-- connect product to t&c - or how is that in the design docs?
-
-- implement contract and the process to work thru the states.
-
 - how to deal with overlaps in t&c? return a warning when loading t&c. logic during contract creation is to take the newest version with the given code.
 
 - T @V01.005__createTermsAndConditionsTable.sql has a unique constraint on the code - the code is allowed to be duplicated, but the service needs to check when an update / create / delete is being done, that for a given code, there are no gaps between the conditions. take all the conditions with the same code (within the tenant organisation) and ensure that there are no gaps between the conditions. the "chain" can be open ended, left and right on the time axis. no dates means it is valid from the beginning of time until forever
+
+- the t&c unique constraint on code also needs to prepend and remove the orgId so that different orgs can use the same code
 
 - contract t&c must state that the contract only comes into effect once the status reaches x and it is no longer in effect once status y is reached.
 
@@ -42,10 +36,7 @@
 
 - map product to GTC? or contract? whatever, do that.
 
-- add contract and states
-
-- add sales process including steps to show the process instances to org users
-
+- implement logic and UI for choice groups - see PartDefinitionChoiceGroup
 
 - do not allow products or their parts or attributes to be modified or deleted if instances exist for the product definition.
 
