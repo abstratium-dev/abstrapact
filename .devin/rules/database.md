@@ -11,6 +11,8 @@ The database follows strict naming conventions for consistency and clarity:
 - **Primary Keys**: Always named `id` using VARCHAR(36) for UUID storage
 - **Timestamps**: Use `created_at` and `expires_at` naming pattern
 
+Database foreign keys must never use ON DELETE CASCADE or ON DELETE SET NULL. Lifecycle deletion and relationship changes must occur through managed JPA entities so that Hibernate Envers can audit them.
+
 SQL files must support MySQL (production) and H2 (testing).
 
 When creating DDL scripts, don't forget to check if there are also hibernate envers AUD tables that also need creating/updating.

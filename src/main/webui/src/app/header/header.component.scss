@@ -44,7 +44,7 @@
 
 .header-right {
     a {
-        color: var(--color-link-primary);
+        color: var(--color-link) !important;
         text-decoration: none;
         transition: color 0.2s ease;
 
@@ -56,10 +56,11 @@
         &.inactive-link {
             color: var(--color-text-primary);
             cursor: default;
-            
+            text-decoration: none !important;
+
             &:hover {
                 color: var(--color-text-primary);
-                text-decoration: none;
+                text-decoration: none !important;
             }
         }
     }

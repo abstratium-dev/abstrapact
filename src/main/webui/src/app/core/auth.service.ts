@@ -228,6 +228,8 @@ export class AuthService {
         this.token = ANONYMOUS;
         this.token.isAuthenticated = false;
         this.token$.set(this.token);
+        this.sessionFraction$.set(1);
+        this.sessionMinutesRemaining$.set(0);
         this.stopSessionCountdown();
     }
 

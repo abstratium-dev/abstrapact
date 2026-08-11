@@ -1,6 +1,5 @@
 package dev.abstratium.core.filter;
 
-import dev.abstratium.core.service.CurrentOrgContext;
 import io.quarkus.oidc.IdToken;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.inject.Instance;
@@ -8,13 +7,13 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
-import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.ext.Provider;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
 
+import dev.abstratium.core.service.CurrentOrgContext;
+
 import java.io.IOException;
-import java.util.Base64;
 
 /**
  * Resolves the {@code orgId} claim from the authenticated JWT and stores it in
@@ -43,16 +42,17 @@ public class OrgIdResolutionFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
+        currentOrgContext.setRequestPath(requestContext.getUriInfo().getPath());
+        currentOrgContext.setRequestMethod(requestContext.getMethod());
+
         String orgId = extractOrgIdFromIdToken();
         if (orgId == null) {
             orgId = extractOrgIdFromAccessToken();
         }
-        if (orgId == null) {
-            orgId = extractOrgIdFromHeader(requestContext);
-        }
         if (orgId != null && !orgId.isBlank()) {
             currentOrgContext.setOrgId(orgId);
             log.debugv("Resolved orgId={0} for request {1}", orgId, requestContext.getUriInfo().getPath());
+            return;
         }
     }
 
@@ -90,31 +90,4 @@ public class OrgIdResolutionFilter implements ContainerRequestFilter {
         return null;
     }
 
-    private String extractOrgIdFromHeader(ContainerRequestContext requestContext) {
-        String authHeader = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
-        String token = authHeader.substring(7);
-        try {
-            String[] parts = token.split("\\.");
-            if (parts.length != 3) {
-                return null;
-            }
-            String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
-            int start = payload.indexOf("\"orgId\":\"");
-            if (start == -1) {
-                return null;
-            }
-            start += 9;
-            int end = payload.indexOf("\"", start);
-            if (end == -1) {
-                return null;
-            }
-            return payload.substring(start, end);
-        } catch (Exception e) {
-            log.debug("Failed to extract orgId from Authorization header JWT", e);
-            return null;
-        }
-    }
 }

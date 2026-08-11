@@ -8,7 +8,7 @@ export interface ToastAction {
 export interface Toast {
   id: number;
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
   duration: number;
   action?: ToastAction;
 }
@@ -22,7 +22,7 @@ export class ToastService {
 
   toasts$: Signal<Toast[]> = this.toasts.asReadonly();
 
-  show(message: string, type: 'success' | 'error' | 'info' = 'info', duration: number = 5000, action?: ToastAction): void {
+  show(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info', duration: number = 5000, action?: ToastAction): void {
     const id = this.nextId++;
     const toast: Toast = { id, message, type, duration, action };
     
@@ -45,6 +45,10 @@ export class ToastService {
 
   info(message: string, duration: number = 5000): void {
     this.show(message, 'info', duration);
+  }
+
+  warning(message: string, duration: number = 7000): void {
+    this.show(message, 'warning', duration);
   }
 
   remove(id: number): void {

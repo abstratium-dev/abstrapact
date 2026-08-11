@@ -1,6 +1,5 @@
 package dev.abstratium.core.filter;
 
-import dev.abstratium.core.service.CurrentOrgContext;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.oidc.Claim;
@@ -8,8 +7,11 @@ import io.quarkus.test.security.oidc.OidcSecurity;
 import jakarta.enterprise.inject.Instance;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.UriInfo;
+
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.junit.jupiter.api.Test;
+
+import dev.abstratium.core.service.CurrentOrgContext;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -19,6 +21,8 @@ import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -37,22 +41,6 @@ public class OrgIdResolutionFilterTest {
     })
     void filter_withOidcSecurityOrgId_resolvesFromToken() {
         given()
-                .when()
-                .get("/api/test/org-id")
-                .then()
-                .statusCode(200)
-                .body(org.hamcrest.Matchers.is(TEST_ORG_ID));
-    }
-
-    @Test
-    @TestSecurity(user = "testuser", roles = {"jwt-test-user"})
-    @OidcSecurity(claims = {
-            @Claim(key = "sub", value = "testuser")
-    })
-    void filter_withNoOidcSecurityOrgIdAndBearerHeader_resolvesFromHeader() {
-        String token = buildBearerToken("{\"sub\":\"testuser\",\"orgId\":\"" + TEST_ORG_ID + "\"}");
-        given()
-                .header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/test/org-id")
                 .then()
@@ -227,7 +215,7 @@ public class OrgIdResolutionFilterTest {
         when(requestContext.getHeaderString("Authorization")).thenReturn("Bearer " + token);
 
         filter.filter(requestContext);
-        assertEquals(TEST_ORG_ID, ctx.getOrgId());
+        assertNull(ctx.getOrgId());
     }
 
     @Test
@@ -413,7 +401,7 @@ public class OrgIdResolutionFilterTest {
         when(requestContext.getHeaderString("Authorization")).thenReturn("Bearer " + token);
 
         filter.filter(requestContext);
-        assertEquals(TEST_ORG_ID, ctx.getOrgId());
+        assertNull(ctx.getOrgId());
     }
 
     @Test
@@ -482,7 +470,69 @@ public class OrgIdResolutionFilterTest {
         when(requestContext.getHeaderString("Authorization")).thenReturn("Bearer " + token);
 
         filter.filter(requestContext);
+        assertNull(ctx.getOrgId());
+    }
+
+    @Test
+    void filter_withBlankAccessTokenClaim_setsNothing() throws IOException {
+        CurrentOrgContext ctx = new CurrentOrgContext();
+        OrgIdResolutionFilter filter = new OrgIdResolutionFilter();
+        filter.currentOrgContext = ctx;
+
+        @SuppressWarnings("unchecked")
+        Instance<JsonWebToken> idToken = mock(Instance.class);
+        when(idToken.isResolvable()).thenReturn(false);
+        filter.idTokenInstance = idToken;
+
+        @SuppressWarnings("unchecked")
+        Instance<JsonWebToken> accessToken = mock(Instance.class);
+        JsonWebToken accessJwt = mock(JsonWebToken.class);
+        when(accessToken.isResolvable()).thenReturn(true);
+        when(accessToken.get()).thenReturn(accessJwt);
+        when(accessJwt.getClaim("orgId")).thenReturn(" ");
+        filter.accessTokenInstance = accessToken;
+
+        ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+        UriInfo uriInfo = mock(UriInfo.class);
+        when(requestContext.getUriInfo()).thenReturn(uriInfo);
+        when(uriInfo.getPath()).thenReturn("api/journals");
+
+        filter.filter(requestContext);
+
+        assertNull(ctx.getOrgId());
+    }
+
+    @Test
+    void filter_withConflictingTokenClaims_prefersIdToken() throws IOException {
+        CurrentOrgContext ctx = new CurrentOrgContext();
+        OrgIdResolutionFilter filter = new OrgIdResolutionFilter();
+        filter.currentOrgContext = ctx;
+
+        @SuppressWarnings("unchecked")
+        Instance<JsonWebToken> idToken = mock(Instance.class);
+        JsonWebToken idJwt = mock(JsonWebToken.class);
+        when(idToken.isResolvable()).thenReturn(true);
+        when(idToken.get()).thenReturn(idJwt);
+        when(idJwt.getClaim("orgId")).thenReturn(TEST_ORG_ID);
+        filter.idTokenInstance = idToken;
+
+        @SuppressWarnings("unchecked")
+        Instance<JsonWebToken> accessToken = mock(Instance.class);
+        JsonWebToken accessJwt = mock(JsonWebToken.class);
+        when(accessToken.isResolvable()).thenReturn(true);
+        when(accessToken.get()).thenReturn(accessJwt);
+        when(accessJwt.getClaim("orgId")).thenReturn("other-org");
+        filter.accessTokenInstance = accessToken;
+
+        ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+        UriInfo uriInfo = mock(UriInfo.class);
+        when(requestContext.getUriInfo()).thenReturn(uriInfo);
+        when(uriInfo.getPath()).thenReturn("api/journals");
+
+        filter.filter(requestContext);
+
         assertEquals(TEST_ORG_ID, ctx.getOrgId());
+        verify(accessToken, never()).isResolvable();
     }
 
     private String buildBearerToken(String payloadJson) {

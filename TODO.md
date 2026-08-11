@@ -62,6 +62,13 @@
   - pricing and discounts are private and should not leak out if the orgId doesn't match - this is a requirement for future PUBLIC interfaces used for b2c and b2b sales
 
 - add discounts to UI and simulator
+- update JWT/OIDC token verification settings (mp.jwt.verify.audiences, mp.jwt.verify.issuer) in all downstream abstracore-based repositories to match the abstrauth token issuer/audience per stage
+
+- use SecurityProblemLogger in all places where a security issue is detected
+
+- is this done? surely yes!
+  - add multitenancy by using the document MULTITENANCY_IMPLEMENTATION_CHECKLIST.md
+
 
 ## Tomorrow
 
