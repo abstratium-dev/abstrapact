@@ -1,6 +1,7 @@
 package dev.abstratium.test;
 
 import dev.abstratium.conditions.entity.Contract;
+import dev.abstratium.process.non_multitenancy.NonMultitenancyProcessInstance;
 import dev.abstratium.product.entity.ProductDefinition;
 import dev.abstratium.product.entity.ProductInstance;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -16,6 +17,7 @@ import java.util.List;
  * Deletes entities in dependency order, relying on JPA {@code CascadeType.REMOVE}
  * to handle child entities automatically:
  * <ul>
+ *   <li>{@code NonMultitenancyProcessInstance} (deleted first, has FK to Contract)</li>
  *   <li>{@code Contract} cascades to: {@code ContractLineItem}, {@code ContractTermsLink},
  *       {@code Signatory}, {@code ContractAccountRole}</li>
  *   <li>{@code ProductInstance} cascades to: {@code PartInstance} (and its children),
@@ -46,6 +48,7 @@ public class TestDataCleaner {
     public void deleteAll() throws Exception {
         userTransaction.begin();
         try {
+            removeAll(NonMultitenancyProcessInstance.class);
             removeAll(Contract.class);
             removeAll(ProductInstance.class);
             removeAll(ProductDefinition.class);

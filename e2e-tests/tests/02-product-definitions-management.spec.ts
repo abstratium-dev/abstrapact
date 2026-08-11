@@ -51,7 +51,7 @@ async function cleanupTestData(page: Page, codes: string[]) {
 
 // ─── Product Definitions Management Tests ───────────────────────────────────────
 
-test.describe('Product Definitions Management', () => {
+test.describe('02 Product Definitions Management', () => {
 
     test.beforeEach(async ({ page }: { page: Page }) => {
         page.on('console', msg => { if (msg.type() === 'error') console.log(`[Browser Error] ${msg.text()}`); });
@@ -150,9 +150,9 @@ test.describe('Product Definitions Management', () => {
         await assertPartExists(page, 'PART-001');
     });
 
-    // PD6: Duplicate product code must be rejected
-    test('PD6: duplicate product code is rejected', async ({ page }: { page: Page }) => {
-        const log = testStepLogger('PD6');
+    // PD2: Duplicate product code must be rejected
+    test('PD2: duplicate product code is rejected', async ({ page }: { page: Page }) => {
+        const log = testStepLogger('PD2');
         log('Navigate to product definitions list');
         await navigateToProductDefinitions(page);
         log('Open add product definition form');
@@ -185,9 +185,9 @@ test.describe('Product Definitions Management', () => {
         await assertFormErrorContains(page, 'already exists');
     });
 
-    // PD7: Invalid date range (valid until before valid from) must be rejected
-    test('PD7: invalid valid-until date is rejected', async ({ page }: { page: Page }) => {
-        const log = testStepLogger('PD7');
+    // PD3: Invalid date range (valid until before valid from) must be rejected
+    test('PD3: invalid valid-until date is rejected', async ({ page }: { page: Page }) => {
+        const log = testStepLogger('PD3');
         log('Navigate to product definitions list');
         await navigateToProductDefinitions(page);
         log('Open add product definition form');

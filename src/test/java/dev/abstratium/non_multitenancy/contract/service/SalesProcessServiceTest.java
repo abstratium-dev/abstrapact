@@ -91,9 +91,9 @@ class SalesProcessServiceTest {
 
     private NonMultitenancyProcessInstance loadProcess(String contractId) {
         return em.createQuery(
-                "SELECT p FROM NonMultitenancyProcessInstance p WHERE p.processName = :name",
+                "SELECT p FROM NonMultitenancyProcessInstance p WHERE p.contractId = :contractId",
                 NonMultitenancyProcessInstance.class)
-            .setParameter("name", "sales-process:" + contractId)
+            .setParameter("contractId", contractId)
             .getSingleResult();
     }
 
@@ -106,7 +106,8 @@ class SalesProcessServiceTest {
 
         assertEquals(ProcessInstanceState.IN_PROGRESS, process.getState());
         assertEquals(defaultOrgId, process.getOrganisationId());
-        assertEquals("sales-process:" + response.getId(), process.getProcessName());
+        assertEquals("sales-process", process.getProcessName());
+        assertEquals(response.getId(), process.getContractId());
         assertEquals("1.0", process.getProcessVersion());
     }
 

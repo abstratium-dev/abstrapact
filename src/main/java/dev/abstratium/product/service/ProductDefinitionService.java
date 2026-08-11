@@ -344,7 +344,33 @@ public class ProductDefinitionService {
     }
 
     private void deletePartsForProduct(ProductDefinition product) {
-        // First delete child parts (those with a parent)
+        // Delete part instances that reference this product's part definitions to avoid FK violations.
+        // Bulk JPQL deletes do not trigger cascades, so order matters.
+        String partDefSubquery = "SELECT pd.id FROM PartDefinition pd WHERE pd.productDefinition.id = :productId";
+
+        // 1. Delete part instance attributes
+        em.createQuery(
+                "DELETE FROM NonMultitenancyPartInstanceAttribute a " +
+                "WHERE a.partInstance.id IN (" +
+                "  SELECT pi.id FROM NonMultitenancyPartInstance pi WHERE pi.partDefinition.id IN (" + partDefSubquery + "))")
+            .setParameter("productId", product.getId())
+            .executeUpdate();
+
+        // 2. Delete child part instances first (self-referencing FK parent_part_instance_id)
+        em.createQuery(
+                "DELETE FROM NonMultitenancyPartInstance pi " +
+                "WHERE pi.partDefinition.id IN (" + partDefSubquery + ") AND pi.parentPartInstance IS NOT NULL")
+            .setParameter("productId", product.getId())
+            .executeUpdate();
+
+        // 3. Delete root part instances
+        em.createQuery(
+                "DELETE FROM NonMultitenancyPartInstance pi " +
+                "WHERE pi.partDefinition.id IN (" + partDefSubquery + ") AND pi.parentPartInstance IS NULL")
+            .setParameter("productId", product.getId())
+            .executeUpdate();
+
+        // Then delete child part definitions (those with a parent)
         List<PartDefinition> childParts = em.createQuery(
                 "SELECT p FROM PartDefinition p WHERE p.productDefinition.id = :productId AND p.parentPart IS NOT NULL",
                 PartDefinition.class)
@@ -355,7 +381,7 @@ public class ProductDefinitionService {
             em.remove(part);
         }
 
-        // Then delete parent parts (those without a parent)
+        // Then delete parent part definitions (those without a parent)
         List<PartDefinition> parentParts = em.createQuery(
                 "SELECT p FROM PartDefinition p WHERE p.productDefinition.id = :productId AND p.parentPart IS NULL",
                 PartDefinition.class)

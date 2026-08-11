@@ -20,6 +20,9 @@ public class NonMultitenancyProcessInstance {
     @Column(name = "organisation_id", length = 36, nullable = false)
     private String organisationId;
 
+    @Column(name = "contract_id", length = 36)
+    private String contractId;
+
     @Column(name = "process_name", length = 100, nullable = false)
     private String processName;
 
@@ -51,6 +54,14 @@ public class NonMultitenancyProcessInstance {
 
     public void setOrganisationId(String organisationId) {
         this.organisationId = organisationId;
+    }
+
+    public String getContractId() {
+        return contractId;
+    }
+
+    public void setContractId(String contractId) {
+        this.contractId = contractId;
     }
 
     public String getProcessName() {

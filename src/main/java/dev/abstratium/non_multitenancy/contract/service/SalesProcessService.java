@@ -18,13 +18,13 @@ import java.util.UUID;
 /**
  * Manages state transitions for the sales process.
  *
- * Each contract has an associated {@link NonMultitenancyProcessInstance} whose
- * {@code processName} is {@code "sales-process:<contractId>"}.
+ * Each contract has an associated {@link NonMultitenancyProcessInstance} with
+ * {@code processName} {@code "sales-process"} and {@code contractId} set to the contract's id.
  */
 @ApplicationScoped
 public class SalesProcessService {
 
-    private static final String PROCESS_NAME_PREFIX = "sales-process:";
+    private static final String PROCESS_NAME = "sales-process";
     private static final String PROCESS_VERSION = "1.0";
 
     @Inject
@@ -46,7 +46,8 @@ public class SalesProcessService {
         NonMultitenancyProcessInstance process = new NonMultitenancyProcessInstance();
         process.setId(UUID.randomUUID().toString());
         process.setOrganisationId(contract.getOrganisationId());
-        process.setProcessName(PROCESS_NAME_PREFIX + contract.getId());
+        process.setContractId(contract.getId());
+        process.setProcessName(PROCESS_NAME);
         process.setProcessVersion(PROCESS_VERSION);
         process.setState(ProcessInstanceState.IN_PROGRESS);
         em.persist(process);
@@ -115,9 +116,9 @@ public class SalesProcessService {
     private NonMultitenancyProcessInstance loadProcess(String contractId) {
         return em.createQuery(
                 "SELECT p FROM NonMultitenancyProcessInstance p " +
-                "WHERE p.processName = :name",
+                "WHERE p.contractId = :contractId",
                 NonMultitenancyProcessInstance.class)
-            .setParameter("name", PROCESS_NAME_PREFIX + contractId)
+            .setParameter("contractId", contractId)
             .getSingleResult();
     }
 

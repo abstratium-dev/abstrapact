@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, Page } from '@playwright/test';
 import { signInViaHeader, testStepLogger } from '../pages/test-helpers';
 import {
     navigateToTermsAndConditions,
@@ -7,7 +7,6 @@ import {
     assertOnTermsAndConditionsListPage,
     assertOnTermsAndConditionsFormPage,
     assertFormErrorContains,
-    assertNoFormError,
     assertTermsExists,
     deleteTermsByCode,
 } from '../pages/terms-and-conditions.page';
@@ -26,7 +25,7 @@ async function cleanupTestData(page: Page, codes: string[]) {
 
 // ─── Terms and Conditions Gap Validation Tests ────────────────────────────────
 
-test.describe('Terms and Conditions Gap Validation', () => {
+test.describe('01 Terms and Conditions Gap Validation', () => {
 
     test.beforeEach(async ({ page }: { page: Page }) => {
         await page.goto('/');

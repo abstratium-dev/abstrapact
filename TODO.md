@@ -11,6 +11,10 @@
 
 ## Today
 
+- add e2e 04 which asserts prices are correctly calculated
+
+- when calling stripe, add a uuid other than the contract id, which is generated and stored by abstrapact and which is not shown to any user. this way we can guarantee that when the callback comes, it was for our transaction. otherwise someone could create a draft, then use their own infrastructure to create a stripe callback and call us with it. altho... can they do that? we don't trust their payload because it isn't signed with the key that i really hope is unique per customer (ie i should have a key so that only i can verify the callback is for my application).
+
 - delete CreateDraftContractRequest and co, as they aren't needed except for the NonMultitenant API. there are probably a few such DTOs, defo an endpoint and maybe a service class or two
 
 - orgId to be taken from productId which is a query parameter or header that overrides the orgId taken from elsewhere in @JwtOrgResolver. 
@@ -31,6 +35,7 @@
 
 - contract t&c must state that the contract only comes into effect once the status reaches x and it is no longer in effect once status y is reached.
 
+- idempotency - see stripe docs
 
 - gutscheine! or a discount code? or unique discount codes as gutscheine?
 
