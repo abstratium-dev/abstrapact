@@ -1,33 +1,22 @@
 ## Testing with Discriminator-Based Multitenancy
 
-Entities use `@TenantId` on their `orgId` field. Org resolution uses a two-component design:
-
-1. **`OrgIdResolutionFilter`** — a JAX-RS `ContainerRequestFilter` that runs after authentication and extracts `orgId` from the authenticated JWT (OIDC ID token, MP-JWT Bearer access token, or raw Bearer header as fallback), then stores it in the request-scoped `CurrentOrgContext`.
-2. **`JwtOrgResolver`** — implements `TenantResolver`; reads `orgId` from `CurrentOrgContext`. Falls back to the configured default org (`default.org.uuid` config property) when no request context is active (e.g. in service tests).
-
-```mermaid
-sequenceDiagram
-    participant F as OrgIdResolutionFilter
-    participant C as CurrentOrgContext
-    participant R as JwtOrgResolver
-    participant H as Hibernate
-
-    F->>C: setOrgId(orgId from JWT)
-    H->>R: resolveTenantId()
-    R->>C: getOrgId()
-    R->>H: return orgId
-```
+Entities use `@TenantId` on their `orgId` field. `JwtOrgResolver` implements `TenantResolver`, extracting `orgId` from the JWT Bearer token at runtime, and falling back to the default org UUID when none is present. The default UUID is injected from the `default.org.uuid` configuration property and set via the `DEFAULT_ORG_UUID` environment variable before tests run. In dev/test mode it defaults to `00000000-0000-0000-0000-000000000000`.
 
 ### Required Configuration
 
 ```properties
 quarkus.hibernate-orm.multitenant=DISCRIMINATOR
-default.org.uuid=00000000-0000-0000-0000-000000000000
 ```
 
-### TenantResolver Pattern
+### Required TenantResolver Pattern
 
-`JwtOrgResolver` uses `Arc.container().requestContext().isActive()` to detect when no HTTP request context exists (e.g. in service tests), and falls back to `defaultOrgId`. **In production (`LaunchMode.NORMAL`) the fallback throws** — no request should silently resolve to the default tenant.
+`@PersistenceUnitExtension` + `@RequestScoped` with a try-catch fallback in `resolveTenantId()` is mandatory. Without the catch, `@QuarkusTest` service tests fail with:
+
+```
+HibernateException: SessionFactory configured for multi-tenancy, but no tenant identifier specified
+```
+
+This happens because no HTTP request context exists in service tests, so `request.getHeader()` throws. The catch block must return the default:
 
 ```java
 @PersistenceUnitExtension
@@ -37,8 +26,7 @@ public class JwtOrgResolver implements TenantResolver {
     @ConfigProperty(name = "default.org.uuid")
     String defaultOrgId;
 
-    @Inject
-    Instance<CurrentOrgContext> currentOrgContextInstance;
+    @Inject HttpServerRequest request;
 
     @Override
     public String getDefaultTenantId() { return defaultOrgId; }
@@ -46,42 +34,28 @@ public class JwtOrgResolver implements TenantResolver {
     @Override
     public String resolveTenantId() {
         try {
-            if (!Arc.container().requestContext().isActive()) {
-                return fallbackToDefault("request context not active");
-            }
-            if (currentOrgContextInstance != null && currentOrgContextInstance.isResolvable()) {
-                CurrentOrgContext ctx = currentOrgContextInstance.get();
-                if (ctx != null && ctx.getOrgId() != null && !ctx.getOrgId().isBlank()) {
-                    return ctx.getOrgId();
-                }
-            }
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) return defaultOrgId;
+            String orgId = extractOrgIdFromJwt(authHeader.substring(7));
+            return orgId != null ? orgId : defaultOrgId;
         } catch (Exception e) {
-            return fallbackToDefault("exception: " + e.getMessage());
+            return defaultOrgId;  // no HTTP context in service tests
         }
-        return defaultOrgId;
-    }
-
-    private String fallbackToDefault(String reason) {
-        if (LaunchMode.current() == LaunchMode.NORMAL) {
-            throw new IllegalStateException(
-                "Cannot resolve tenant in production without a valid request context. Reason: " + reason);
-        }
-        return defaultOrgId;  // dev/test only
     }
 }
 ```
 
 | Mistake | Result |
 |---------|--------|
-| Missing `@PersistenceUnitExtension` | Resolver not discovered |
-| Missing `quarkus.hibernate-orm.multitenant=DISCRIMINATOR` | `HibernateException` |
-| Returning `null` from `resolveTenantId()` | `HibernateException` |
+| No try-catch in `resolveTenantId()` | `HibernateException` in tests |
 | Not implementing `getDefaultTenantId()` | Runtime failure |
-| Missing `OrgIdResolutionFilter` (or `CurrentOrgContext` not populated) | All requests resolve to default org — data isolation silently broken |
+| Missing `@PersistenceUnitExtension` | Resolver not discovered |
+| Missing `quarkus.hibernate-orm.multitenant=DISCRIMINATOR` | `HibernateException` in tests |
+| Returning `null` from `resolveTenantId()` | `HibernateException` |
 
 ### Service Tests
 
-`@QuarkusTest` service tests work without any mocking — `Arc.container().requestContext().isActive()` returns `false` outside an HTTP request, so operations automatically land in the configured default org:
+`@QuarkusTest` service tests work without any mocking — operations automatically land in the default org defined by `default.org.uuid`:
 
 ```java
 @QuarkusTest
@@ -91,7 +65,7 @@ public class MyServiceTest {
     @Test
     @Transactional
     public void testCreate() {
-        // entity is persisted with org_id = default.org.uuid automatically
+        // entity is persisted with the default org UUID automatically
         MyEntity created = service.create(...);
         assertNotNull(created.getId());
     }
@@ -112,7 +86,7 @@ em.createNativeQuery(
     .executeUpdate();
 ```
 
-For REST API tests, set the tenant via a JWT with the `orgId` claim — `OrgIdResolutionFilter` extracts it from the Bearer token:
+For REST API tests, set the tenant via a JWT with the `orgId` claim:
 
 ```java
 private String generateToken(String accountId, String orgId, Set<String> groups) {
@@ -123,3 +97,4 @@ private String generateToken(String accountId, String orgId, Set<String> groups)
         .sign();
 }
 ```
+
