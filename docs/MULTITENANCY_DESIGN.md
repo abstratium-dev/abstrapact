@@ -87,18 +87,28 @@ Hibernate automatically appends `org_id = ?` to SELECT/UPDATE/DELETE by primary 
 
 **Never use JPQL/Criteria bulk UPDATE or DELETE on organisation-scoped entities.** Use per-row operations on loaded entities instead. Neither MySQL nor H2 supports native Row-Level Security.
 
-## Non-Multitenancy Package (`non_multitenancy`)
+## Non-Multitenant Package (`non_multitenancy`)
 
-The `src/main/java/dev/abstratium/.../non_multitenancy` package contains entity classes and services that **bypass Hibernate's discriminator-based multitenancy** (they do not use the `@TenantId` annotation). This separation is critical for maintaining security boundaries while enabling specific cross-tenant operations.
+`dev.abstratium.abstrapact.non_multitenancy` contains entity, boundary, and service classes that **bypass Hibernate's discriminator-based multitenancy** (they do not use the `@TenantId` annotation). This separation is critical for maintaining security boundaries while enabling specific cross-tenant operations. See `src/main/java/dev/abstratium/abstrapact/non_multitenancy/AGENTS.md` for the detailed usage rules.
 
 ### Package Structure
 
+All tenant-bound feature packages (`conditions`, `contracts`, `process`, `product`) live directly under `dev.abstratium.abstrapact`, each with their own `boundary` / `service` / `entity` subpackages using `@TenantId`. Cross-tenant capabilities are consolidated under a single sibling package:
+
 ```
-non_multitenancy/
-├── boundary/                              # Cross-tenant REST endpoints
-├── entity/                                # Cross-tenant JPA entites (no `@TenantId`) - enties normally mirror entity classes from normal packages
-└── service/                               # Cross-tenant service classes containing business logic
+dev.abstratium.abstrapact/
+├── conditions/{boundary,service,entity}   # @TenantId
+├── contracts/{boundary,service,entity}    # @TenantId
+├── process/entity                         # @TenantId
+├── product/{boundary,service,entity}      # @TenantId
+└── non_multitenancy/
+    └── sales/
+        ├── boundary/    # Cross-tenant REST endpoints (customer-facing contract/sales creation)
+        ├── service/     # Cross-tenant service classes containing business logic
+        └── entity/      # Cross-tenant JPA entities (no @TenantId) - mirror entities from the tenant-bound packages above
 ```
+
+Currently `sales` is the only cross-tenant capability, so it is the only subpackage of `non_multitenancy`. If a future feature needs its own cross-tenant bypass, add a new sibling subpackage (e.g. `non_multitenancy/<feature>`) rather than growing `sales` to cover unrelated concerns.
 
 ### Security Considerations
 

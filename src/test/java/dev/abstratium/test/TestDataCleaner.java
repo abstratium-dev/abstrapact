@@ -1,9 +1,9 @@
 package dev.abstratium.test;
 
-import dev.abstratium.conditions.entity.Contract;
-import dev.abstratium.process.non_multitenancy.NonMultitenancyProcessInstance;
-import dev.abstratium.product.entity.ProductDefinition;
-import dev.abstratium.product.entity.ProductInstance;
+import dev.abstratium.abstrapact.contracts.entity.Contract;
+import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyProcessInstance;
+import dev.abstratium.abstrapact.product.entity.ProductDefinition;
+import dev.abstratium.abstrapact.product.entity.ProductInstance;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;

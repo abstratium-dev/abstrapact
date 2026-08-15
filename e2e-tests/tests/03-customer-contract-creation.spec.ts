@@ -125,13 +125,13 @@ test.describe('03 Customer Contract Creation', () => {
         await expect(page.locator('#signout-link')).toBeVisible({ timeout: 15000 });
         console.log(`[CC1] New user signed in, current URL: ${page.url()}`);
 
-        // ── Step 4: POST /api/public/contracts as the new customer user ─────────
+        // ── Step 4: POST /api/public/sales/contracts as the new customer user ─────────
         log('Fetch CSRF token for the new user session');
         const csrfCookie = await page.context().cookies();
         const xsrfToken = csrfCookie.find(c => c.name === 'XSRF-TOKEN');
         console.log(`[CC1] XSRF-TOKEN cookie present: ${!!xsrfToken}`);
 
-        log('Create draft contract via POST /api/public/contracts');
+        log('Create draft contract via POST /api/public/sales/contracts');
         const contractRequest = {
             orgId: sellerOrgId,
             contractReference: `E2E-REF-${timestamp}`,
@@ -151,7 +151,7 @@ test.describe('03 Customer Contract Creation', () => {
             ],
         };
         console.log(`[CC1] Contract request:\n${JSON.stringify(contractRequest, null, 2)}`);
-        const contractResp = await page.request.post('/api/public/contracts', {
+        const contractResp = await page.request.post('/api/public/sales/contracts', {
             headers: xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {},
             data: contractRequest,
         });

@@ -27,52 +27,43 @@ The product instances and contracts are physically stored in the **seller's orga
 
 ## Package and Module Structure
 
-All new code lives under the root package `dev.abstratium.non_multitenancy`.
+All new code lives under the root package `dev.abstratium.abstrapact.non_multitenancy.sales`.
 
 ```
-dev.abstratium.non_multitenancy
-├── contract
-│   ├── boundary
-│   │   └── NonMultitenancyCustomerContractResource.java
-│   ├── boundary/dto
-│   │   ├── CreateCustomerContractRequest.java
-│   │   ├── CustomerContractSummary.java
-│   │   ├── CustomerContractResponse.java
-│   │   ├── CustomerLineItemRequest.java
-│   │   ├── PartInstanceRequest.java
-│   │   └── PartInstanceAttributeRequest.java
-│   ├── service
-│   │   ├── NonMultitenancyCustomerContractService.java
-│   │   ├── NonMultitenancyCustomerProductInstanceService.java
-│   │   ├── NonMultitenancyOrganisationResolutionService.java
-│   │   └── SalesProcessService.java
-│   └── entity
-│       └── NonMultitenancyContractAccountRole.java
-├── product
-│   ├── entity
-│   │   ├── NonMultitenancyProductDefinition.java        (copy, no @TenantId, includes crossTenantApiAllowed)
-│   │   ├── NonMultitenancyPartDefinition.java           (copy, no @TenantId, references choice group)
-│   │   ├── NonMultitenancyPartDefinitionChoiceGroup.java (copy, no @TenantId)
-│   │   ├── NonMultitenancyPartDefinitionAttribute.java    (copy, no @TenantId)
-│   │   ├── NonMultitenancyProductInstance.java          (copy, no @TenantId)
-│   │   ├── NonMultitenancyPartInstance.java             (copy, no @TenantId)
-│   │   └── NonMultitenancyPartInstanceAttribute.java    (copy, no @TenantId)
-│   └── service
-│       └── NonMultitenancyCustomerProductInstanceService.java
-├── conditions
-│   └── entity
-│       ├── NonMultitenancyContract.java                  (copy, no @TenantId)
-│       ├── NonMultitenancyContractLineItem.java          (copy, no @TenantId)
-│       ├── NonMultitenancyContractTermsLink.java         (copy, no @TenantId)
-│       ├── NonMultitenancyTermsAndConditions.java       (copy, no @TenantId)
-│       └── NonMultitenancySignatory.java                 (copy, no @TenantId)
-├── process
-│   └── entity
-│       ├── NonMultitenancyProcessInstance.java           (copy, no @TenantId)
-│       └── NonMultitenancyProcessInstanceStep.java       (copy, no @TenantId)
-└── core
-    └── entity
-        └── NonMultitenancyConfig.java                    (copy, no @TenantId)
+dev.abstratium.abstrapact.non_multitenancy.sales
+├── boundary
+│   └── NonMultitenancyCustomerContractResource.java
+├── boundary/dto
+│   ├── CreateCustomerContractRequest.java
+│   ├── CustomerContractLineItemResponse.java
+│   ├── CustomerContractResponse.java
+│   ├── CustomerContractSummary.java
+│   ├── CustomerLineItemRequest.java
+│   ├── PartInstanceAttributeRequest.java
+│   └── PartInstanceRequest.java
+├── service
+│   ├── NonMultitenancyCustomerContractService.java
+│   ├── NonMultitenancyCustomerProductInstanceService.java
+│   ├── NonMultitenancyOrganisationResolutionService.java
+│   └── SalesProcessService.java
+└── entity
+    ├── NonMultitenancyConfig.java
+    ├── NonMultitenancyContract.java
+    ├── NonMultitenancyContractAccountRole.java
+    ├── NonMultitenancyContractLineItem.java
+    ├── NonMultitenancyContractTermsLink.java
+    ├── NonMultitenancyPartAttributeAllowedValue.java
+    ├── NonMultitenancyPartAttributeDefinition.java
+    ├── NonMultitenancyPartDefinition.java
+    ├── NonMultitenancyPartDefinitionChoiceGroup.java
+    ├── NonMultitenancyPartInstance.java
+    ├── NonMultitenancyPartInstanceAttribute.java
+    ├── NonMultitenancyProcessInstance.java
+    ├── NonMultitenancyProcessInstanceStep.java
+    ├── NonMultitenancyProductDefinition.java
+    ├── NonMultitenancyProductInstance.java
+    ├── NonMultitenancySignatory.java
+    └── NonMultitenancyTermsAndConditions.java
 ```
 
 The duplicated entities are **copies of the existing tenant-scoped entities with the `@TenantId` annotation removed**. They map to the same tables and therefore allow cross-tenant reads and writes when the current tenant context is the customer's organisation.
@@ -233,14 +224,14 @@ Therefore every write operation in the cross-tenant API must follow this pattern
 
 1. The JAX-RS resource method is **not** annotated with `@Transactional`.
 2. The resource method resolves the seller `orgId` using a non-tenant read:
-   - For `POST /api/public/contracts` and `PUT /api/public/contracts/{id}`: prefix each raw product code with the supplied `orgId`, then resolve and validate the seller `orgId`.
-   - For `POST /api/public/contracts/{id}/offer`, `POST /api/public/contracts/{id}/accept`, and `DELETE /api/public/contracts/{id}/line-items/{lineItemId}`: load the existing `NonMultitenancyContract` by id and read its `organisationId`.
+   - For `POST /api/public/sales/contracts` and `PUT /api/public/sales/contracts/{id}`: prefix each raw product code with the supplied `orgId`, then resolve and validate the seller `orgId`.
+   - For `POST /api/public/sales/contracts/{id}/offer`, `POST /api/public/sales/contracts/{id}/accept`, and `DELETE /api/public/sales/contracts/{id}/line-items/{lineItemId}`: load the existing `NonMultitenancyContract` by id and read its `organisationId`.
 3. The resource method calls `CurrentOrgContext.setOrgId(sellerOrgId)`.
 4. Only after the context has been updated does the resource method call the `@Transactional` service that creates or updates tenant-scoped entities.
 
 ### Read-Only Operations
 
-The list and single-view endpoints (`GET /api/public/contracts` and `GET /api/public/contracts/{id}`) only touch non-tenant entities (`NonMultitenancyContract`, `NonMultitenancyContractAccountRole`, etc.). Because these entities have no `@TenantId`, the value in `CurrentOrgContext` does not affect the query result. The caller's `sub` claim and the optional `orgId` query parameter are used directly for scoping.
+The list and single-view endpoints (`GET /api/public/sales/contracts` and `GET /api/public/sales/contracts/{id}`) only touch non-tenant entities (`NonMultitenancyContract`, `NonMultitenancyContractAccountRole`, etc.). Because these entities have no `@TenantId`, the value in `CurrentOrgContext` does not affect the query result. The caller's `sub` claim and the optional `orgId` query parameter are used directly for scoping.
 
 ### Avoiding a Premature Session
 
@@ -254,19 +245,19 @@ No JPA session may be opened for the wrong tenant before `CurrentOrgContext` is 
 
 ## API Endpoints
 
-Base path: `/api/public/contracts`
+Base path: `/api/public/sales/contracts`
 
 All endpoints require the authenticated role `abstratium-abstrapact_user`. The customer account ID is read from the JWT `sub` claim; it is **not** supplied by the caller.
 
 | Method | Path | Summary |
 |--------|------|---------|
-| `POST`   | `/api/public/contracts` | Create a new contract draft from product codes. |
-| `GET`    | `/api/public/contracts?orgId={orgId}` | List contracts linked to the caller's account, returning an overview/summary. `orgId` is optional. |
-| `GET`    | `/api/public/contracts/{id}` | View a single contract linked to the caller's account, returning full contract details. |
-| `PUT`    | `/api/public/contracts/{id}` | Update a contract that is still in `DRAFT` (replace line items and metadata). |
-| `DELETE` | `/api/public/contracts/{id}/line-items/{lineItemId}` | Remove a line item from a contract that is still in `DRAFT`. |
-| `POST`   | `/api/public/contracts/{id}/offer` | Customer finalises the draft; the contract moves from `DRAFT` to `OFFERED` so the SME can make a formal offer. |
-| `POST`   | `/api/public/contracts/{id}/accept` | Move the contract from `OFFERED` to `ACCEPTED`. |
+| `POST`   | `/api/public/sales/contracts` | Create a new contract draft from product codes. |
+| `GET`    | `/api/public/sales/contracts?orgId={orgId}` | List contracts linked to the caller's account, returning an overview/summary. `orgId` is optional. |
+| `GET`    | `/api/public/sales/contracts/{id}` | View a single contract linked to the caller's account, returning full contract details. |
+| `PUT`    | `/api/public/sales/contracts/{id}` | Update a contract that is still in `DRAFT` (replace line items and metadata). |
+| `DELETE` | `/api/public/sales/contracts/{id}/line-items/{lineItemId}` | Remove a line item from a contract that is still in `DRAFT`. |
+| `POST`   | `/api/public/sales/contracts/{id}/offer` | Customer finalises the draft; the contract moves from `DRAFT` to `OFFERED` so the SME can make a formal offer. |
+| `POST`   | `/api/public/sales/contracts/{id}/accept` | Move the contract from `OFFERED` to `ACCEPTED`. |
 
 Payment endpoints (`/purchase`, `/pay`) are out of scope and will be added later.
 
@@ -396,7 +387,7 @@ public class CustomerContractResponse {
 
 A contract can only be changed while it is in `DRAFT`. Once it moves to `OFFERED` or beyond, its configuration is frozen.
 
-### `PUT /api/public/contracts/{id}`
+### `PUT /api/public/sales/contracts/{id}`
 
 Replaces the contract metadata and the full set of line items for a contract in `DRAFT`. The request body reuses `CreateCustomerContractRequest` (or a dedicated `UpdateCustomerContractRequest` with the same shape).
 
@@ -409,7 +400,7 @@ Replaces the contract metadata and the full set of line items for a contract in 
 7. Recalculate totals and update the contract.
 8. Return the updated contract response.
 
-### `DELETE /api/public/contracts/{id}/line-items/{lineItemId}`
+### `DELETE /api/public/sales/contracts/{id}/line-items/{lineItemId}`
 
 Removes a single line item from a contract in `DRAFT`.
 
@@ -452,8 +443,8 @@ Each method:
 
 The endpoint only needs to:
 
-- Call `salesProcessService.offerContract(contractId, accountId)` for `POST /api/public/contracts/{id}/offer`.
-- Call `salesProcessService.acceptContract(contractId, accountId)` for `POST /api/public/contracts/{id}/accept`.
+- Call `salesProcessService.offerContract(contractId, accountId)` for `POST /api/public/sales/contracts/{id}/offer`.
+- Call `salesProcessService.acceptContract(contractId, accountId)` for `POST /api/public/sales/contracts/{id}/accept`.
 
 ### DRAFT Semantics
 
@@ -484,13 +475,13 @@ When the customer accepts the offer, the system records that the customer accept
 
 ## Searching Customer Contracts
 
-`GET /api/public/contracts?orgId={orgId}` returns an overview of all contracts linked to the caller's account (`sub` claim) with role `CUSTOMER`. Each result is a `CustomerContractSummary`.
+`GET /api/public/sales/contracts?orgId={orgId}` returns an overview of all contracts linked to the caller's account (`sub` claim) with role `CUSTOMER`. Each result is a `CustomerContractSummary`.
 
 - The query uses the non-tenant `Contract` and `ContractAccountRole` entities.
 - If `orgId` is provided, results are further filtered to that seller organisation.
 - If `orgId` is omitted, all contracts linked to the account across all seller organisations are returned.
 - Results are ordered by `createdAt DESC`.
-- The customer can then call `GET /api/public/contracts/{id}` to load the full details of any individual contract.
+- The customer can then call `GET /api/public/sales/contracts/{id}` to load the full details of any individual contract.
 
 The caller can only view contracts linked to their own account. The endpoint must never return contracts belonging to other accounts.
 
@@ -589,7 +580,7 @@ The `context` string (e.g. `"Product"`, `"Part"`, `"Conditions"`) is included in
 
 ### REST Resource
 
-- [x] Implement `NonMultitenancyCustomerContractResource` under `/api/public/contracts`:
+- [x] Implement `NonMultitenancyCustomerContractResource` under `/api/public/sales/contracts`:
   - [x] `POST /` — create draft (resolve seller `orgId`, set `CurrentOrgContext`, call service)
   - [x] `GET /` — list caller's contracts (non-tenant query, scoped by `sub`)
   - [x] `GET /{id}` — get single contract (non-tenant query, verify ownership)
