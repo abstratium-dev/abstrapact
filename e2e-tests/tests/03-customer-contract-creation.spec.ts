@@ -5,8 +5,15 @@ import { registerNewUser } from '../pages/auth-server.page';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const PRODUCT_CODE = 'CT-PROD-001';
-const PART_CODE = 'CT-PART-001';
+const RUN_ID = Date.now().toString();
+
+function productCodeFor(testId: string): string {
+    return `CT-PROD-${RUN_ID}-${testId}`;
+}
+
+function partCodeFor(testId: string): string {
+    return `CT-PART-${RUN_ID}-${testId}`;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -17,24 +24,24 @@ async function resolveSellerOrgId(page: Page): Promise<string> {
     return info.orgId as string;
 }
 
-async function cleanupProduct(page: Page, sellerOrgId: string): Promise<void> {
-    const prefixedCode = `${sellerOrgId}::${PRODUCT_CODE}`;
+async function cleanupProduct(page: Page, sellerOrgId: string, productCode: string): Promise<void> {
+    const prefixedCode = `${sellerOrgId}::${productCode}`;
     console.log(`[TestHelper] Cleaning up product '${prefixedCode}'`);
     const lookup = await page.request.get(`/api/product-definitions/code/${encodeURIComponent(prefixedCode)}`);
     if (lookup.status() === 404) {
-        console.log(`[TestHelper] Product '${PRODUCT_CODE}' not found, nothing to clean up`);
+        console.log(`[TestHelper] Product '${productCode}' not found, nothing to clean up`);
         return;
     }
     if (!lookup.ok()) {
-        console.log(`[TestHelper] Could not look up '${PRODUCT_CODE}': ${lookup.status()}`);
+        console.log(`[TestHelper] Could not look up '${productCode}': ${lookup.status()}`);
         return;
     }
     const product = await lookup.json();
     const del = await page.request.delete(`/api/product-definitions/${product.id}/complete`);
     if (del.ok()) {
-        console.log(`[TestHelper] Deleted product '${PRODUCT_CODE}' (id=${product.id})`);
+        console.log(`[TestHelper] Deleted product '${productCode}' (id=${product.id})`);
     } else {
-        console.log(`[TestHelper] Failed to delete product '${PRODUCT_CODE}': ${del.status()}`);
+        console.log(`[TestHelper] Failed to delete product '${productCode}': ${del.status()}`);
     }
 }
 
@@ -42,11 +49,11 @@ async function cleanupProduct(page: Page, sellerOrgId: string): Promise<void> {
  * Create a product definition with crossTenantApiAllowed=true and one part via the REST API.
  * Relies on the current browser session (signed in as the seller org user).
  */
-async function createCrossTenantProduct(page: Page): Promise<string> {
-    console.log(`[TestHelper] Creating cross-tenant product '${PRODUCT_CODE}'`);
+async function createCrossTenantProduct(page: Page, productCode: string, partCode: string): Promise<string> {
+    console.log(`[TestHelper] Creating cross-tenant product '${productCode}'`);
     const resp = await page.request.post('/api/product-definitions', {
         data: {
-            productCode: PRODUCT_CODE,
+            productCode: productCode,
             description: 'E2E cross-tenant contract test product',
             billingModel: 'FIXED_PRICE',
             paymentModel: 'PREPAID',
@@ -59,7 +66,7 @@ async function createCrossTenantProduct(page: Page): Promise<string> {
 
     const partResp = await page.request.post(`/api/product-definitions/${product.id}/parts`, {
         data: {
-            partCode: PART_CODE,
+            partCode: partCode,
             description: 'E2E cross-tenant part',
             unitPrice: 25.00,
             minCardinality: 1,
@@ -77,28 +84,42 @@ async function createCrossTenantProduct(page: Page): Promise<string> {
 
 test.describe('03 Customer Contract Creation', () => {
 
-    const timestamp = Date.now();
+    const timestamp = RUN_ID;
     const newUserEmail = `e2e-customer-${timestamp}@example.com`;
     const newUserPassword = 'secretLong123!';
     let sellerOrgId: string;
 
     test.beforeEach(async ({ page }: { page: Page }) => {
-        page.on('console', msg => { if (msg.type() === 'error') console.log(`[Browser Error] ${msg.text()}`); });
+        page.on('console', msg => {
+            if (msg.type() === 'error') {
+                const text = msg.text();
+                if (text.includes('CORS policy') || text.includes('Mixed Content') || text.includes('ERR_FAILED') || text.includes('AUTH] Error calling logout')) {
+                    return;
+                }
+                console.log(`[Browser Error] ${text}`);
+            }
+        });
         page.on('pageerror', err => console.log(`[Page Error] ${err.message}`));
 
         // Sign in as the main (seller) user to clean up and set up product data.
         await page.goto('/');
         await signInViaHeader(page);
         sellerOrgId = await resolveSellerOrgId(page);
-        await cleanupProduct(page, sellerOrgId);
+        // Clean up products from all tests in this file.
+        for (const testId of ['CC1', 'CC2', 'CC3', 'CC4']) {
+            await cleanupProduct(page, sellerOrgId, productCodeFor(testId));
+        }
     });
 
     test('CC1: new customer registers, signs in, and creates a draft contract', async ({ page }: { page: Page }) => {
         const log = testStepLogger('CC1');
 
         // ── Step 1: create the cross-tenant product as the seller user ──────────
+        const productCode = productCodeFor('CC1');
+        const partCode = partCodeFor('CC1');
+
         log('Create product with crossTenantApiAllowed=true as seller user');
-        await createCrossTenantProduct(page);
+        await createCrossTenantProduct(page, productCode, partCode);
 
         // ── Step 2 / Step 3: sign out seller, trigger OIDC, register + sign in ──
         log('Navigate back to app and sign out the seller user');
@@ -138,11 +159,11 @@ test.describe('03 Customer Contract Creation', () => {
             publicNotes: 'Created by e2e test CC1',
             lineItems: [
                 {
-                    productCode: PRODUCT_CODE,
+                    productCode: productCode,
                     displayOrder: 1,
                     partInstances: [
                         {
-                            partCode: PART_CODE,
+                            partCode: partCode,
                             attributeValues: [],
                             childPartInstances: [],
                         },
@@ -180,6 +201,145 @@ test.describe('03 Customer Contract Creation', () => {
         expect(lineItem.productInstance, 'Line item productInstance must be present').toBeTruthy();
 
         console.log(`[CC1] Contract created successfully: id=${contract.id}, state=${contract.state}`);
+    });
+
+    test('CC2: contract creation with non-existent product code is rejected', async ({ page }: { page: Page }) => {
+        const log = testStepLogger('CC2');
+
+        // CC2 tests a non-existent product code — no need to create a real product.
+        log('Sign out seller and register + sign in as a new customer');
+        await page.goto('/');
+        await signOut(page);
+        await headerSignInLink(page).click();
+        await page.waitForURL(/auth-t\.abstratium\.dev\/signin\//, { timeout: 15000 });
+
+        const cc2Email = `e2e-cc2-${timestamp}@example.com`;
+        await registerNewUser(page, {
+            email: cc2Email,
+            fullName: `E2E CC2 ${timestamp}`,
+            orgName: `E2E CC2 Org ${timestamp}`,
+            password: newUserPassword,
+        });
+        await handleAuthServer(page, cc2Email, newUserPassword);
+        await expect(page.locator('#signout-link')).toBeVisible({ timeout: 15000 });
+
+        // ── Attempt to create a contract with a non-existent product code ────────
+        log('POST contract with non-existent product code NON-EXISTENT-PROD');
+        const xsrfCookie = await page.context().cookies();
+        const xsrfToken = xsrfCookie.find(c => c.name === 'XSRF-TOKEN');
+
+        const contractResp = await page.request.post('/api/public/sales/contracts', {
+            headers: xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {},
+            data: {
+                orgId: sellerOrgId,
+                contractReference: `E2E-CC2-${timestamp}`,
+                publicNotes: 'Should fail - non-existent product',
+                lineItems: [
+                    {
+                        productCode: 'NON-EXISTENT-PROD',
+                        displayOrder: 1,
+                        partInstances: [
+                            {
+                                partCode: 'NON-EXISTENT-PART',
+                                attributeValues: [],
+                                childPartInstances: [],
+                            },
+                        ],
+                    },
+                ],
+            },
+        });
+
+        log('Assert 422 Unprocessable Entity for non-existent product code');
+        console.log(`[CC2] Response status: ${contractResp.status()}`);
+        expect(contractResp.status(), `Expected 422 but got ${contractResp.status()}`).toBe(422);
+    });
+
+    test('CC3: contract creation with missing orgId is rejected', async ({ page }: { page: Page }) => {
+        const log = testStepLogger('CC3');
+
+        // CC3 tests missing orgId — no need to create a real product.
+        await page.goto('/');
+        await signOut(page);
+        await headerSignInLink(page).click();
+        await page.waitForURL(/auth-t\.abstratium\.dev\/signin\//, { timeout: 15000 });
+
+        const cc3Email = `e2e-cc3-${timestamp}@example.com`;
+        await registerNewUser(page, {
+            email: cc3Email,
+            fullName: `E2E CC3 ${timestamp}`,
+            orgName: `E2E CC3 Org ${timestamp}`,
+            password: newUserPassword,
+        });
+        await handleAuthServer(page, cc3Email, newUserPassword);
+        await expect(page.locator('#signout-link')).toBeVisible({ timeout: 15000 });
+
+        log('POST contract with missing orgId');
+        const xsrfCookie = await page.context().cookies();
+        const xsrfToken = xsrfCookie.find(c => c.name === 'XSRF-TOKEN');
+
+        const contractResp = await page.request.post('/api/public/sales/contracts', {
+            headers: xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {},
+            data: {
+                contractReference: `E2E-CC3-${timestamp}`,
+                publicNotes: 'Should fail - missing orgId',
+                lineItems: [
+                    {
+                        productCode: 'ANY-PROD',
+                        displayOrder: 1,
+                        partInstances: [
+                            {
+                                partCode: 'ANY-PART',
+                                attributeValues: [],
+                                childPartInstances: [],
+                            },
+                        ],
+                    },
+                ],
+            },
+        });
+
+        log('Assert 400 Bad Request for missing orgId');
+        console.log(`[CC3] Response status: ${contractResp.status()}`);
+        expect(contractResp.status(), `Expected 400 but got ${contractResp.status()}`).toBe(400);
+    });
+
+    test('CC4: contract creation with empty line items is rejected', async ({ page }: { page: Page }) => {
+        const log = testStepLogger('CC4');
+
+        // CC4 tests empty line items — no need to create a real product.
+        await page.goto('/');
+        await signOut(page);
+        await headerSignInLink(page).click();
+        await page.waitForURL(/auth-t\.abstratium\.dev\/signin\//, { timeout: 15000 });
+
+        const cc4Email = `e2e-cc4-${timestamp}@example.com`;
+        await registerNewUser(page, {
+            email: cc4Email,
+            fullName: `E2E CC4 ${timestamp}`,
+            orgName: `E2E CC4 Org ${timestamp}`,
+            password: newUserPassword,
+        });
+        await handleAuthServer(page, cc4Email, newUserPassword);
+        await expect(page.locator('#signout-link')).toBeVisible({ timeout: 15000 });
+
+        log('POST contract with empty line items array');
+        const xsrfCookie = await page.context().cookies();
+        const xsrfToken = xsrfCookie.find(c => c.name === 'XSRF-TOKEN');
+
+        const contractResp = await page.request.post('/api/public/sales/contracts', {
+            headers: xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {},
+            data: {
+                orgId: sellerOrgId,
+                contractReference: `E2E-CC4-${timestamp}`,
+                publicNotes: 'Should fail - empty line items',
+                lineItems: [],
+            },
+        });
+
+        log('Assert 400 Bad Request for empty line items');
+        console.log(`[CC4] Response status: ${contractResp.status()}`);
+        expect(contractResp.status(), `Expected 400 but got ${contractResp.status()}`).toBe(400);
     });
 
 });

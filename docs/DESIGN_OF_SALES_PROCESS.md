@@ -23,9 +23,24 @@ Both variants share the same early steps (draft, offer, acceptance, approval). T
 | 2 | **Offer** | `DRAFT -> OFFERED` | SME |
 | 3 | **Acceptance** | `OFFERED -> ACCEPTED` | Customer |
 | 4 | **Approval** (if required) | `ACCEPTED -> AWAITING_APPROVAL -> APPROVED` | SME |
-| 4 | **Approval** (if not required) | `ACCEPTED -> APPROVED` | -- |
+| 4 | **Approval** (if not required) | `ACCEPTED -> APPROVED` | -- (auto-approval) |
 | 5 | **Document Preparation** | (no contract state change) | System / SME |
 | 6 | **Payment Handling** | `APPROVED -> AWAITING_PAYMENT -> RUNNING` (pay-first)<br>`APPROVED -> RUNNING` (bill-over-time) | System / Customer |
+
+### Current Implementation Status
+
+- **Approval (step 4):** Currently implemented as a placeholder that always auto-approves.
+  When the customer accepts the offer, the system transitions the contract from
+  `ACCEPTED` to `APPROVED` immediately. Business rules for determining whether a
+  contract requires manual SME approval (and should instead move to
+  `AWAITING_APPROVAL`) will be added in the future. Such rules might consider
+  contract value, product type, customer history, or other factors.
+- **Document preparation (step 5):** Not yet implemented. Will be added when the
+  contract document generation requirements are defined.
+- **Payment handling (step 6):** Placeholder only. The `triggerPaymentHandling`
+  method exists but does not yet move the contract out of `APPROVED`. The actual
+  payment logic (moving to `AWAITING_PAYMENT` or `RUNNING` based on the payment
+  model) will be implemented once payment specifications are provided.
 
 ### Payment Handling Divergence
 

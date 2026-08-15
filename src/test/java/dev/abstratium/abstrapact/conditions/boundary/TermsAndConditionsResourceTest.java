@@ -2,14 +2,21 @@ package dev.abstratium.abstrapact.conditions.boundary;
 
 import dev.abstratium.abstrapact.conditions.boundary.dto.TermsAndConditionsCodeSummary;
 import dev.abstratium.abstrapact.conditions.entity.TermsAndConditions;
+import dev.abstratium.core.util.TestDatabaseResetHelper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import io.quarkus.test.security.oidc.Claim;
+import io.quarkus.test.security.oidc.OidcSecurity;
 import io.restassured.http.ContentType;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.util.Base64;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
@@ -19,7 +26,20 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TermsAndConditionsResourceTest {
+
+    @Inject
+    TestDatabaseResetHelper databaseResetHelper;
+
+    @AfterAll
+    void tearDown() {
+        // Clean up all test-created terms across every tenant.
+        // @AfterAll (rather than @AfterEach) is required because the tenant-isolation
+        // tests share state across ordered methods via instance fields.
+        databaseResetHelper.resetDatabase();
+    }
 
     @Test
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
@@ -70,12 +90,31 @@ class TermsAndConditionsResourceTest {
     @Test
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
     void shouldListAllTermsAndConditions() {
+        String code = "LIST-TEST-" + System.currentTimeMillis();
+
+        TermsAndConditions terms = new TermsAndConditions();
+        terms.setCode(code);
+        terms.setTitle("List Test Title");
+        terms.setContentEn("List test content");
+        terms.setCurrentVersion("1.0");
+        terms.setEffectiveFrom(LocalDate.now());
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(terms)
+            .when()
+            .post("/api/terms-and-conditions")
+            .then()
+            .statusCode(201);
+
+        // The list must contain the row we just created
         given()
             .when()
             .get("/api/terms-and-conditions")
             .then()
             .statusCode(200)
-            .body("$", isA(java.util.List.class));
+            .body("$", isA(java.util.List.class))
+            .body("code", hasItem(code));
     }
 
     @Test
@@ -93,13 +132,15 @@ class TermsAndConditionsResourceTest {
     void shouldRejectDuplicateCodeWithOverlappingDates() {
         String code = "DUP-TERMS-" + System.currentTimeMillis();
 
+        // First term: Jan 1 – Jun 30, 2024
         TermsAndConditions terms = new TermsAndConditions();
 
         terms.setCode(code);
         terms.setTitle("First Terms");
         terms.setContentEn("First content");
         terms.setCurrentVersion("1.0");
-        terms.setEffectiveFrom(LocalDate.now());
+        terms.setEffectiveFrom(LocalDate.of(2024, 1, 1));
+        terms.setEffectiveUntil(LocalDate.of(2024, 6, 30));
 
         given()
             .contentType(ContentType.JSON)
@@ -109,12 +150,14 @@ class TermsAndConditionsResourceTest {
             .then()
             .statusCode(201);
 
+        // Duplicate term: overlaps because it starts on Jun 15 (before the first ends)
         TermsAndConditions duplicate = new TermsAndConditions();
         duplicate.setCode(code);
         duplicate.setTitle("Duplicate Terms");
         duplicate.setContentEn("Duplicate content");
         duplicate.setCurrentVersion("2.0");
-        duplicate.setEffectiveFrom(LocalDate.now());
+        duplicate.setEffectiveFrom(LocalDate.of(2024, 6, 15));
+        duplicate.setEffectiveUntil(LocalDate.of(2024, 12, 31));
 
         given()
             .contentType(ContentType.JSON)
@@ -163,6 +206,17 @@ class TermsAndConditionsResourceTest {
             .then()
             .statusCode(200)
             .body("title", equalTo("Updated Title"))
+            .body("currentVersion", equalTo("2.0"));
+
+        // Re-GET to confirm the update was actually persisted
+        given()
+            .when()
+            .get("/api/terms-and-conditions/" + id)
+            .then()
+            .statusCode(200)
+            .body("id", equalTo(id))
+            .body("title", equalTo("Updated Title"))
+            .body("contentEn", equalTo("Updated content"))
             .body("currentVersion", equalTo("2.0"));
     }
 
@@ -465,32 +519,40 @@ class TermsAndConditionsResourceTest {
             .statusCode(403);
     }
 
-    // ==================== Cross-Tenant Isolation Tests ====================
+    // ==================== Tenant Isolation Tests ====================
+    //
+    // Each scenario is split into two @Test methods so that @OidcSecurity
+    // can set a different orgId per method.  @TestInstance(PER_CLASS) lets
+    // the pair share state via instance fields, and @Order guarantees the
+    // create-as-tenant-A method runs before the access-as-tenant-B method.
 
-    private String buildBearerToken(String orgId) {
-        String header = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString("{\"alg\":\"PS256\",\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8));
-        String payload = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(("{\"sub\":\"testuser\",\"orgId\":\"" + orgId + "\",\"groups\":[\"abstratium-abstrapact_user\"]}").getBytes(StandardCharsets.UTF_8));
-        return header + "." + payload + ".fakesig";
-    }
+    private static final String TENANT_A = "11111111-1111-1111-1111-111111111111";
+    private static final String TENANT_B = "22222222-2222-2222-2222-222222222222";
+
+    private String readIsolationId;
+    private String readIsolationCode;
+    private String updateIsolationId;
+    private String updateIsolationCode;
+    private String deleteIsolationId;
+    private String deleteIsolationCode;
+
+    // --- Read isolation ---
 
     @Test
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
-    void shouldIsolateTenantsOnRead() {
-        String code = "CROSS-READ-" + System.currentTimeMillis();
-        String tenantA = "11111111-1111-1111-1111-111111111111";
-        String tenantB = "22222222-2222-2222-2222-222222222222";
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TENANT_A))
+    @Order(1)
+    void shouldIsolateTenantsOnRead_createAsTenantA() {
+        readIsolationCode = "CROSS-READ-" + System.currentTimeMillis();
 
         TermsAndConditions terms = new TermsAndConditions();
-        terms.setCode(code);
+        terms.setCode(readIsolationCode);
         terms.setTitle("Cross-tenant read test");
         terms.setContentEn("Content");
         terms.setCurrentVersion("1.0");
         terms.setEffectiveFrom(LocalDate.now());
 
-        String id = given()
-            .header("Authorization", "Bearer " + buildBearerToken(tenantA))
+        readIsolationId = given()
             .contentType(ContentType.JSON)
             .body(terms)
             .when()
@@ -500,40 +562,45 @@ class TermsAndConditionsResourceTest {
             .extract()
             .path("id");
 
-        // Tenant A can read
+        // Tenant A can read its own data
         given()
-            .header("Authorization", "Bearer " + buildBearerToken(tenantA))
             .when()
-            .get("/api/terms-and-conditions/" + id)
+            .get("/api/terms-and-conditions/" + readIsolationId)
             .then()
             .statusCode(200)
-            .body("code", equalTo(code));
-
-        // Tenant B cannot read
-        given()
-            .header("Authorization", "Bearer " + buildBearerToken(tenantB))
-            .when()
-            .get("/api/terms-and-conditions/" + id)
-            .then()
-            .statusCode(404);
+            .body("code", equalTo(readIsolationCode));
     }
 
     @Test
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
-    void shouldIsolateTenantsOnUpdate() {
-        String code = "CROSS-UPDATE-" + System.currentTimeMillis();
-        String tenantA = "11111111-1111-1111-1111-111111111111";
-        String tenantB = "22222222-2222-2222-2222-222222222222";
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TENANT_B))
+    @Order(2)
+    void shouldIsolateTenantsOnRead_tenantBGets404() {
+        assertNotNull(readIsolationId, "createAsTenantA must run first");
+        given()
+            .when()
+            .get("/api/terms-and-conditions/" + readIsolationId)
+            .then()
+            .statusCode(404);
+    }
+
+    // --- Update isolation ---
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TENANT_A))
+    @Order(3)
+    void shouldIsolateTenantsOnUpdate_createAsTenantA() {
+        updateIsolationCode = "CROSS-UPDATE-" + System.currentTimeMillis();
 
         TermsAndConditions terms = new TermsAndConditions();
-        terms.setCode(code);
+        terms.setCode(updateIsolationCode);
         terms.setTitle("Cross-tenant update test");
         terms.setContentEn("Content");
         terms.setCurrentVersion("1.0");
         terms.setEffectiveFrom(LocalDate.now());
 
-        String id = given()
-            .header("Authorization", "Bearer " + buildBearerToken(tenantA))
+        updateIsolationId = given()
             .contentType(ContentType.JSON)
             .body(terms)
             .when()
@@ -542,48 +609,61 @@ class TermsAndConditionsResourceTest {
             .statusCode(201)
             .extract()
             .path("id");
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TENANT_B))
+    @Order(4)
+    void shouldIsolateTenantsOnUpdate_tenantBGets404() {
+        assertNotNull(updateIsolationId, "createAsTenantA must run first");
 
         TermsAndConditions update = new TermsAndConditions();
-        update.setCode(code);
+        update.setCode(updateIsolationCode);
         update.setTitle("Hacked title");
         update.setContentEn("Hacked content");
 
         // Tenant B cannot update
         given()
-            .header("Authorization", "Bearer " + buildBearerToken(tenantB))
             .contentType(ContentType.JSON)
             .body(update)
             .when()
-            .put("/api/terms-and-conditions/" + id)
+            .put("/api/terms-and-conditions/" + updateIsolationId)
             .then()
             .statusCode(404);
+    }
 
-        // Verify tenant A's data is untouched
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TENANT_A))
+    @Order(5)
+    void shouldIsolateTenantsOnUpdate_tenantADataUntouched() {
+        assertNotNull(updateIsolationId, "createAsTenantA must run first");
         given()
-            .header("Authorization", "Bearer " + buildBearerToken(tenantA))
             .when()
-            .get("/api/terms-and-conditions/" + id)
+            .get("/api/terms-and-conditions/" + updateIsolationId)
             .then()
             .statusCode(200)
             .body("title", equalTo("Cross-tenant update test"));
     }
 
+    // --- Delete isolation ---
+
     @Test
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
-    void shouldIsolateTenantsOnDelete() {
-        String code = "CROSS-DELETE-" + System.currentTimeMillis();
-        String tenantA = "11111111-1111-1111-1111-111111111111";
-        String tenantB = "22222222-2222-2222-2222-222222222222";
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TENANT_A))
+    @Order(6)
+    void shouldIsolateTenantsOnDelete_createAsTenantA() {
+        deleteIsolationCode = "CROSS-DELETE-" + System.currentTimeMillis();
 
         TermsAndConditions terms = new TermsAndConditions();
-        terms.setCode(code);
+        terms.setCode(deleteIsolationCode);
         terms.setTitle("Cross-tenant delete test");
         terms.setContentEn("Content");
         terms.setCurrentVersion("1.0");
         terms.setEffectiveFrom(LocalDate.now());
 
-        String id = given()
-            .header("Authorization", "Bearer " + buildBearerToken(tenantA))
+        deleteIsolationId = given()
             .contentType(ContentType.JSON)
             .body(terms)
             .when()
@@ -592,22 +672,32 @@ class TermsAndConditionsResourceTest {
             .statusCode(201)
             .extract()
             .path("id");
+    }
 
-        // Tenant B cannot delete
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TENANT_B))
+    @Order(7)
+    void shouldIsolateTenantsOnDelete_tenantBGets404() {
+        assertNotNull(deleteIsolationId, "createAsTenantA must run first");
         given()
-            .header("Authorization", "Bearer " + buildBearerToken(tenantB))
             .when()
-            .delete("/api/terms-and-conditions/" + id)
+            .delete("/api/terms-and-conditions/" + deleteIsolationId)
             .then()
             .statusCode(404);
+    }
 
-        // Verify tenant A's data still exists
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    @OidcSecurity(claims = @Claim(key = "orgId", value = TENANT_A))
+    @Order(8)
+    void shouldIsolateTenantsOnDelete_tenantADataStillExists() {
+        assertNotNull(deleteIsolationId, "createAsTenantA must run first");
         given()
-            .header("Authorization", "Bearer " + buildBearerToken(tenantA))
             .when()
-            .get("/api/terms-and-conditions/" + id)
+            .get("/api/terms-and-conditions/" + deleteIsolationId)
             .then()
             .statusCode(200)
-            .body("code", equalTo(code));
+            .body("code", equalTo(deleteIsolationCode));
     }
 }

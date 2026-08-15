@@ -161,19 +161,19 @@ class SalesProcessServiceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
-    void acceptContractTransitionsOfferedToAccepted() {
+    void acceptContractTransitionsOfferedToApprovedViaAutoApproval() {
         CustomerContractResponse response = createDraftContract();
         salesProcessService.offerContract(response.getId(), ACCOUNT_ID);
 
         salesProcessService.acceptContract(response.getId(), ACCOUNT_ID);
 
         NonMultitenancyContract contract = em.find(NonMultitenancyContract.class, response.getId());
-        assertEquals(ContractState.ACCEPTED, contract.getState());
+        assertEquals(ContractState.APPROVED, contract.getState());
     }
 
     @Test
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
-    void acceptContractRecordsStep() {
+    void acceptContractRecordsAcceptanceAndApprovalSteps() {
         CustomerContractResponse response = createDraftContract();
         salesProcessService.offerContract(response.getId(), ACCOUNT_ID);
 
@@ -184,6 +184,10 @@ class SalesProcessServiceTest {
             .filter(s -> ContractState.ACCEPTED.name().equals(s.getToState()))
             .count();
         assertEquals(1, acceptSteps);
+        long approvedSteps = process.getSteps().stream()
+            .filter(s -> ContractState.APPROVED.name().equals(s.getToState()))
+            .count();
+        assertEquals(1, approvedSteps);
     }
 
     @Test
@@ -194,6 +198,94 @@ class SalesProcessServiceTest {
         WebApplicationException ex = assertThrows(WebApplicationException.class,
             () -> salesProcessService.acceptContract(response.getId(), ACCOUNT_ID));
         assertEquals(422, ex.getResponse().getStatus());
+    }
+
+    // ==================== Approval (placeholder) ====================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void approveContractTransitionsAcceptedToApproved() {
+        CustomerContractResponse response = createDraftContract();
+        salesProcessService.offerContract(response.getId(), ACCOUNT_ID);
+        // Move to ACCEPTED without auto-approval by manually setting the state.
+        setContractState(response.getId(), ContractState.ACCEPTED);
+
+        salesProcessService.approveContract(response.getId(), ACCOUNT_ID);
+
+        NonMultitenancyContract contract = em.find(NonMultitenancyContract.class, response.getId());
+        assertEquals(ContractState.APPROVED, contract.getState());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void approveContractRecordsStep() {
+        CustomerContractResponse response = createDraftContract();
+        salesProcessService.offerContract(response.getId(), ACCOUNT_ID);
+        setContractState(response.getId(), ContractState.ACCEPTED);
+
+        salesProcessService.approveContract(response.getId(), ACCOUNT_ID);
+
+        NonMultitenancyProcessInstance process = loadProcess(response.getId());
+        long approvedSteps = process.getSteps().stream()
+            .filter(s -> ContractState.APPROVED.name().equals(s.getToState()))
+            .count();
+        assertEquals(1, approvedSteps);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void approveContractFailsWhenNotAccepted() {
+        CustomerContractResponse response = createDraftContract();
+        // Contract is still DRAFT.
+        WebApplicationException ex = assertThrows(WebApplicationException.class,
+            () -> salesProcessService.approveContract(response.getId(), ACCOUNT_ID));
+        assertEquals(422, ex.getResponse().getStatus());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void approveContractFailsForUnknownContract() {
+        WebApplicationException ex = assertThrows(WebApplicationException.class,
+            () -> salesProcessService.approveContract("does-not-exist", ACCOUNT_ID));
+        assertEquals(404, ex.getResponse().getStatus());
+    }
+
+    // ==================== Payment handling (placeholder) ====================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void triggerPaymentHandlingLeavesContractInApproved() {
+        // The payment handling placeholder must not change the contract state.
+        // Once payment specs are provided, this test will be updated to verify
+        // the actual payment state transitions.
+        CustomerContractResponse response = createDraftContract();
+        salesProcessService.offerContract(response.getId(), ACCOUNT_ID);
+        setContractState(response.getId(), ContractState.APPROVED);
+
+        salesProcessService.triggerPaymentHandling(response.getId(), ACCOUNT_ID);
+
+        NonMultitenancyContract contract = em.find(NonMultitenancyContract.class, response.getId());
+        assertEquals(ContractState.APPROVED, contract.getState());
+    }
+
+    // ==================== Helper ====================
+
+    /**
+     * Directly sets the contract state via JPA, bypassing the sales process.
+     * Used to set up intermediate states (ACCEPTED, APPROVED) for testing
+     * individual transition methods in isolation.
+     */
+    private void setContractState(String contractId, ContractState state) {
+        try {
+            tx.begin();
+            NonMultitenancyContract c = em.find(NonMultitenancyContract.class, contractId);
+            c.setState(state);
+            em.merge(c);
+            tx.commit();
+        } catch (Exception e) {
+            try { tx.rollback(); } catch (Exception ignored) {}
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
@@ -210,5 +302,54 @@ class SalesProcessServiceTest {
         WebApplicationException ex = assertThrows(WebApplicationException.class,
             () -> salesProcessService.acceptContract("does-not-exist", ACCOUNT_ID));
         assertEquals(404, ex.getResponse().getStatus());
+    }
+
+    // ==================== Account-link authorisation ====================
+
+    private static final String OTHER_ACCOUNT_ID = "intruder-account";
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void offerContractFailsWhenAccountNotLinked() {
+        CustomerContractResponse response = createDraftContract();
+
+        WebApplicationException ex = assertThrows(WebApplicationException.class,
+            () -> salesProcessService.offerContract(response.getId(), OTHER_ACCOUNT_ID));
+        assertEquals(403, ex.getResponse().getStatus());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void acceptContractFailsWhenAccountNotLinked() {
+        CustomerContractResponse response = createDraftContract();
+        salesProcessService.offerContract(response.getId(), ACCOUNT_ID);
+
+        WebApplicationException ex = assertThrows(WebApplicationException.class,
+            () -> salesProcessService.acceptContract(response.getId(), OTHER_ACCOUNT_ID));
+        assertEquals(403, ex.getResponse().getStatus());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void approveContractFailsWhenAccountNotLinked() {
+        CustomerContractResponse response = createDraftContract();
+        salesProcessService.offerContract(response.getId(), ACCOUNT_ID);
+        setContractState(response.getId(), ContractState.ACCEPTED);
+
+        WebApplicationException ex = assertThrows(WebApplicationException.class,
+            () -> salesProcessService.approveContract(response.getId(), OTHER_ACCOUNT_ID));
+        assertEquals(403, ex.getResponse().getStatus());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void triggerPaymentHandlingFailsWhenAccountNotLinked() {
+        CustomerContractResponse response = createDraftContract();
+        salesProcessService.offerContract(response.getId(), ACCOUNT_ID);
+        setContractState(response.getId(), ContractState.APPROVED);
+
+        WebApplicationException ex = assertThrows(WebApplicationException.class,
+            () -> salesProcessService.triggerPaymentHandling(response.getId(), OTHER_ACCOUNT_ID));
+        assertEquals(403, ex.getResponse().getStatus());
     }
 }

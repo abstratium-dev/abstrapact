@@ -163,6 +163,9 @@ enum ContractState {
         E.g. final documents are still being prepared. */
     APPROVED,
 
+    /** The contract is waiting for payment from the customer. */
+    AWAITING_PAYMENT,
+
     /** The SME has a running contract with the customer. Their subscription may
         not yet have started; products may not have been shipped yet. */
     RUNNING,
@@ -194,7 +197,8 @@ stateDiagram-v2
     AWAITING_APPROVAL --> APPROVED : SME approves
     AWAITING_APPROVAL --> DRAFT : SME rejects
     ACCEPTED --> APPROVED : No further approval needed
-    APPROVED --> RUNNING : Activate
+    APPROVED --> AWAITING_PAYMENT : Payment required
+    AWAITING_PAYMENT --> RUNNING : Payment received
     RUNNING --> EXPIRED : Natural end
     RUNNING --> TERMINATED : Early termination
     DRAFT --> CANCELLED : Withdraw

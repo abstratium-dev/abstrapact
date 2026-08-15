@@ -27,10 +27,18 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function cleanupTestData(page: Page, codes: string[]) {
+async function resolveSellerOrgId(page: Page): Promise<string> {
+    const resp = await page.request.get('/api/core/userinfo');
+    const info = await resp.json();
+    console.log(`[TestHelper] Resolved seller orgId: ${info.orgId}`);
+    return info.orgId as string;
+}
+
+async function cleanupTestData(page: Page, sellerOrgId: string, codes: string[]) {
     console.log(`[TestHelper] Cleaning up product definitions for codes: ${codes.join(', ')}`);
     for (const code of codes) {
-        const lookup = await page.request.get(`/api/product-definitions/code/${code}`);
+        const prefixedCode = `${sellerOrgId}::${code}`;
+        const lookup = await page.request.get(`/api/product-definitions/code/${encodeURIComponent(prefixedCode)}`);
         if (lookup.status() === 404) {
             console.log(`[TestHelper] Product '${code}' not found, skipping`);
             continue;
@@ -58,8 +66,9 @@ test.describe('02 Product Definitions Management', () => {
         page.on('pageerror', err => console.log(`[Page Error] ${err.message}`));
         await page.goto('/');
         await signInViaHeader(page);
+        const sellerOrgId = await resolveSellerOrgId(page);
         // Clean up all test codes before each test for a clean slate.
-        await cleanupTestData(page, [
+        await cleanupTestData(page, sellerOrgId, [
             'PD-CRUD-01',
             'PD-DUPE-01',
             'PD-DATE-01',

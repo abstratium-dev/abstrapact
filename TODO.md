@@ -11,11 +11,15 @@
 
 ## Today
 
-
-- paths
-- core belongs outside of abstrapact
+- finish fixing abstracore and then sync with downstreams
+- finish abstrauth with new default role type
+- rebuild and deploy abstrauth
+- fix bug in abstraccount and rebuild and redeploy it
+- rebuild and deploy abstraccount
 
 - add e2e 04 which asserts prices are correctly calculated
+
+- remove excess REST interfaces for contracts, since they are handled mainly in the SalesProcessService
 
 - when calling stripe, add a uuid other than the contract id, which is generated and stored by abstrapact and which is not shown to any user. this way we can guarantee that when the callback comes, it was for our transaction. otherwise someone could create a draft, then use their own infrastructure to create a stripe callback and call us with it. altho... can they do that? we don't trust their payload because it isn't signed with the key that i really hope is unique per customer (ie i should have a key so that only i can verify the callback is for my application).
 

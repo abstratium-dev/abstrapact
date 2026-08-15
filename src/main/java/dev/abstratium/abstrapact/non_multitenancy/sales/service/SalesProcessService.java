@@ -64,7 +64,7 @@ public class SalesProcessService {
      */
     @Transactional
     public void offerContract(String contractId, String actorAccountId) {
-        NonMultitenancyContract contract = loadContract(contractId);
+        NonMultitenancyContract contract = loadContractForAccount(contractId, actorAccountId);
 
         if (contract.getState() != ContractState.DRAFT) {
             throw unprocessable("Contract must be in DRAFT state to offer, but is: " + contract.getState());
@@ -79,14 +79,20 @@ public class SalesProcessService {
     }
 
     /**
-     * Transitions a contract from {@code OFFERED} to {@code ACCEPTED}.
+     * Transitions a contract from {@code OFFERED} to {@code ACCEPTED}, then attempts
+     * auto-approval. If auto-approval succeeds the contract moves to {@code APPROVED}
+     * and payment handling is triggered.
+     *
+     * <p>The auto-approval step is a placeholder that always approves. Business rules
+     * for determining whether a contract requires manual SME approval (and should
+     * instead move to {@code AWAITING_APPROVAL}) will be added in the future.
      *
      * @param contractId the id of the contract to transition
      * @param actorAccountId the caller's account id
      */
     @Transactional
     public void acceptContract(String contractId, String actorAccountId) {
-        NonMultitenancyContract contract = loadContract(contractId);
+        NonMultitenancyContract contract = loadContractForAccount(contractId, actorAccountId);
 
         if (contract.getState() != ContractState.OFFERED) {
             throw unprocessable("Contract must be in OFFERED state to accept, but is: " + contract.getState());
@@ -98,16 +104,103 @@ public class SalesProcessService {
 
         NonMultitenancyProcessInstance process = loadProcess(contractId);
         recordStep(process, ContractState.OFFERED.name(), ContractState.ACCEPTED.name(), actorAccountId);
+
+        // Attempt auto-approval immediately after acceptance.
+        approveContract(contractId, actorAccountId);
+    }
+
+    /**
+     * Transitions a contract from {@code ACCEPTED} to {@code APPROVED}.
+     *
+     * <p>This method is the approval placeholder. It always approves the contract.
+     * In the future, business rules will determine whether a contract can be
+     * auto-approved or must move to {@code AWAITING_APPROVAL} for manual SME review.
+     * Such rules might consider contract value, product type, customer history, or
+     * other factors.
+     *
+     * <p>After approval, payment handling is triggered. The payment handling
+     * implementation is a placeholder and will be completed when payment specs
+     * are provided.
+     *
+     * @param contractId the id of the contract to approve
+     * @param actorAccountId the account id that triggered the approval
+     */
+    @Transactional
+    public void approveContract(String contractId, String actorAccountId) {
+        NonMultitenancyContract contract = loadContractForAccount(contractId, actorAccountId);
+
+        if (contract.getState() != ContractState.ACCEPTED) {
+            throw unprocessable("Contract must be in ACCEPTED state to approve, but is: " + contract.getState());
+        }
+
+        contract.setState(ContractState.APPROVED);
+        contract.setUpdatedAt(LocalDateTime.now());
+        em.merge(contract);
+
+        NonMultitenancyProcessInstance process = loadProcess(contractId);
+        recordStep(process, ContractState.ACCEPTED.name(), ContractState.APPROVED.name(), actorAccountId);
+
+        // Trigger payment handling. This is a placeholder — the actual payment
+        // logic (moving to AWAITING_PAYMENT or RUNNING depending on the payment
+        // model) will be implemented when payment specs are provided.
+        triggerPaymentHandling(contractId, actorAccountId);
+    }
+
+    /**
+     * Placeholder for payment handling. Once a contract is {@code APPROVED}, this
+     * method is responsible for moving it to {@code AWAITING_PAYMENT} (pay-first)
+     * or {@code RUNNING} (bill-over-time) based on the contract's payment model.
+     *
+     * <p><strong>Not yet implemented.</strong> Payment handling will be added once
+     * payment specifications are provided. For now the contract remains in
+     * {@code APPROVED} after this method returns.
+     *
+     * @param contractId the id of the approved contract
+     * @param actorAccountId the account id that triggered the payment flow
+     */
+    @Transactional
+    public void triggerPaymentHandling(String contractId, String actorAccountId) {
+        // Verify the caller is linked to the contract before proceeding.
+        loadContractForAccount(contractId, actorAccountId);
+
+        // TODO: Implement payment handling once specs are provided.
+        // The implementation will:
+        // 1. Load the contract and check its payment model (PREPAID vs POSTPAID).
+        // 2. For PREPAID: move to AWAITING_PAYMENT, issue an invoice, and wait
+        //    for payment confirmation before transitioning to RUNNING.
+        // 3. For POSTPAID: move directly to RUNNING and issue invoices periodically.
+        // For now, the contract stays in APPROVED.
     }
 
     // ==================== private helpers ====================
 
-    private NonMultitenancyContract loadContract(String contractId) {
+    /**
+     * Loads a contract and verifies that the caller is linked to it via
+     * {@code T_contract_account_role} with role {@code CUSTOMER}.
+     *
+     * @throws WebApplicationException 404 if the contract does not exist
+     * @throws WebApplicationException 403 if the caller is not linked to the contract
+     */
+    private NonMultitenancyContract loadContractForAccount(String contractId, String actorAccountId) {
         NonMultitenancyContract contract = em.find(NonMultitenancyContract.class, contractId);
         if (contract == null) {
             throw new WebApplicationException(
                 Response.status(Response.Status.NOT_FOUND)
                     .entity("Contract not found: " + contractId)
+                    .build());
+        }
+        boolean linked = em.createQuery(
+                "SELECT COUNT(r) FROM NonMultitenancyContractAccountRole r " +
+                "WHERE r.contract.id = :cid AND r.accountId = :aid AND r.roleType = 'CUSTOMER'",
+                Long.class)
+            .setParameter("cid", contractId)
+            .setParameter("aid", actorAccountId)
+            .getSingleResult() > 0;
+
+        if (!linked) {
+            throw new WebApplicationException(
+                Response.status(Response.Status.FORBIDDEN)
+                    .entity("Contract not accessible for this account")
                     .build());
         }
         return contract;
