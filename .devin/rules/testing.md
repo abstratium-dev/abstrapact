@@ -5,8 +5,12 @@ globs: src/test/java/**/.*,src/main/webui/**/*.spec.ts
 ---
 
 - Run all backend java tests using `./scripts/run-java-tests.py` which gives you a summary of the errors so that you do not have to use tail! do not use `mvn test` or `mvn verify`.
+  - To run all tests: `./scripts/run-java-tests.py`
   - To run a single test class: `./scripts/run-java-tests.py MyTestClass`
   - To run a single test method: `./scripts/run-java-tests.py MyTestClass#testMethod`
+  - To run a single test method with a fully-qualified class: `./scripts/run-java-tests.py dev.abstratium.core.MyTestClass#testMethod`
+  - The selector is validated before Maven is invoked; valid forms are `Class`, `Class#method`, `pkg.Class`, or `pkg.Class#method`. Anything else (spaces, multiple `#`, empty method name) is rejected with an error.
+  - The `#` separates the class from the method name and is passed straight through to Maven Surefire's `-Dtest` filter — no shell quoting is required because `#` only starts a shell comment after whitespace.
 - Run angular tests with `./scripts/run-ng-tests.py` which gives a summary of the errors so that you do not have to use tail!
 - Do NOT use `ng test` as it hangs.
 - Fix tests which fail due to transactional errors last - those can be side effects of other tests failing. Fix the other failing tests first.

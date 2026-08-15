@@ -5,9 +5,10 @@ This script ONLY runs Java backend tests (surefire + failsafe). Angular frontend
 are handled by run-ng-tests.py.
 
 Usage:
-    ./scripts/run-java-test.py              # Run all tests
-    ./scripts/run-java-test.py MyTest       # Run a single test class
-    ./scripts/run-java-test.py MyTest#method  # Run a single test method
+    ./scripts/run-java-tests.py              # Run all tests
+    ./scripts/run-java-tests.py MyTest       # Run a single test class
+    ./scripts/run-java-tests.py MyTest#method  # Run a single test method
+    ./scripts/run-java-tests.py my.package.MyTest#method  # Fully qualified
 """
 
 import subprocess
@@ -23,6 +24,13 @@ TMP_DIR = PROJECT_ROOT / "tmp"
 MAX_TMP_FILES = 10
 
 ANSI_ESCAPE_PATTERN = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
+
+# Valid test selectors:
+#   MyTestClass
+#   MyTestClass#testMethod
+#   my.package.MyTestClass
+#   my.package.MyTestClass#testMethod
+TEST_SELECTOR_PATTERN = re.compile(r'^[\w\.]+(#\w+)?$')
 
 # Maven compiler error pattern (standard javac):
 # [ERROR] /path/to/File.java:[line,col] error message
@@ -477,11 +485,21 @@ def print_summary(results, output_file):
 
 
 def main():
-    test_filter = None
-    if len(sys.argv) > 1:
-        test_filter = sys.argv[1]
-
     cleanup_old_tmp_files()
+
+    test_filter = None
+    if len(sys.argv) > 2:
+        print("[error] Too many arguments.")
+        print("Usage: ./scripts/run-java-tests.py [MyTestClass|MyTestClass#testMethod]")
+        sys.exit(1)
+    if len(sys.argv) == 2:
+        selector = sys.argv[1]
+        if not TEST_SELECTOR_PATTERN.match(selector):
+            print(f"[error] Invalid test selector: {selector}")
+            print("Usage: ./scripts/run-java-tests.py [MyTestClass|MyTestClass#testMethod]")
+            sys.exit(1)
+        test_filter = selector
+
     output_file, return_code = run_mvn_test(test_filter)
     results = parse_output(output_file)
     print_summary(results, output_file)

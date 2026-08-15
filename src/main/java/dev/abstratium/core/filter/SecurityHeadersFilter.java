@@ -1,26 +1,27 @@
 package dev.abstratium.core.filter;
 
-import jakarta.ws.rs.container.ContainerRequestContext;
-import jakarta.ws.rs.container.ContainerResponseContext;
-import jakarta.ws.rs.container.ContainerResponseFilter;
-import jakarta.ws.rs.ext.Provider;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import java.io.IOException;
-
 /**
- * HTTP Response Filter that adds security headers to all responses.
- * 
+ * Vert.x route handler that adds security headers to all responses.
+ *
  * This filter implements defense-in-depth security by adding multiple
  * security-related HTTP headers to protect against common web vulnerabilities.
+ *
+ * This filter runs at the Vert.x layer (not JAX-RS) so it fires for all responses,
+ * including Quinoa-served static resources which bypass the JAX-RS pipeline entirely.
  */
-@Provider
-public class SecurityHeadersFilter implements ContainerResponseFilter {
+@ApplicationScoped
+public class SecurityHeadersFilter {
 
     @ConfigProperty(name = "security.csp.enabled", defaultValue = "true")
     boolean cspEnabled;
 
-    @ConfigProperty(name = "security.csp.policy", defaultValue = 
+    @ConfigProperty(name = "security.csp.policy", defaultValue =
         "default-src 'self'; " +
         "script-src 'self'; " +
         "style-src 'self' 'unsafe-inline'; " +
@@ -45,33 +46,22 @@ public class SecurityHeadersFilter implements ContainerResponseFilter {
     @ConfigProperty(name = "security.hsts.preload", defaultValue = "true")
     boolean hstsPreload;
 
-    @Override
-    public void filter(ContainerRequestContext requestContext, 
-                      ContainerResponseContext responseContext) throws IOException {
-        
-        // Content Security Policy - Prevents XSS, clickjacking, and other code injection attacks
+    void registerRoute(@Observes Router router) {
+        router.route().order(Integer.MIN_VALUE).handler(this::applySecurityHeaders);
+    }
+
+    void applySecurityHeaders(RoutingContext rc) {
+        var headers = rc.response().headers();
+
         if (cspEnabled) {
-            responseContext.getHeaders().add("Content-Security-Policy", cspPolicy);
+            headers.set("Content-Security-Policy", cspPolicy);
         }
-
-        // X-Content-Type-Options - Prevents MIME type sniffing
-        responseContext.getHeaders().add("X-Content-Type-Options", "nosniff");
-
-        // X-Frame-Options - Prevents clickjacking (backup for CSP frame-ancestors)
-        responseContext.getHeaders().add("X-Frame-Options", "DENY");
-
-        // X-XSS-Protection - Legacy XSS protection for older browsers
-        responseContext.getHeaders().add("X-XSS-Protection", "1; mode=block");
-
-        // Referrer-Policy - Controls how much referrer information is sent
-        responseContext.getHeaders().add("Referrer-Policy", "strict-origin-when-cross-origin");
-
-        // Permissions-Policy - Controls which browser features can be used
-        responseContext.getHeaders().add("Permissions-Policy", 
+        headers.set("X-Content-Type-Options", "nosniff");
+        headers.set("X-Frame-Options", "DENY");
+        headers.set("X-XSS-Protection", "1; mode=block");
+        headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+        headers.set("Permissions-Policy",
             "geolocation=(), microphone=(), camera=(), payment=()");
-
-        // Strict-Transport-Security - Forces HTTPS (enabled via configuration)
-        // Only enable in production when serving over HTTPS
         if (hstsEnabled) {
             StringBuilder hsts = new StringBuilder("max-age=" + hstsMaxAge);
             if (hstsIncludeSubDomains) {
@@ -80,7 +70,9 @@ public class SecurityHeadersFilter implements ContainerResponseFilter {
             if (hstsPreload) {
                 hsts.append("; preload");
             }
-            responseContext.getHeaders().add("Strict-Transport-Security", hsts.toString());
+            headers.set("Strict-Transport-Security", hsts.toString());
         }
+
+        rc.next();
     }
 }

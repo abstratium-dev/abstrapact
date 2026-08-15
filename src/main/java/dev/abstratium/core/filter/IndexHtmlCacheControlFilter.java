@@ -1,11 +1,8 @@
 package dev.abstratium.core.filter;
 
-import jakarta.ws.rs.container.ContainerRequestContext;
-import jakarta.ws.rs.container.ContainerResponseContext;
-import jakarta.ws.rs.container.ContainerResponseFilter;
-import jakarta.ws.rs.ext.Provider;
-
-import java.io.IOException;
+import io.vertx.ext.web.Router;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 
 /**
  * Cache control filter for index.html to prevent "chunk not found" errors after deployments.
@@ -17,29 +14,36 @@ import java.io.IOException;
  * Solution: This filter adds cache-prevention headers specifically for index.html,
  * ensuring browsers always fetch the fresh version with correct chunk references.
  * Hashed assets (with content hash in filename) can still be cached long-term.
+ *
+ * This filter runs at the Vert.x layer (not JAX-RS) so it fires for Quinoa-served
+ * static resources, which bypass the JAX-RS pipeline entirely.
  */
-@Provider
-public class IndexHtmlCacheControlFilter implements ContainerResponseFilter {
+@ApplicationScoped
+public class IndexHtmlCacheControlFilter {
 
-    @Override
-    public void filter(ContainerRequestContext requestContext,
-                       ContainerResponseContext responseContext) throws IOException {
-        String path = requestContext.getUriInfo().getPath();
+    static final String CACHE_CONTROL_VALUE =
+        "no-cache, no-store, must-revalidate, proxy-revalidate";
 
-        // Only apply to index.html and root path
-        if (isIndexHtmlRequest(path)) {
-            // Prevent all caching of index.html
-            responseContext.getHeaders().putSingle("Cache-Control", "no-cache, no-store, must-revalidate, proxy-revalidate");
-            responseContext.getHeaders().putSingle("Pragma", "no-cache");
-            responseContext.getHeaders().putSingle("Expires", "0");
-        }
+    void registerRoute(@Observes Router router) {
+        router.route().order(Integer.MIN_VALUE).handler(rc -> {
+            String path = rc.request().path();
+
+            if (isIndexHtmlRequest(path)) {
+                rc.response().headers()
+                    .set("Cache-Control", CACHE_CONTROL_VALUE)
+                    .set("Pragma", "no-cache")
+                    .set("Expires", "0");
+            }
+
+            rc.next();
+        });
     }
 
     private boolean isIndexHtmlRequest(String path) {
         return path == null
             || path.isEmpty()
             || path.equals("/")
-            || path.equals("index.html")
+            || path.equals("/index.html")
             || path.endsWith("/index.html");
     }
 }

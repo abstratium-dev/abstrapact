@@ -1,10 +1,11 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService, ANONYMOUS, Token } from './auth.service';
 import { WINDOW } from './window.token';
 import { RouteTrackingService } from './route-tracking.service';
+import { ToastService } from './toast/toast.service';
 import { Subject } from 'rxjs';
 
 describe('AuthService (BFF Pattern)', () => {
@@ -15,6 +16,7 @@ describe('AuthService (BFF Pattern)', () => {
   let routerEventsSubject: Subject<any>;
   let mockWindow: { location: { pathname: string; search: string; href: string } };
   let routeTrackingSpy: jasmine.SpyObj<RouteTrackingService>;
+  let toastSpy: jasmine.SpyObj<ToastService>;
   
   // Helper function to set router URL
   const setRouterUrl = (url: string) => {
@@ -64,6 +66,8 @@ describe('AuthService (BFF Pattern)', () => {
     const routeTrackingSpyObj = jasmine.createSpyObj<RouteTrackingService>('RouteTrackingService', ['getLastRoute', 'saveRoute', 'start']);
     routeTrackingSpyObj.getLastRoute.and.returnValue(null);
 
+    const toastSpyObj = jasmine.createSpyObj<ToastService>('ToastService', ['success', 'error', 'info', 'warning', 'show', 'remove', 'clear']);
+
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
@@ -71,7 +75,8 @@ describe('AuthService (BFF Pattern)', () => {
         AuthService,
         { provide: Router, useValue: spy },
         { provide: WINDOW, useValue: mockWindow },
-        { provide: RouteTrackingService, useValue: routeTrackingSpyObj }
+        { provide: RouteTrackingService, useValue: routeTrackingSpyObj },
+        { provide: ToastService, useValue: toastSpyObj }
       ]
     });
 
@@ -79,6 +84,7 @@ describe('AuthService (BFF Pattern)', () => {
     httpMock = TestBed.inject(HttpTestingController);
     routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
     routeTrackingSpy = TestBed.inject(RouteTrackingService) as jasmine.SpyObj<RouteTrackingService>;
+    toastSpy = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
   });
 
   afterEach(() => {
@@ -498,18 +504,111 @@ describe('AuthService (BFF Pattern)', () => {
 
     it('should navigate to signed-out even if logout endpoint fails', () => {
       service.signOut();
-      
+
       // Verify token was reset
       expect(service.isAuthenticated()).toBe(false);
-      
+
       // Verify HTTP call to logout endpoint
       const req = httpMock.expectOne('/api/auth/logout');
-      
+
       // Simulate error response
       req.flush('Server error', { status: 500, statusText: 'Internal Server Error' });
-      
+
       // Verify navigation to signed-out still happens
       expect(routerSpy.navigate).toHaveBeenCalledWith(['/signed-out']);
+    });
+  });
+
+  describe('Session expiry warning', () => {
+    beforeEach(() => {
+      jasmine.clock().install();
+      // Freeze Date at epoch so exp/iat truncation to whole seconds has no
+      // sub-second remainder — keeps timer delays deterministic in tests.
+      jasmine.clock().mockDate(new Date(0));
+    });
+
+    afterEach(() => {
+      jasmine.clock().uninstall();
+    });
+
+    it('should show a warning toast 2 minutes before signOut() fires', (done) => {
+      setRouterUrl('/accounts');
+      // Token expires in 10 minutes. signOut() fires at exp - 1min = 9min,
+      // so the warning toast should fire at exp - 3min = 7min.
+      const longLivedToken: Token = {
+        ...mockUserInfo,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 10 * 60,
+      };
+
+      service.initialize().subscribe(() => {
+        expect(toastSpy.warning).not.toHaveBeenCalled();
+
+        // Advance to just before the warning fires.
+        jasmine.clock().tick((7 * 60 * 1000) - 1);
+        expect(toastSpy.warning).not.toHaveBeenCalled();
+
+        // Cross the warning threshold.
+        jasmine.clock().tick(1);
+        expect(toastSpy.warning).toHaveBeenCalledTimes(1);
+        expect(toastSpy.warning).toHaveBeenCalledWith('You will be signed out in 2 minutes.');
+
+        // Note: signOut() fires at exp - 1min = 9min, which is beyond the
+        // 7min tick above, so no logout request is made here.
+        done();
+      });
+
+      const req = httpMock.expectOne('/api/core/userinfo');
+      req.flush(longLivedToken);
+    });
+
+    it('should not show a warning toast for a short-lived token', (done) => {
+      setRouterUrl('/accounts');
+      // Token expires in 2 minutes — well within the 3-minute warning window,
+      // so no warning toast should be scheduled.
+      const shortLivedToken: Token = {
+        ...mockUserInfo,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 2 * 60,
+      };
+
+      service.initialize().subscribe(() => {
+        // Advance well past the entire session lifetime.
+        jasmine.clock().tick(10 * 60 * 1000);
+        expect(toastSpy.warning).not.toHaveBeenCalled();
+
+        // Flush the logout request triggered by the immediate signOut() timer.
+        const logoutReq = httpMock.expectOne('/api/auth/logout');
+        logoutReq.flush({});
+        done();
+      });
+
+      const req = httpMock.expectOne('/api/core/userinfo');
+      req.flush(shortLivedToken);
+    });
+
+    it('should not show a warning toast if the user signs out manually before it fires', (done) => {
+      setRouterUrl('/accounts');
+      const longLivedToken: Token = {
+        ...mockUserInfo,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 10 * 60,
+      };
+
+      service.initialize().subscribe(() => {
+        // User signs out manually well before the 7-minute warning threshold.
+        service.signOut();
+        const logoutReq = httpMock.expectOne('/api/auth/logout');
+        logoutReq.flush({});
+
+        // Advance past the point where the warning would have fired.
+        jasmine.clock().tick(8 * 60 * 1000);
+        expect(toastSpy.warning).not.toHaveBeenCalled();
+        done();
+      });
+
+      const req = httpMock.expectOne('/api/core/userinfo');
+      req.flush(longLivedToken);
     });
   });
 
