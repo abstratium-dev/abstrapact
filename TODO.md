@@ -11,11 +11,18 @@
 
 ## Today
 
-- finish fixing abstracore and then sync with downstreams
-- finish abstrauth with new default role type
-- rebuild and deploy abstrauth
+- abstracore: if userinfo is signed in, but groups is empty, then show the user a dialog that they have no roles and need to contact their administrator
+
+- bug. click on approve. then browser says the following and navigates but there is a not found:
+
+    Sending form data to 'https://auth-t.abstratium.dev/oauth2/authorize' violates the following Content Security Policy directive: "form-action 'self' https://accounts-t.abstratium.dev". The request has been blocked.
+
+    /oauth/callback?code=0KE4hUfy48mxo520NFHN5UJCPRzLt-eORhyAVkkZkWs&state=3ebf5466-5bf2-4f8d-816a-3f9955b7dce8:1  GET https://accounts-t.abstratium.dev/oauth/callback?code=0KE4hUfy48mxo520NFHN5UJCPRzLt-eORhyAVkkZkWs&state=3ebf5466-5bf2-4f8d-816a-3f9955b7dce8 404 (Not Found)
+
 - fix bug in abstraccount and rebuild and redeploy it
 - rebuild and deploy abstraccount
+
+----
 
 - add e2e 04 which asserts prices are correctly calculated
 
