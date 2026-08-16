@@ -12,7 +12,8 @@
 ## Today
 
 - abstracore: if userinfo is signed in, but groups is empty, then show the user a dialog that they have no roles and need to contact their administrator
-
+- abstracore: hovering on sign out circle should show email address out of userinfo
+- abstrauth todo - Sign out circle
 - bug. click on approve. then browser says the following and navigates but there is a not found:
 
     Sending form data to 'https://auth-t.abstratium.dev/oauth2/authorize' violates the following Content Security Policy directive: "form-action 'self' https://accounts-t.abstratium.dev". The request has been blocked.
@@ -21,7 +22,10 @@
 
 - fix bug in abstraccount and rebuild and redeploy it
 - rebuild and deploy abstraccount
-
+- finish reviewing design_of_payment.md
+  - problem 1) the callback url should not be per org as an org could have multiple b2c apps, one for each product, so must be per product
+  - problem 2) stripe account - it should be set up that other people have their own stripe account, but they should set the webhook and callback urls to abstrapact. we should know which stripe account creates the successful payment in case our customers ask us. 
+  - problem 3) even if they use our own b2c which is multitenant capable, they should use their own stripe account. 
 ----
 
 - add e2e 04 which asserts prices are correctly calculated
