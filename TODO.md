@@ -11,15 +11,12 @@
 
 ## Today
 
-- abstracore: if userinfo is signed in, but groups is empty, then show the user a dialog that they have no roles and need to contact their administrator
-- abstracore: hovering on sign out circle should show email address out of userinfo
-- abstrauth todo - Sign out circle
-- bug. click on approve. then browser says the following and navigates but there is a not found:
+- intersting logs of abstauth-test:
 
-    Sending form data to 'https://auth-t.abstratium.dev/oauth2/authorize' violates the following Content Security Policy directive: "form-action 'self' https://accounts-t.abstratium.dev". The request has been blocked.
+2026-08-17 20:00:38,537 WARN  [dev.abs.abs.bou.oau.AuthorizationResource] (executor-thread-1) [skey:] Invalid redirect_uri for client 058ebe1e-e9c8-4359-ab77-e943990ab0dd__abstratium-abstracore: requested=http://localhost:10081/oauth/callback, allowed=["http://localhost:8081/oauth/callback"]
 
-    /oauth/callback?code=0KE4hUfy48mxo520NFHN5UJCPRzLt-eORhyAVkkZkWs&state=3ebf5466-5bf2-4f8d-816a-3f9955b7dce8:1  GET https://accounts-t.abstratium.dev/oauth/callback?code=0KE4hUfy48mxo520NFHN5UJCPRzLt-eORhyAVkkZkWs&state=3ebf5466-5bf2-4f8d-816a-3f9955b7dce8 404 (Not Found)
 
+- test abstracore: no roles shows dialog
 - fix bug in abstraccount and rebuild and redeploy it
 - rebuild and deploy abstraccount
 - finish reviewing design_of_payment.md
