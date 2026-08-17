@@ -17,4 +17,19 @@ export class InfoDialogComponent {
   ok(): void {
     this.infoService.handleOk();
   }
+
+  /**
+   * Called when the backdrop overlay is clicked. Only dismisses the dialog
+   * when it is dismissable; non-dismissable warnings (e.g. "no roles") must
+   * stay open so the user cannot interact with the application behind them.
+   */
+  onOverlayClick(): void {
+    if (this.state().config?.dismissable !== false) {
+      this.ok();
+    }
+  }
+
+  onActionLinkClick(): void {
+    this.infoService.handleActionLink();
+  }
 }

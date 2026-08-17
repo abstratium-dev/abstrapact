@@ -1,5 +1,8 @@
-<div *ngIf="state().isOpen" class="dialog-overlay" (click)="ok()">
-  <div class="dialog-container" (click)="$event.stopPropagation()">
+<div *ngIf="state().isOpen" class="dialog-overlay" (click)="onOverlayClick()">
+  <div
+    class="dialog-container"
+    [class.dialog-warning]="state().config?.variant === 'warning'"
+    (click)="$event.stopPropagation()">
     <div class="dialog-header">
       <h2>{{ state().config?.title }}</h2>
     </div>
@@ -9,9 +12,14 @@
     </div>
 
     <div class="dialog-actions">
-      <button type="button" class="btn-secondary" (click)="ok()">
-        {{ state().config?.okText }}
-      </button>
+      @if (state().config?.actionLink) {
+        <a class="alink dialog-action-link" (click)="onActionLinkClick()">{{ state().config?.actionLink?.text }}</a>
+      }
+      @if (state().config?.dismissable !== false) {
+        <button type="button" class="btn-secondary" (click)="ok()">
+          {{ state().config?.okText }}
+        </button>
+      }
     </div>
   </div>
 </div>

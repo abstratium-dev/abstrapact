@@ -84,4 +84,95 @@ describe('InfoDialogComponent', () => {
 
     expect(component.ok).toHaveBeenCalled();
   });
+
+  it('should NOT call ok when overlay clicked on a non-dismissable dialog', () => {
+    spyOn(component, 'ok');
+
+    service.show({
+      title: 'No roles',
+      message: 'Contact your administrator',
+      dismissable: false,
+    });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement;
+    const overlay = compiled.querySelector('.dialog-overlay');
+    overlay.click();
+
+    expect(component.ok).not.toHaveBeenCalled();
+    expect(service.state$().isOpen).toBe(true);
+  });
+
+  it('should apply dialog-warning class for warning variant', () => {
+    service.show({ title: 'Test', message: 'Test', variant: 'warning' });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement;
+    expect(compiled.querySelector('.dialog-container.dialog-warning')).toBeTruthy();
+  });
+
+  it('should NOT apply dialog-warning class for info variant', () => {
+    service.show({ title: 'Test', message: 'Test', variant: 'info' });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement;
+    expect(compiled.querySelector('.dialog-container.dialog-warning')).toBeFalsy();
+  });
+
+  it('should hide the OK button when dismissable is false', () => {
+    service.show({ title: 'Test', message: 'Test', dismissable: false });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement;
+    expect(compiled.querySelector('.btn-secondary')).toBeFalsy();
+  });
+
+  it('should show the OK button when dismissable is true', () => {
+    service.show({ title: 'Test', message: 'Test' });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement;
+    expect(compiled.querySelector('.btn-secondary')).toBeTruthy();
+  });
+
+  it('should render the action link when configured', () => {
+    service.show({
+      title: 'No roles',
+      message: 'Contact your administrator',
+      dismissable: false,
+      actionLink: { text: 'Sign out', action: () => {} },
+    });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement;
+    const link = compiled.querySelector('.dialog-action-link');
+    expect(link).toBeTruthy();
+    expect(link.textContent).toContain('Sign out');
+  });
+
+  it('should NOT render the action link when not configured', () => {
+    service.show({ title: 'Test', message: 'Test' });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement;
+    expect(compiled.querySelector('.dialog-action-link')).toBeFalsy();
+  });
+
+  it('should call handleActionLink when the action link is clicked', () => {
+    spyOn(component, 'onActionLinkClick');
+
+    service.show({
+      title: 'No roles',
+      message: 'Contact your administrator',
+      dismissable: false,
+      actionLink: { text: 'Sign out', action: () => {} },
+    });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement;
+    const link = compiled.querySelector('.dialog-action-link');
+    link.click();
+
+    expect(component.onActionLinkClick).toHaveBeenCalled();
+  });
 });

@@ -34,8 +34,8 @@
             <a id="config-link" routerLink="/config" routerLinkActive="inactive-link">config</a>
             &nbsp;|&nbsp;
             <span class="signout-wrapper">
-                <svg class="session-clock" viewBox="0 0 18 18" [attr.aria-label]="sessionMinutesRemaining + ' minutes until sign-out'">
-                    <title>{{ sessionMinutesRemaining }} min until sign-out</title>
+                <svg class="session-clock" viewBox="0 0 18 18" [attr.aria-label]="sessionMinutesRemaining + ' minutes until sign-out (' + token.email + ')'">
+                    <title>{{ sessionMinutesRemaining }} min until sign-out ({{ token.email }})</title>
                     <circle class="session-clock-bg" cx="9" cy="9" r="7"/>
                     <circle class="session-clock-fill" cx="9" cy="9" r="7"
                         [style.stroke-dashoffset]="sessionClockDashoffset"/>

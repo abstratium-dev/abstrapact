@@ -61,4 +61,64 @@ describe('InfoDialogService', () => {
     await promise;
     expect(service.state$().isOpen).toBe(false);
   });
+
+  it('should default variant to info', () => {
+    service.show({ title: 'Test', message: 'Test' });
+    expect(service.state$().config?.variant).toBe('info');
+  });
+
+  it('should store warning variant when provided', () => {
+    service.show({ title: 'Test', message: 'Test', variant: 'warning' });
+    expect(service.state$().config?.variant).toBe('warning');
+  });
+
+  it('should default dismissable to true', () => {
+    service.show({ title: 'Test', message: 'Test' });
+    expect(service.state$().config?.dismissable).toBe(true);
+  });
+
+  it('should store dismissable false when provided', () => {
+    service.show({ title: 'Test', message: 'Test', dismissable: false });
+    expect(service.state$().config?.dismissable).toBe(false);
+  });
+
+  it('should store action link when provided', () => {
+    const action = () => {};
+    service.show({ title: 'Test', message: 'Test', actionLink: { text: 'Sign out', action } });
+    expect(service.state$().config?.actionLink?.text).toBe('Sign out');
+    expect(service.state$().config?.actionLink?.action).toBe(action);
+  });
+
+  it('should NOT close when handleOk called on a non-dismissable dialog', () => {
+    service.show({ title: 'Test', message: 'Test', dismissable: false });
+    service.handleOk();
+    expect(service.state$().isOpen).toBe(true);
+  });
+
+  it('should close when handleOk called on a dismissable dialog', () => {
+    service.show({ title: 'Test', message: 'Test' });
+    service.handleOk();
+    expect(service.state$().isOpen).toBe(false);
+  });
+
+  it('should invoke the action link callback and close on handleActionLink', () => {
+    const action = jasmine.createSpy('action');
+    service.show({
+      title: 'No roles',
+      message: 'Contact your administrator',
+      dismissable: false,
+      actionLink: { text: 'Sign out', action },
+    });
+
+    service.handleActionLink();
+
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(service.state$().isOpen).toBe(false);
+  });
+
+  it('should close on handleActionLink even with no action link configured', () => {
+    service.show({ title: 'Test', message: 'Test' });
+    service.handleActionLink();
+    expect(service.state$().isOpen).toBe(false);
+  });
 });

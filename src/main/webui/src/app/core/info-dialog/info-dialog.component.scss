@@ -42,6 +42,19 @@
   }
 }
 
+/* Warning variant: used for blocking warnings such as "no roles assigned". */
+.dialog-container.dialog-warning {
+  border: 1px solid var(--color-warning-border);
+
+  .dialog-header h2 {
+    color: var(--color-warning);
+  }
+
+  [data-theme="dark"] & {
+    border: 1px solid var(--color-warning-border);
+  }
+}
+
 @keyframes slideIn {
   from {
     transform: translateY(-20px);
@@ -86,6 +99,11 @@
 
 .dialog-actions button {
   min-width: 80px;
+}
+
+.dialog-action-link {
+  align-self: center;
+  font-size: 1rem;
 }
 
 @media (max-width: 768px) {

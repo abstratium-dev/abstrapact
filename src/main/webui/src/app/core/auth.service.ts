@@ -6,6 +6,7 @@ import { WINDOW } from './window.token';
 import { Router } from '@angular/router';
 import { RouteTrackingService } from './route-tracking.service';
 import { ToastService } from './toast/toast.service';
+import { InfoDialogService } from './info-dialog/info-dialog.service';
 
 export const CLIENT_ID = 'abstratium-abstrapact';
 export const ISSUER = 'https://abstrauth.abstratium.dev';
@@ -51,6 +52,7 @@ export class AuthService {
     private window = inject(WINDOW);
     private routeTracking = inject(RouteTrackingService);
     private toastService = inject(ToastService);
+    private infoDialogService = inject(InfoDialogService);
 
     token$ = signal<Token>(ANONYMOUS);
     sessionFraction$ = signal<number>(1);
@@ -95,6 +97,14 @@ export class AuthService {
                 this.initialized = true;
                 this.setupTokenExpiryTimer(token.exp);
 
+                // If the user is signed in but has no roles, block the
+                // application with a non-dismissable warning dialog. The user
+                // can still sign out via the action link in the dialog.
+                if (token.groups.length === 0) {
+                    console.warn('[AUTH] Authenticated user has no roles:', token.email);
+                    this.showNoRolesWarning();
+                }
+
                 // Navigation priority:
                 // 1. _spa redirect: server couldn't serve the path directly,
                 //    encoded it as /?_spa=<path> — navigate to the decoded path.
@@ -129,6 +139,25 @@ export class AuthService {
             }),
             map(() => void 0)
         );
+    }
+
+    /**
+     * Show a non-dismissable warning dialog informing the user that their
+     * account has no roles assigned. The dialog overlays the entire
+     * application so the user cannot interact with it; the only way out is
+     * the "Sign out" action link provided in the dialog.
+     */
+    private showNoRolesWarning(): void {
+        this.infoDialogService.show({
+            title: 'No roles assigned',
+            message: 'Your account does not have any roles assigned. Please contact your administrator to gain access to the application.',
+            variant: 'warning',
+            dismissable: false,
+            actionLink: {
+                text: 'Sign out',
+                action: () => this.signOut(),
+            },
+        });
     }
 
 

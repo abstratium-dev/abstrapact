@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { HeaderComponent } from './header/header.component';
 import { ToastComponent } from './core/toast/toast.component';
 import { ConfirmDialogComponent } from './core/confirm-dialog/confirm-dialog.component';
+import { InfoDialogComponent } from './core/info-dialog/info-dialog.component';
 import { CookieNoticeComponent } from './core/cookie-notice/cookie-notice.component';
 import { MaintenanceComponent } from './core/maintenance/maintenance.component';
 import { ModelService } from './model.service';
@@ -11,7 +12,7 @@ import { DomainService } from './core/domain.service';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, RouterOutlet, HeaderComponent, ToastComponent, ConfirmDialogComponent, CookieNoticeComponent, MaintenanceComponent, RouterModule],
+  imports: [CommonModule, RouterOutlet, HeaderComponent, ToastComponent, ConfirmDialogComponent, InfoDialogComponent, CookieNoticeComponent, MaintenanceComponent, RouterModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })

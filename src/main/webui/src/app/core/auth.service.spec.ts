@@ -6,6 +6,7 @@ import { AuthService, ANONYMOUS, Token } from './auth.service';
 import { WINDOW } from './window.token';
 import { RouteTrackingService } from './route-tracking.service';
 import { ToastService } from './toast/toast.service';
+import { InfoDialogService, InfoDialogConfig } from './info-dialog/info-dialog.service';
 import { Subject } from 'rxjs';
 
 describe('AuthService (BFF Pattern)', () => {
@@ -17,6 +18,7 @@ describe('AuthService (BFF Pattern)', () => {
   let mockWindow: { location: { pathname: string; search: string; href: string } };
   let routeTrackingSpy: jasmine.SpyObj<RouteTrackingService>;
   let toastSpy: jasmine.SpyObj<ToastService>;
+  let infoDialogSpy: jasmine.SpyObj<InfoDialogService>;
   
   // Helper function to set router URL
   const setRouterUrl = (url: string) => {
@@ -68,6 +70,9 @@ describe('AuthService (BFF Pattern)', () => {
 
     const toastSpyObj = jasmine.createSpyObj<ToastService>('ToastService', ['success', 'error', 'info', 'warning', 'show', 'remove', 'clear']);
 
+    const infoDialogSpyObj = jasmine.createSpyObj<InfoDialogService>('InfoDialogService', ['show', 'handleOk', 'handleActionLink']);
+    infoDialogSpyObj.show.and.returnValue(new Promise<void>(() => {}));
+
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
@@ -76,7 +81,8 @@ describe('AuthService (BFF Pattern)', () => {
         { provide: Router, useValue: spy },
         { provide: WINDOW, useValue: mockWindow },
         { provide: RouteTrackingService, useValue: routeTrackingSpyObj },
-        { provide: ToastService, useValue: toastSpyObj }
+        { provide: ToastService, useValue: toastSpyObj },
+        { provide: InfoDialogService, useValue: infoDialogSpyObj }
       ]
     });
 
@@ -85,6 +91,7 @@ describe('AuthService (BFF Pattern)', () => {
     routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
     routeTrackingSpy = TestBed.inject(RouteTrackingService) as jasmine.SpyObj<RouteTrackingService>;
     toastSpy = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
+    infoDialogSpy = TestBed.inject(InfoDialogService) as jasmine.SpyObj<InfoDialogService>;
   });
 
   afterEach(() => {
@@ -209,6 +216,84 @@ describe('AuthService (BFF Pattern)', () => {
       req.flush(mockUserInfo);
     });
 
+  });
+
+  describe('Empty roles warning', () => {
+    it('should show a non-dismissable warning dialog when authenticated user has no roles', (done) => {
+      setRouterUrl('/accounts');
+      const noRolesToken: Token = { ...mockUserInfo, groups: [] };
+
+      service.initialize().subscribe(() => {
+        expect(infoDialogSpy.show).toHaveBeenCalledTimes(1);
+        const config = infoDialogSpy.show.calls.mostRecent().args[0] as InfoDialogConfig;
+        expect(config.variant).toBe('warning');
+        expect(config.dismissable).toBe(false);
+        expect(config.title).toBeTruthy();
+        expect(config.message).toBeTruthy();
+        done();
+      });
+
+      const req = httpMock.expectOne('/api/core/userinfo');
+      req.flush(noRolesToken);
+    });
+
+    it('should provide a "Sign out" action link that calls signOut', (done) => {
+      setRouterUrl('/accounts');
+      const noRolesToken: Token = { ...mockUserInfo, groups: [] };
+
+      service.initialize().subscribe(() => {
+        const config = infoDialogSpy.show.calls.mostRecent().args[0] as InfoDialogConfig;
+        expect(config.actionLink).toBeDefined();
+        expect(config.actionLink?.text).toBe('Sign out');
+
+        // Invoking the action link should trigger signOut (which makes a
+        // GET /api/auth/logout request).
+        config.actionLink!.action();
+        const logoutReq = httpMock.expectOne('/api/auth/logout');
+        logoutReq.flush({});
+        done();
+      });
+
+      const req = httpMock.expectOne('/api/core/userinfo');
+      req.flush(noRolesToken);
+    });
+
+    it('should NOT show a warning dialog when authenticated user has roles', (done) => {
+      setRouterUrl('/accounts');
+
+      service.initialize().subscribe(() => {
+        expect(infoDialogSpy.show).not.toHaveBeenCalled();
+        done();
+      });
+
+      const req = httpMock.expectOne('/api/core/userinfo');
+      req.flush(mockUserInfo); // groups: ['admin', 'users']
+    });
+
+    it('should NOT show a warning dialog when user is not authenticated', (done) => {
+      service.initialize().subscribe(() => {
+        expect(infoDialogSpy.show).not.toHaveBeenCalled();
+        done();
+      });
+
+      const req = httpMock.expectOne('/api/core/userinfo');
+      req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+    });
+
+    it('should still navigate when user has no roles', (done) => {
+      mockWindow.location.pathname = '/accounts';
+      mockWindow.location.search = '';
+      setRouterUrl('/accounts');
+      const noRolesToken: Token = { ...mockUserInfo, groups: [] };
+
+      service.initialize().subscribe(() => {
+        expect(routerSpy.navigateByUrl).toHaveBeenCalledWith('/accounts');
+        done();
+      });
+
+      const req = httpMock.expectOne('/api/core/userinfo');
+      req.flush(noRolesToken);
+    });
   });
 
   describe('Route Restoration', () => {
