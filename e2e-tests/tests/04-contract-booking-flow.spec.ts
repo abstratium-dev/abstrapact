@@ -59,6 +59,8 @@ async function createCrossTenantProduct(page: Page, productCode: string, partCod
             billingModel: 'FIXED_PRICE',
             paymentModel: 'PREPAID',
             crossTenantApiAllowed: true,
+            stripeSecretKey: 'sk_test_e2e_mock',
+            stripeWebhookSecret: 'whsec_e2e_mock',
         },
     });
     expect(resp.status(), `Create product failed: ${resp.status()}`).toBe(201);
@@ -231,7 +233,7 @@ test.describe('04 Contract Booking Flow', () => {
         expect(offeredContract.state, 'Contract state must be OFFERED after offer').toBe('OFFERED');
         console.log(`[BK1] Contract is now OFFERED`);
 
-        // ── Step 7: POST /api/public/sales/contracts/{id}/accept — OFFERED → ACCEPTED
+        // ── Step 7: POST /api/public/sales/contracts/{id}/accept — OFFERED → AWAITING_PAYMENT
         log('Accept the contract via POST /api/public/sales/contracts/{id}/accept');
         const acceptResp = await page.request.post(`/api/public/sales/contracts/${contractId}/accept`, {
             headers: await getXsrfHeader(page),
@@ -240,12 +242,17 @@ test.describe('04 Contract Booking Flow', () => {
         console.log(`[BK1] Accept response status: ${acceptResp.status()}\n${acceptBody}`);
         expect(acceptResp.status(), `Expected 200 but got ${acceptResp.status()}. Body: ${acceptBody}`).toBe(200);
 
-        log('GET contract by id to verify ACCEPTED state');
+        // Accept now returns a checkoutUrl for prepaid contracts (auto-approval + payment).
+        const acceptJson = JSON.parse(acceptBody);
+        expect(acceptJson.checkoutUrl, 'Accept response must contain checkoutUrl').toBeTruthy();
+        console.log(`[BK1] Checkout URL: ${acceptJson.checkoutUrl}`);
+
+        log('GET contract by id to verify AWAITING_PAYMENT state');
         const getAfterAccept = await page.request.get(`/api/public/sales/contracts/${contractId}`);
         expect(getAfterAccept.status(), `GET contract after accept failed: ${getAfterAccept.status()}`).toBe(200);
         const acceptedContract = await getAfterAccept.json();
-        expect(acceptedContract.state, 'Contract state must be ACCEPTED after accept').toBe('ACCEPTED');
-        console.log(`[BK1] Contract is now ACCEPTED`);
+        expect(acceptedContract.state, 'Contract state must be AWAITING_PAYMENT after accept').toBe('AWAITING_PAYMENT');
+        console.log(`[BK1] Contract is now AWAITING_PAYMENT`);
 
         // ── Step 8: GET /api/public/sales/contracts — list must contain the contract
         log('List contracts via GET /api/public/sales/contracts');
@@ -255,12 +262,12 @@ test.describe('04 Contract Booking Flow', () => {
         expect(contracts, 'Contracts list must be an array').toBeInstanceOf(Array);
         const found = contracts.find((c: any) => c.id === contractId);
         expect(found, 'Contract must appear in the list').toBeTruthy();
-        expect(found.state, 'Listed contract state must be ACCEPTED').toBe('ACCEPTED');
+        expect(found.state, 'Listed contract state must be AWAITING_PAYMENT').toBe('AWAITING_PAYMENT');
         expect(found.contractReference, 'Listed contractReference must match').toBe(`E2E-BK-${timestamp}`);
         expect(Number(found.grandTotal), 'Listed grandTotal must match').toBe(expectedTotal);
         console.log(`[BK1] Contract found in list with state=${found.state}`);
 
-        console.log(`[BK1] Booking flow completed successfully: id=${contractId}, state=ACCEPTED`);
+        console.log(`[BK1] Booking flow completed successfully: id=${contractId}, state=AWAITING_PAYMENT`);
     });
 
     test('BK2: cannot accept a DRAFT contract (must be offered first)', async ({ page }: { page: Page }) => {
@@ -384,17 +391,17 @@ test.describe('04 Contract Booking Flow', () => {
         });
         expect(acceptResp.status(), `Accept failed: ${acceptResp.status()}`).toBe(200);
 
-        log('Attempt to offer the ACCEPTED contract — should return 422');
+        log('Attempt to offer the AWAITING_PAYMENT contract — should return 422');
         const reOfferResp = await page.request.post(`/api/public/sales/contracts/${contractId}/offer`, {
             headers: await getXsrfHeader(page),
         });
-        console.log(`[BK3] Re-offer ACCEPTED response status: ${reOfferResp.status()}`);
+        console.log(`[BK3] Re-offer AWAITING_PAYMENT response status: ${reOfferResp.status()}`);
         expect(reOfferResp.status(), `Expected 422 but got ${reOfferResp.status()}`).toBe(422);
 
-        log('Verify contract is still ACCEPTED');
+        log('Verify contract is still AWAITING_PAYMENT');
         const getResp = await page.request.get(`/api/public/sales/contracts/${contractId}`);
         const fetched = await getResp.json();
-        expect(fetched.state, 'Contract must still be ACCEPTED').toBe('ACCEPTED');
+        expect(fetched.state, 'Contract must still be AWAITING_PAYMENT').toBe('AWAITING_PAYMENT');
     });
 
 });

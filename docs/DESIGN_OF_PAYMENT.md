@@ -925,6 +925,7 @@ product.
 
 ### 1. Obtain API Keys
 
+0. Top left of dashboard you can click abstratium and change to sandbox, test mode.
 1. Navigate to **Developers → API Keys**.
 2. Copy the **Secret key** (`sk_live_...` for production, `sk_test_...` for test mode).
 3. Store it in the `stripe_secret_key` column of the product definition.

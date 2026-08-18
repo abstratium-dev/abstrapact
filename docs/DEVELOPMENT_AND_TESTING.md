@@ -159,11 +159,57 @@ ng update @angular/cli @angular/core
 
 5. Check Github for security problems by signing in and viewing the problems here: https://github.com/abstratium-dev/abstrapact/security/dependabot and https://github.com/abstratium-dev/abstrapact/security/code-scanning
 
+6. Update Stripe CLI
+
+```bash
+nvm use v24.11.1 
+npm install --global @stripe/cli@latest
+```
+
 # Issues with Webkit
 
 For some strange reason, cookies aren't properly transported when testing localhost with Webkit (e.g. e2e tests, but also manual browser tests). If you sign out and try and sign in again and it doesn't pass the cookies properly and you remain on the sign in page.
 
 The application works fine in production, so just don't test with Webkit locally.
+
+# Use the Stripe CLI
+
+## Installation
+
+    nvm use v24.11.1
+    npm install --global @stripe/cli
+
+## Sign in every 90 days
+
+    stripe login
+
+## Install skills
+
+    stripe agent setup
+
+## Install bash completion
+
+    stripe completion --shell bash
+
+then follow the instructions.
+
+## Follow logs
+
+Establishes a direct connection with Stripe, allowing you to tail your test mode Stripe API request logs in real-time from your terminal.
+
+    stripe logs tail \
+        --filter-http-method POST \
+        --filter-status-code-type 4XX
+
+## Redirect Webhooks to local server
+
+    stripe listen --forward-to http://localhost:8088/api/payment/stripe/webhook --events=payment_intent.succeeded,*
+
+    stripe listen  --print-secret
+
+## Trigger events
+
+    stripe trigger invoice.payment_succeeded
 
 # Building and Releasing
 
@@ -182,5 +228,7 @@ Run `npx playwright test --ui` in the `e2e-tests` directory.
 Manually run all the tests - this tests the e2e tests.
 
 (Don't run `mvn verify -Pe2e` since it's a little flakey.)
+
+If that all works, see [NATIVE_IMAGE_BUILD.md](NATIVE_IMAGE_BUILD.md) for instructions on building a native image and releasing it.
 
 If that all works, see [NATIVE_IMAGE_BUILD.md](NATIVE_IMAGE_BUILD.md) for instructions on building a native image and releasing it.

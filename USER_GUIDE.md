@@ -114,8 +114,13 @@ _Replace all placeholder values with the values generated above.
    - `ABSTRATIUM_TOGGLES_CONTEXT`: Context for the Abstoggle public API (e.g., `abstratium-public-...`)
    - `STAGE`: Deployment stage identifier exposed to the frontend (e.g., "dev", "test", "prod", defaults to "dev")
    - `DEFAULT_ORG_UUID`: UUID for the default organisation that existing data is migrated into (generate with `uuidgen`)
+   - `ABSTRAPACT_PAYMENT_STRIPE_SUCCESS_URL`: abstrapact's own Stripe Checkout success redirect endpoint. Must include the `{CHECKOUT_SESSION_ID}` placeholder, e.g. `https://abstrapact.example.com/api/public/payment/success?session_id={CHECKOUT_SESSION_ID}`. Stripe redirects the customer's browser here after payment; abstrapact then redirects to the per-product B2C redirect URL configured on the product definition. Required when `ABSTRAPACT_PAYMENT_PSP=stripe` (the default).
+   - `ABSTRAPACT_PAYMENT_STRIPE_CANCEL_URL`: abstrapact's own Stripe Checkout cancel redirect endpoint, with the same `{CHECKOUT_SESSION_ID}` placeholder, e.g. `https://abstrapact.example.com/api/public/payment/cancel?session_id={CHECKOUT_SESSION_ID}`. Required when `ABSTRAPACT_PAYMENT_PSP=stripe` (the default).
 
    **Optional Environment Variables:**
+   - `ABSTRAPACT_PAYMENT_PSP`: Active payment service provider identifier, used by `PSPSelector` to pick the `PSPInterface` implementation. Defaults to `stripe`.
+   - `ABSTRAPACT_PAYMENT_STRIPE_API_BASE`: Stripe API base URL. Defaults to `https://api.stripe.com`. Only override to point at a mock/stub Stripe API for non-production environments.
+   - `ABSTRAPACT_PAYMENT_STALE_AFTER_HOURS`: Hours after which a `PENDING` payment transaction is considered stale. A success webhook arriving for a stale `PENDING` transaction marks the transaction `STALE` instead of `SUCCEEDED` and does NOT transition the contract. Defaults to `24`.
    - `ABSTRA_WARNING_MESSAGE`: Warning banner message displayed at the top of the UI (e.g., "You are in the TEST environment!"). Set to "-" or omit to hide the banner.
    - `ABSTRA_WARNING_BG_COLOR`: Warning banner background colour (CSS colour value, e.g., `#ff4444` for red). Defaults to `#fff3cd` (amber yellow). Useful for differentiating environments at a glance.
    - `ABSTRA_BRAND_LOGO_URL`: URL of the logo image shown in the header. Defaults to `https://abstratium.dev/abstratium-logo-small.png`.

@@ -1,7 +1,13 @@
 package dev.abstratium.test;
 
 import dev.abstratium.abstrapact.contracts.entity.Contract;
+import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyContract;
+import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyContractAccountRole;
+import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyProductDefinition;
+import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyProductInstance;
 import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyProcessInstance;
+import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.PaymentTransaction;
+import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.WebhookEvent;
 import dev.abstratium.abstrapact.product.entity.ProductDefinition;
 import dev.abstratium.abstrapact.product.entity.ProductInstance;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -48,9 +54,24 @@ public class TestDataCleaner {
     public void deleteAll() throws Exception {
         userTransaction.begin();
         try {
+            // Payment tables must be removed before Contract (FK from
+            // T_webhook_event -> T_payment_transaction -> T_contract).
+            removeAll(WebhookEvent.class);
+            removeAll(PaymentTransaction.class);
             removeAll(NonMultitenancyProcessInstance.class);
+            // Remove both tenant-bound and non-multitenancy contracts (both map to T_contract;
+            // the tenant-bound query is filtered by @TenantId and may miss rows created via
+            // the non-multitenancy entity). NonMultitenancyContract cascades to line items,
+            // signatories, terms links, and account roles.
+            removeAll(NonMultitenancyContractAccountRole.class);
+            removeAll(NonMultitenancyContract.class);
             removeAll(Contract.class);
+            // Remove both tenant-bound and non-multitenancy product instances/definitions
+            // (both map to the same DB tables; the tenant-bound query is filtered by @TenantId
+            // and may miss rows created via the non-multitenancy entity).
+            removeAll(NonMultitenancyProductInstance.class);
             removeAll(ProductInstance.class);
+            removeAll(NonMultitenancyProductDefinition.class);
             removeAll(ProductDefinition.class);
             em.flush();
             userTransaction.commit();

@@ -134,13 +134,17 @@ public class NonMultitenancyCustomerContractResource {
 
     @POST
     @Path("/{id}/accept")
-    @Operation(summary = "Move the contract from OFFERED to ACCEPTED")
+    @Operation(summary = "Move the contract from OFFERED to ACCEPTED, then trigger payment handling")
     public Response accept(@PathParam("id") String id) {
         String sellerOrgId = resolveOrgIdFromContract(id);
         currentOrgContext.setOrgId(sellerOrgId);
 
-        salesProcessService.acceptContract(id, accountId());
-        return Response.ok().build();
+        String checkoutUrl = salesProcessService.acceptContract(id, accountId());
+
+        // Return the updated contract state with the checkout URL for prepaid contracts.
+        CustomerContractResponse response = contractService.getContract(id, accountId());
+        response.setCheckoutUrl(checkoutUrl);
+        return Response.ok(response).build();
     }
 
     // ==================== private helpers ====================

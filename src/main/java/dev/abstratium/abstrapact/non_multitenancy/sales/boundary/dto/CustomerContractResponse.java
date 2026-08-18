@@ -22,6 +22,12 @@ public class CustomerContractResponse {
     private LocalDateTime updatedAt;
     private List<CustomerContractLineItemResponse> lineItems = new ArrayList<>();
 
+    /**
+     * Checkout URL for prepaid contracts, populated only when a payment was created
+     * (i.e. after accept on a prepaid contract). {@code null} otherwise.
+     */
+    private String checkoutUrl;
+
     public CustomerContractResponse() {
     }
 
@@ -111,5 +117,13 @@ public class CustomerContractResponse {
 
     public void setLineItems(List<CustomerContractLineItemResponse> lineItems) {
         this.lineItems = lineItems;
+    }
+
+    public String getCheckoutUrl() {
+        return checkoutUrl;
+    }
+
+    public void setCheckoutUrl(String checkoutUrl) {
+        this.checkoutUrl = checkoutUrl;
     }
 }

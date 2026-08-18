@@ -35,6 +35,8 @@ docker run -it --rm \
   -e QUARKUS_MANAGEMENT_HOST=0.0.0.0 \
   -e DEPLOYMENT_ENV="dev" \
   -e STAGE="dev" \
+  -e ABSTRAPACT_PAYMENT_STRIPE_SUCCESS_URL="http://localhost:8088/api/public/payment/success?session_id={CHECKOUT_SESSION_ID}" \
+  -e ABSTRAPACT_PAYMENT_STRIPE_CANCEL_URL="http://localhost:8088/api/public/payment/cancel?session_id={CHECKOUT_SESSION_ID}" \
   ghcr.io/abstratium-dev/abstrapact:latest
 ```
 

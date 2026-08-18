@@ -1,5 +1,6 @@
 package dev.abstratium.abstrapact.non_multitenancy.sales.boundary;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
 import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.CreateCustomerContractRequest;
 import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.CustomerLineItemRequest;
 import dev.abstratium.abstrapact.product.entity.ProductDefinition;
@@ -7,25 +8,49 @@ import dev.abstratium.abstrapact.product.service.ProductDefinitionService;
 import dev.abstratium.core.service.OrgScopedCodec;
 import dev.abstratium.test.TestDataCleaner;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.UserTransaction;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.Matchers.greaterThan;
 
 @QuarkusTest
+@TestProfile(NonMultitenancyCustomerContractResourceTest.TestProfile.class)
 class NonMultitenancyCustomerContractResourceTest {
+
+    public static class TestProfile implements QuarkusTestProfile {
+        @Override
+        public Map<String, String> getConfigOverrides() {
+            return Map.of(
+                "abstrapact.payment.stripe.api-base",
+                "http://localhost:" + WIREMOCK_PORT,
+                "abstrapact.payment.psp", "stripe"
+            );
+        }
+    }
+
+    static final int WIREMOCK_PORT = 19996;
+    static WireMockServer wireMock;
 
     @Inject
     ProductDefinitionService productDefinitionService;
@@ -49,16 +74,43 @@ class NonMultitenancyCustomerContractResourceTest {
      */
     private static final String OTHER_ORG_ID = "11111111-0000-0000-0000-000000000000";
 
+    @BeforeAll
+    static void startWireMock() {
+        wireMock = new WireMockServer(options().port(WIREMOCK_PORT));
+        wireMock.start();
+    }
+
+    @AfterAll
+    static void stopWireMock() {
+        wireMock.stop();
+    }
+
     @BeforeEach
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
     void setUp() throws Exception {
+        wireMock.resetAll();
+        // Stub the Stripe Checkout Session creation endpoint
+        wireMock.stubFor(post(urlPathEqualTo("/v1/checkout/sessions"))
+            .willReturn(okJson("""
+                {
+                  "id": "cs_rest_test_123",
+                  "object": "checkout.session",
+                  "url": "https://checkout.stripe.com/c/cs_rest_test_123",
+                  "payment_status": "unpaid",
+                  "status": "open"
+                }
+                """)));
+
         ProductDefinition pd = new ProductDefinition();
         pd.setId(UUID.randomUUID().toString());
         pd.setProductCode("REST-CONTRACT-PROD-001");
         pd.setDescription("REST Contract Test Product");
         pd.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        pd.setPaymentModel(ProductDefinition.PaymentModel.PREPAID);
         pd.setProductValidFrom(LocalDate.now());
         pd.setCrossTenantApiAllowed(true);
+        pd.setStripeSecretKey("sk_test_rest");
+        pd.setStripeWebhookSecret("whsec_test_rest");
         productDefinitionService.createProductDefinition(pd);
 
         // A second allowed product in the default org, used for PUT update tests.
@@ -67,8 +119,11 @@ class NonMultitenancyCustomerContractResourceTest {
         pd2.setProductCode("REST-CONTRACT-PROD-002");
         pd2.setDescription("REST Contract Test Product 2");
         pd2.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        pd2.setPaymentModel(ProductDefinition.PaymentModel.PREPAID);
         pd2.setProductValidFrom(LocalDate.now());
         pd2.setCrossTenantApiAllowed(true);
+        pd2.setStripeSecretKey("sk_test_rest");
+        pd2.setStripeWebhookSecret("whsec_test_rest");
         productDefinitionService.createProductDefinition(pd2);
 
         // A product that is NOT allowed via the cross-tenant API.
@@ -77,6 +132,7 @@ class NonMultitenancyCustomerContractResourceTest {
         disallowed.setProductCode("REST-CONTRACT-PROD-DISALLOWED");
         disallowed.setDescription("REST Contract Test Product - cross-tenant disallowed");
         disallowed.setBillingModel(ProductDefinition.BillingModel.FIXED_PRICE);
+        disallowed.setPaymentModel(ProductDefinition.PaymentModel.PREPAID);
         disallowed.setProductValidFrom(LocalDate.now());
         disallowed.setCrossTenantApiAllowed(false);
         productDefinitionService.createProductDefinition(disallowed);
@@ -293,13 +349,14 @@ class NonMultitenancyCustomerContractResourceTest {
             .then()
             .statusCode(200);
 
-        // After acceptance, auto-approval moves the contract to APPROVED.
+        // After acceptance, auto-approval + payment handling moves the contract to
+        // AWAITING_PAYMENT (prepaid model with Stripe checkout session created).
         given()
             .when()
             .get("/api/public/sales/contracts/" + id)
             .then()
             .statusCode(200)
-            .body("state", equalTo("APPROVED"));
+            .body("state", equalTo("AWAITING_PAYMENT"));
     }
 
     @Test
@@ -501,7 +558,7 @@ class NonMultitenancyCustomerContractResourceTest {
             .then()
             .statusCode(200);
 
-        // Contract is now APPROVED (auto-approval); offering again must fail with 422.
+        // Contract is now AWAITING_PAYMENT (auto-approval + payment); offering again must fail with 422.
         given()
             .contentType("application/json")
             .when()
@@ -514,7 +571,7 @@ class NonMultitenancyCustomerContractResourceTest {
             .get("/api/public/sales/contracts/" + id)
             .then()
             .statusCode(200)
-            .body("state", equalTo("APPROVED"));
+            .body("state", equalTo("AWAITING_PAYMENT"));
     }
 
     // ==================== List with orgId filter (boundary) ====================

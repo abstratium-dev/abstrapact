@@ -46,6 +46,23 @@ public class NonMultitenancyProductDefinition {
     @Column(name = "cross_tenant_api_allowed", nullable = false)
     private boolean crossTenantApiAllowed = false;
 
+    // ---- Payment handling: per-product Stripe credentials and B2C redirect URLs ----
+    // See docs/DESIGN_OF_PAYMENT.md. Credentials are @JsonIgnore so they are never
+    // exposed in REST responses to customers.
+    @JsonIgnore
+    @Column(name = "stripe_secret_key", length = 100)
+    private String stripeSecretKey;
+
+    @JsonIgnore
+    @Column(name = "stripe_webhook_secret", length = 100)
+    private String stripeWebhookSecret;
+
+    @Column(name = "payment_success_redirect_url", length = 500)
+    private String paymentSuccessRedirectUrl;
+
+    @Column(name = "payment_cancel_redirect_url", length = 500)
+    private String paymentCancelRedirectUrl;
+
     @OneToMany(mappedBy = "productDefinition", cascade = CascadeType.REMOVE)
     @JsonIgnore
     private List<NonMultitenancyPartDefinition> parts = new ArrayList<>();
@@ -131,6 +148,38 @@ public class NonMultitenancyProductDefinition {
 
     public void setCrossTenantApiAllowed(boolean crossTenantApiAllowed) {
         this.crossTenantApiAllowed = crossTenantApiAllowed;
+    }
+
+    public String getStripeSecretKey() {
+        return stripeSecretKey;
+    }
+
+    public void setStripeSecretKey(String stripeSecretKey) {
+        this.stripeSecretKey = stripeSecretKey;
+    }
+
+    public String getStripeWebhookSecret() {
+        return stripeWebhookSecret;
+    }
+
+    public void setStripeWebhookSecret(String stripeWebhookSecret) {
+        this.stripeWebhookSecret = stripeWebhookSecret;
+    }
+
+    public String getPaymentSuccessRedirectUrl() {
+        return paymentSuccessRedirectUrl;
+    }
+
+    public void setPaymentSuccessRedirectUrl(String paymentSuccessRedirectUrl) {
+        this.paymentSuccessRedirectUrl = paymentSuccessRedirectUrl;
+    }
+
+    public String getPaymentCancelRedirectUrl() {
+        return paymentCancelRedirectUrl;
+    }
+
+    public void setPaymentCancelRedirectUrl(String paymentCancelRedirectUrl) {
+        this.paymentCancelRedirectUrl = paymentCancelRedirectUrl;
     }
 
     public List<NonMultitenancyPartDefinition> getParts() {

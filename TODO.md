@@ -18,9 +18,12 @@
 
 - rebuild and deploy abstraccount
 
-- finish reviewing design_of_payment.md
-
+- finish testing imple of payment
+- review idempotency, is it what i would expect?
+- do security review of payment APIs
 - add e2e 04 which asserts prices are correctly calculated
+- check e2e tests of payment work
+- work out how to write other e2e tests that really use the sandbox
 
 - remove excess REST interfaces for contracts, since they are handled mainly in the SalesProcessService
 

@@ -21,6 +21,7 @@ The following classes outside this package are permitted to reference `non_multi
 
 | Class | References | Justification |
 |-------|-----------|---------------|
+| `core.filter.UnsupportedPaymentModelExceptionMapper` | `non_multitenancy.sales.payment.service.UnsupportedPaymentModelException` | Maps the payment-specific exception to an HTTP 422 response. The exception is thrown by `SalesProcessService` (which is in the non-multitenancy package) and the mapper must be in the core filter package to be discovered by JAX-RS globally. |
 
 Any new usage outside this package must be added to the above table with a justification, and approved by the chief architect.
 
