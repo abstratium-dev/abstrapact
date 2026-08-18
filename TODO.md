@@ -11,19 +11,14 @@
 
 ## Today
 
-- intersting logs of abstauth-test:
+- interesting logs of abstauth-test:
 
-2026-08-17 20:00:38,537 WARN  [dev.abs.abs.bou.oau.AuthorizationResource] (executor-thread-1) [skey:] Invalid redirect_uri for client 058ebe1e-e9c8-4359-ab77-e943990ab0dd__abstratium-abstracore: requested=http://localhost:10081/oauth/callback, allowed=["http://localhost:8081/oauth/callback"]
+    2026-08-17 20:00:38,537 WARN  [dev.abs.abs.bou.oau.AuthorizationResource] (executor-thread-1) [skey:] Invalid redirect_uri for client 058ebe1e-e9c8-4359-ab77-e943990ab0dd__abstratium-abstracore: requested=http://localhost:10081/oauth/callback, allowed=["http://localhost:8081/oauth/callback"]
 
 
-- test abstracore: no roles shows dialog
-- fix bug in abstraccount and rebuild and redeploy it
 - rebuild and deploy abstraccount
+
 - finish reviewing design_of_payment.md
-  - problem 1) the callback url should not be per org as an org could have multiple b2c apps, one for each product, so must be per product
-  - problem 2) stripe account - it should be set up that other people have their own stripe account, but they should set the webhook and callback urls to abstrapact. we should know which stripe account creates the successful payment in case our customers ask us. 
-  - problem 3) even if they use our own b2c which is multitenant capable, they should use their own stripe account. 
-----
 
 - add e2e 04 which asserts prices are correctly calculated
 
