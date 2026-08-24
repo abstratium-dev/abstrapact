@@ -5,17 +5,6 @@ set -x  # Enable debug output
 echo "Starting Quarkus for e2e tests..."
 echo "Working directory: $(pwd)"
 
-# Start the example OAuth client in the background
-echo "Starting example OAuth client on port 3333..."
-cd ../client-example
-
-if [ ! -d "node_modules" ]; then
-  echo "Installing client-example dependencies..."
-  npm install
-fi
-PORT=3333 node server.js > ../e2e-tests/client-example.log 2>&1 > /tmp/client-example.log &
-CLIENT_PID=$!
-echo "Example client started with PID: $CLIENT_PID"
 cd ..
 
 # Start the mock Stripe API server in the background
