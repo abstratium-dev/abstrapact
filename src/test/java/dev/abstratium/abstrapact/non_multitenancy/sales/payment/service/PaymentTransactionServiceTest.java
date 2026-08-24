@@ -2,6 +2,7 @@ package dev.abstratium.abstrapact.non_multitenancy.sales.payment.service;
 
 import dev.abstratium.abstrapact.contracts.entity.ContractState;
 import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyContract;
+import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyProductDefinition;
 import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.PaymentTransaction;
 import dev.abstratium.test.TestDataCleaner;
 import io.quarkus.test.junit.QuarkusTest;
@@ -36,6 +37,7 @@ class PaymentTransactionServiceTest {
     TestDataCleaner cleaner;
 
     private String contractId;
+    private String productDefinitionId;
     private PaymentTransaction tx;
 
     @BeforeEach
@@ -43,6 +45,17 @@ class PaymentTransactionServiceTest {
     void setUp() {
         contractId = UUID.randomUUID().toString();
         String orgId = "test-org-tx";
+
+        // Product definition (required for productDefinitionId on PaymentTransaction)
+        NonMultitenancyProductDefinition pd = new NonMultitenancyProductDefinition();
+        pd.setId(UUID.randomUUID().toString());
+        pd.setOrganisationId(orgId);
+        pd.setProductCode("TX-TEST-PROD-" + UUID.randomUUID());
+        pd.setBillingModel(NonMultitenancyProductDefinition.BillingModel.FIXED_PRICE);
+        pd.setPaymentModel(NonMultitenancyProductDefinition.PaymentModel.PREPAID);
+        pd.setProductValidFrom(LocalDate.now());
+        em.persist(pd);
+        productDefinitionId = pd.getId();
 
         // Create a contract (FK constraint on payment_transaction.contract_id)
         NonMultitenancyContract contract = new NonMultitenancyContract();
@@ -193,6 +206,7 @@ class PaymentTransactionServiceTest {
         t.setId(UUID.randomUUID().toString());
         t.setOrganisationId(orgId);
         t.setContractId(contractId);
+        t.setProductDefinitionId(productDefinitionId);
         t.setPspIdentifier("stripe");
         t.setCorrelationId(corrId);
         t.setGrossAmount(new BigDecimal("12.00"));

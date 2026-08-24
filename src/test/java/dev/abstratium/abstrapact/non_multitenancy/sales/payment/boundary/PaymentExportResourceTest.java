@@ -2,6 +2,7 @@ package dev.abstratium.abstrapact.non_multitenancy.sales.payment.boundary;
 
 import dev.abstratium.abstrapact.contracts.entity.ContractState;
 import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyContract;
+import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyProductDefinition;
 import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.PaymentTransaction;
 import dev.abstratium.test.TestDataCleaner;
 import io.quarkus.test.junit.QuarkusTest;
@@ -49,6 +50,17 @@ class PaymentExportResourceTest {
     void setUp() {
         contractId = UUID.randomUUID().toString();
 
+        // Product definition (required for productDefinitionId on PaymentTransaction)
+        NonMultitenancyProductDefinition pd = new NonMultitenancyProductDefinition();
+        pd.setId(UUID.randomUUID().toString());
+        pd.setOrganisationId(defaultOrgId);
+        pd.setProductCode("EXPORT-TEST-PROD-" + UUID.randomUUID());
+        pd.setBillingModel(NonMultitenancyProductDefinition.BillingModel.FIXED_PRICE);
+        pd.setPaymentModel(NonMultitenancyProductDefinition.PaymentModel.PREPAID);
+        pd.setProductValidFrom(LocalDate.now());
+        em.persist(pd);
+        String productDefinitionId = pd.getId();
+
         NonMultitenancyContract contract = new NonMultitenancyContract();
         contract.setId(contractId);
         contract.setOrganisationId(defaultOrgId);
@@ -67,6 +79,7 @@ class PaymentExportResourceTest {
         tx.setId(UUID.randomUUID().toString());
         tx.setOrganisationId(defaultOrgId);
         tx.setContractId(contractId);
+        tx.setProductDefinitionId(productDefinitionId);
         tx.setPspIdentifier("stripe");
         tx.setCorrelationId(UUID.randomUUID().toString());
         tx.setPspSessionId("cs_export_1");
@@ -85,6 +98,7 @@ class PaymentExportResourceTest {
         tx2.setId(UUID.randomUUID().toString());
         tx2.setOrganisationId(defaultOrgId);
         tx2.setContractId(contractId);
+        tx2.setProductDefinitionId(productDefinitionId);
         tx2.setPspIdentifier("stripe");
         tx2.setCorrelationId(UUID.randomUUID().toString());
         tx2.setPspSessionId("cs_export_2");
