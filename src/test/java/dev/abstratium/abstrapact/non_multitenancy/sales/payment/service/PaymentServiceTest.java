@@ -294,7 +294,7 @@ class PaymentServiceTest {
     void handlePaymentResultIgnoredEventTypeRecordsIgnored() {
         PaymentEventResult result = new PaymentEventResult();
         result.setPspEventId("evt_ignored");
-        result.setEventType("charge.updated");
+        result.setEventType("invoice.paid");
         result.setCorrelationId(correlationId);
         result.setMatched(true);
         result.setStatus(PaymentTransaction.PaymentStatus.PENDING);
@@ -307,6 +307,67 @@ class PaymentServiceTest {
 
         WebhookEvent event = findWebhookEvent();
         assertEquals(WebhookEvent.ProcessingResult.IGNORED, event.getProcessingResult());
+    }
+
+    // ==================== Fee-only update on SUCCEEDED transaction ====================
+
+    @Test
+    @Transactional
+    void handlePaymentResultChargeUpdatedOnSucceededUpdatesFeeWithoutStateChange() {
+        // Mark the transaction as already SUCCEEDED (by a prior payment_intent.succeeded)
+        tx.setStatus(PaymentTransaction.PaymentStatus.SUCCEEDED);
+        em.merge(tx);
+
+        // charge.updated arrives with fee data but PENDING status (fee-only update)
+        PaymentEventResult result = new PaymentEventResult();
+        result.setPspEventId("evt_charge_updated_" + UUID.randomUUID());
+        result.setEventType("charge.updated");
+        result.setCorrelationId(correlationId);
+        result.setMatched(true);
+        result.setStatus(PaymentTransaction.PaymentStatus.PENDING);
+        result.setFeeAmount(new BigDecimal("1.11"));
+        result.setPspTransactionRef("pi_test_123");
+        result.setRawPayload("{\"id\":\"evt_charge_updated\"}");
+
+        paymentService.handlePaymentResult(result);
+
+        // Fee should be updated, status should remain SUCCEEDED
+        PaymentTransaction updated = transactionService.findById(tx.getId()).orElseThrow();
+        assertEquals(PaymentTransaction.PaymentStatus.SUCCEEDED, updated.getStatus());
+        assertEquals(0, new BigDecimal("1.11").compareTo(updated.getFeeAmount()));
+        assertEquals(0, tx.getGrossAmount().subtract(new BigDecimal("1.11")).compareTo(updated.getNetAmount()));
+
+        WebhookEvent event = findWebhookEvent();
+        assertEquals(WebhookEvent.ProcessingResult.PROCESSED, event.getProcessingResult());
+    }
+
+    // ==================== Fee-only update on PENDING transaction ====================
+
+    @Test
+    @Transactional
+    void handlePaymentResultChargeUpdatedOnPendingUpdatesFeeWithoutStateChange() {
+        // Transaction is still PENDING (charge.updated arrives before payment_intent.succeeded)
+        // charge.updated arrives with fee data but PENDING status
+        PaymentEventResult result = new PaymentEventResult();
+        result.setPspEventId("evt_charge_updated_" + UUID.randomUUID());
+        result.setEventType("charge.updated");
+        result.setCorrelationId(correlationId);
+        result.setMatched(true);
+        result.setStatus(PaymentTransaction.PaymentStatus.PENDING);
+        result.setFeeAmount(new BigDecimal("0.89"));
+        result.setPspTransactionRef("pi_test_123");
+        result.setRawPayload("{\"id\":\"evt_charge_updated\"}");
+
+        paymentService.handlePaymentResult(result);
+
+        // Fee should be updated, status should remain PENDING
+        PaymentTransaction updated = transactionService.findById(tx.getId()).orElseThrow();
+        assertEquals(PaymentTransaction.PaymentStatus.PENDING, updated.getStatus());
+        assertEquals(0, new BigDecimal("0.89").compareTo(updated.getFeeAmount()));
+        assertEquals(0, tx.getGrossAmount().subtract(new BigDecimal("0.89")).compareTo(updated.getNetAmount()));
+
+        WebhookEvent event = findWebhookEvent();
+        assertEquals(WebhookEvent.ProcessingResult.PROCESSED, event.getProcessingResult());
     }
 
     // ==================== helpers ====================

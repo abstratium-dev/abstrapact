@@ -290,12 +290,26 @@ class StripePSPServiceTest {
         String correlationId = "corr-fee";
         String sessionId = "cs_fee";
         setupProductAndTransaction(correlationId, sessionId);
+        // Real Stripe webhooks send balance_transaction as a string ID, not an expanded
+        // object. The service must fetch it via API to extract the fee.
         String payload = chargeUpdatedPayload(correlationId, "pi_fee", "txn_fee", 10000, 59, "eur");
         String signature = WebhookSignatureTestHelper.sign(payload, WEBHOOK_SECRET);
 
+        // Stub the balance transaction retrieval endpoint.
+        wireMock.stubFor(get(urlPathEqualTo("/v1/balance_transactions/txn_fee"))
+            .willReturn(okJson("""
+                {
+                  "id": "txn_fee",
+                  "object": "balance_transaction",
+                  "amount": 10000,
+                  "fee": 59,
+                  "currency": "eur"
+                }
+                """)));
+
         PaymentEventResult result = psp.processWebhookEvent(payload, signature);
 
-        // charge.updated is a fee-only update — status stays PENDING (PaymentService records IGNORED).
+        // charge.updated is a fee-only update — status stays PENDING.
         assertEquals(PaymentTransaction.PaymentStatus.PENDING, result.getStatus());
         assertEquals(new BigDecimal("0.59"), result.getFeeAmount());
         assertEquals(new BigDecimal("100.00"), result.getGrossAmount());
@@ -456,8 +470,8 @@ class StripePSPServiceTest {
 
     private static String chargeUpdatedPayload(String correlationId, String paymentIntent,
             String balanceTxnId, long amount, long fee, String currency) {
-        // Stripe sends balance_transaction as an expanded object when the charge.updated
-        // event is delivered, so getBalanceTransactionObject() returns a populated object.
+        // Real Stripe webhooks send balance_transaction as a string ID (not expanded).
+        // The service fetches the balance transaction via API to get the fee.
         return """
             {
               "id": "evt_charge_%s",
@@ -469,18 +483,12 @@ class StripePSPServiceTest {
                   "payment_intent": "%s",
                   "amount": %d,
                   "currency": "%s",
-                  "balance_transaction": {
-                    "id": "%s",
-                    "object": "balance_transaction",
-                    "amount": %d,
-                    "fee": %d,
-                    "currency": "%s"
-                  },
+                  "balance_transaction": "%s",
                   "metadata": {"correlation_id": "%s"}
                 }
               }
             }
             """.formatted(balanceTxnId, paymentIntent, paymentIntent, amount, currency,
-                balanceTxnId, amount, fee, currency, correlationId);
+                balanceTxnId, correlationId);
     }
 }

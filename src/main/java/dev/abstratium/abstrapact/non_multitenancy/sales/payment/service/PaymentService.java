@@ -11,6 +11,8 @@ import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.PaymentTr
 import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.WebhookEvent;
 import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.WebhookEvent.ProcessingResult;
 import dev.abstratium.abstrapact.non_multitenancy.sales.service.SalesProcessService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -49,6 +51,9 @@ public class PaymentService {
     @Inject
     WebhookEventService webhookEventService;
 
+    @Inject
+    ObjectMapper objectMapper;
+
     /**
      * Lazy injection to break the circular dependency:
      * {@code SalesProcessService} → {@code PaymentService} → {@code SalesProcessService}.
@@ -65,6 +70,10 @@ public class PaymentService {
     @ConfigProperty(name = "abstrapact.payment.webhook.stale-after-hours",
         defaultValue = "24")
     long staleAfterHours;
+
+    @ConfigProperty(name = "abstrapact.payment.webhook.max-payload-size-bytes",
+        defaultValue = "131072")
+    int maxPayloadSizeBytes;
 
     // ==================== Payment creation ====================
 
@@ -172,7 +181,9 @@ public class PaymentService {
             PaymentTransaction managed = em.find(PaymentTransaction.class,
                 outcome.updatedTransaction().getId());
             if (managed != null) {
-                managed.setStatus(outcome.updatedTransaction().getStatus());
+                if (outcome.updatedTransaction().getStatus() != null) {
+                    managed.setStatus(outcome.updatedTransaction().getStatus());
+                }
                 managed.setUpdatedAt(outcome.updatedTransaction().getUpdatedAt());
                 if (outcome.updatedTransaction().getFeeAmount() != null) {
                     managed.setFeeAmount(outcome.updatedTransaction().getFeeAmount());
@@ -189,6 +200,68 @@ public class PaymentService {
             salesProcessService.get().transitionToRunning(
                 outcome.matchedTransaction().getContractId(), SYSTEM_ACTOR);
         }
+    }
+
+    // ==================== Rejected webhook recording ====================
+
+    /**
+     * Records a rejected webhook event (signature failure, no matching product, malformed
+     * payload) in {@code T_webhook_event} with {@code processing_result=REJECTED}.
+     *
+     * <p>This is a best-effort audit record: the payload is untrusted (signature was not
+     * verified), so the extracted event id, type, and correlation id may be null or
+     * fabricated. The {@code rejectionReason} parameter explains why the webhook was
+     * rejected.
+     *
+     * <p>The caller is responsible for checking the payload size limit before calling this
+     * method — oversized payloads should not be recorded (only logged).
+     *
+     * @param payload         the raw webhook payload (untrusted)
+     * @param rejectionReason human-readable explanation of why the webhook was rejected
+     */
+    @Transactional
+    public void recordRejectedEvent(String payload, String rejectionReason) {
+        WebhookEvent event = new WebhookEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setPspIdentifier(pspSelector.getActive().getPspIdentifier());
+        event.setMatched(false);
+        event.setProcessingResult(ProcessingResult.REJECTED);
+        event.setRawPayload(payload);
+        event.setReceivedAt(LocalDateTime.now());
+        event.setRejectionReason(rejectionReason);
+
+        // Best-effort extraction of event info from the untrusted payload.
+        try {
+            JsonNode root = objectMapper.readTree(payload);
+            JsonNode idNode = root.path("id");
+            if (idNode.isTextual()) {
+                event.setPspEventId(idNode.asText());
+            }
+            JsonNode typeNode = root.path("type");
+            if (typeNode.isTextual()) {
+                event.setEventType(typeNode.asText());
+            }
+            JsonNode metadata = root.path("data").path("object").path("metadata");
+            if (metadata.isObject() && metadata.has("correlation_id")) {
+                String corrId = metadata.get("correlation_id").asText(null);
+                if (corrId != null && !corrId.isBlank()) {
+                    event.setCorrelationId(corrId);
+                }
+            }
+        } catch (Exception e) {
+            // Malformed JSON — leave event id, type, and correlation id as null.
+        }
+
+        webhookEventService.persistOrFindDuplicate(event);
+    }
+
+    /**
+     * Returns the configured maximum payload size in bytes. Webhooks exceeding this limit
+     * are not recorded in {@code T_webhook_event} — they are logged via the JBoss logger
+     * only.
+     */
+    public int getMaxPayloadSizeBytes() {
+        return maxPayloadSizeBytes;
     }
 
     /**
@@ -208,6 +281,24 @@ public class PaymentService {
         }
 
         PaymentTransaction tx = txOpt.get();
+
+        // Fee-only update on a terminal transaction — update fee/net without state transition.
+        // Stripe sends fee data in charge.updated, which may arrive after the transaction is
+        // already SUCCEEDED. We still want to record the fee.
+        if ("charge.updated".equals(result.getEventType())
+                && result.getFeeAmount() != null
+                && (tx.getStatus() == PaymentStatus.SUCCEEDED
+                    || tx.getStatus() == PaymentStatus.STALE)) {
+            PaymentTransaction updated = new PaymentTransaction();
+            updated.setId(tx.getId());
+            updated.setFeeAmount(result.getFeeAmount());
+            updated.setNetAmount(tx.getGrossAmount().subtract(result.getFeeAmount()));
+            if (result.getPspTransactionRef() != null) {
+                updated.setPspTransactionRef(result.getPspTransactionRef());
+            }
+            updated.setUpdatedAt(LocalDateTime.now());
+            return new ProcessingOutcome(ProcessingResult.PROCESSED, tx, updated, false);
+        }
 
         // Terminal state → duplicate.
         if (tx.getStatus() == PaymentStatus.SUCCEEDED
@@ -253,7 +344,18 @@ public class PaymentService {
             return new ProcessingOutcome(ProcessingResult.PROCESSED, tx, failed, false);
         }
 
-        // PENDING result on a handled event type — nothing to do yet.
+        // PENDING result on a handled event type — update fee if present, but no state transition.
+        if (result.getFeeAmount() != null) {
+            PaymentTransaction updated = new PaymentTransaction();
+            updated.setId(tx.getId());
+            updated.setFeeAmount(result.getFeeAmount());
+            updated.setNetAmount(tx.getGrossAmount().subtract(result.getFeeAmount()));
+            if (result.getPspTransactionRef() != null) {
+                updated.setPspTransactionRef(result.getPspTransactionRef());
+            }
+            updated.setUpdatedAt(LocalDateTime.now());
+            return new ProcessingOutcome(ProcessingResult.PROCESSED, tx, updated, false);
+        }
         return new ProcessingOutcome(ProcessingResult.IGNORED, tx, null, false);
     }
 
@@ -362,8 +464,8 @@ public class PaymentService {
             case "checkout.session.completed",
                  "checkout.session.async_payment_succeeded",
                  "checkout.session.async_payment_failed",
-                 "payment_intent.succeeded" -> true;
-            case "charge.updated" -> false; // fee-only update, no state transition
+                 "payment_intent.succeeded",
+                 "charge.updated" -> true; // fee update; may arrive after SUCCEEDED
             default -> false;
         };
     }

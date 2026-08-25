@@ -245,6 +245,10 @@ public class SalesProcessService {
         NonMultitenancyProcessInstance process = loadProcess(contractId);
         recordStep(process, ContractState.AWAITING_PAYMENT.name(),
             ContractState.RUNNING.name(), actorAccountId);
+
+        // The sales process is complete once the contract is RUNNING.
+        process.setState(ProcessInstanceState.COMPLETED);
+        em.merge(process);
     }
 
     // ==================== private helpers ====================

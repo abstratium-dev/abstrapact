@@ -7,6 +7,7 @@ import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyPr
 import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyProductInstance;
 import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyProcessInstance;
 import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.PaymentTransaction;
+import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.WebhookEvent;
 import dev.abstratium.abstrapact.process.entity.ProcessInstanceState;
 import dev.abstratium.test.TestDataCleaner;
 import dev.abstratium.test.payment.WebhookSignatureTestHelper;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -298,6 +300,137 @@ class PaymentWebhookResourceTest {
             .statusCode(200);
     }
 
+    // ==================== rejected webhook recording tests ====================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void webhookInvalidSignatureIsRecordedAsRejected() {
+        String payload = checkoutSessionCompletedPayload(correlationId, pspSessionId);
+        String badSignature = WebhookSignatureTestHelper.malformedSignature(payload,
+            System.currentTimeMillis() / 1000);
+
+        given()
+            .header("Stripe-Signature", badSignature)
+            .contentType("application/json")
+            .body(payload)
+        .when()
+            .post("/public/payment/webhook")
+        .then()
+            .statusCode(400);
+
+        // A REJECTED webhook event should be recorded with the rejection reason.
+        List<WebhookEvent> rejectedEvents = findWebhookEventsByProcessingResult(
+            WebhookEvent.ProcessingResult.REJECTED);
+        assertEquals(1, rejectedEvents.size());
+        WebhookEvent rejected = rejectedEvents.get(0);
+        assertEquals("stripe", rejected.getPspIdentifier());
+        assertFalse(rejected.isMatched());
+        assertNotNull(rejected.getRejectionReason());
+        assertEquals(payload, rejected.getRawPayload());
+        // The event id and type should be extracted from the payload (best-effort).
+        assertNotNull(rejected.getPspEventId());
+        assertEquals("checkout.session.completed", rejected.getEventType());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void webhookNoMatchingProductIsRecordedAsRejected() {
+        // A webhook with an unknown correlation id AND unknown session id cannot be
+        // associated with any product → no webhook secret → rejected.
+        String payload = checkoutSessionCompletedPayload("unknown-corr-id", "cs_unknown");
+        String signature = WebhookSignatureTestHelper.sign(payload, WEBHOOK_SECRET);
+
+        given()
+            .header("Stripe-Signature", signature)
+            .contentType("application/json")
+            .body(payload)
+        .when()
+            .post("/public/payment/webhook")
+        .then()
+            .statusCode(400);
+
+        List<WebhookEvent> rejectedEvents = findWebhookEventsByProcessingResult(
+            WebhookEvent.ProcessingResult.REJECTED);
+        assertEquals(1, rejectedEvents.size());
+        WebhookEvent rejected = rejectedEvents.get(0);
+        assertEquals("stripe", rejected.getPspIdentifier());
+        assertFalse(rejected.isMatched());
+        assertNotNull(rejected.getRejectionReason());
+        assertTrue(rejected.getRejectionReason().contains("no matching product"),
+            "Rejection reason should mention no matching product");
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void webhookMalformedPayloadIsRecordedAsRejectedWithNullEventId() {
+        String malformedPayload = "this is not valid json {{{";
+        String signature = WebhookSignatureTestHelper.sign(malformedPayload, WEBHOOK_SECRET);
+
+        given()
+            .header("Stripe-Signature", signature)
+            .contentType("application/json")
+            .body(malformedPayload)
+        .when()
+            .post("/public/payment/webhook")
+        .then()
+            .statusCode(400);
+
+        List<WebhookEvent> rejectedEvents = findWebhookEventsByProcessingResult(
+            WebhookEvent.ProcessingResult.REJECTED);
+        assertEquals(1, rejectedEvents.size());
+        WebhookEvent rejected = rejectedEvents.get(0);
+        // Malformed JSON → event id and type could not be extracted.
+        assertNull(rejected.getPspEventId());
+        assertNull(rejected.getEventType());
+        assertNull(rejected.getCorrelationId());
+        assertNotNull(rejected.getRejectionReason());
+        assertEquals(malformedPayload, rejected.getRawPayload());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void webhookOversizedPayloadIsNotRecorded() {
+        // Build a payload that exceeds the default max payload size (128KB).
+        // The payload is valid JSON with a large string field.
+        StringBuilder largeField = new StringBuilder();
+        for (int i = 0; i < 150_000; i++) {
+            largeField.append('x');
+        }
+        String oversizedPayload = """
+            {
+              "id": "evt_oversized",
+              "type": "checkout.session.completed",
+              "data": {
+                "object": {
+                  "id": "cs_oversized",
+                  "metadata": {"correlation_id": "%s"},
+                  "padding": "%s"
+                }
+              }
+            }
+            """.formatted(correlationId, largeField.toString());
+
+        // Oversized payloads should not be processable anyway, but we need a signature
+        // header present for the endpoint to attempt processing.
+        String signature = WebhookSignatureTestHelper.sign(oversizedPayload, WEBHOOK_SECRET);
+
+        given()
+            .header("Stripe-Signature", signature)
+            .contentType("application/json")
+            .body(oversizedPayload)
+        .when()
+            .post("/public/payment/webhook")
+        .then()
+            .statusCode(400);
+
+        // No webhook event should be recorded — oversized payloads are only logged.
+        List<WebhookEvent> allEvents = em.createQuery(
+                "SELECT w FROM WebhookEvent w", WebhookEvent.class)
+            .getResultList();
+        assertTrue(allEvents.isEmpty(),
+            "Oversized webhook should not be recorded in T_webhook_event");
+    }
+
     // ==================== helpers ====================
 
     private PaymentTransaction findTransactionByCorrelationId(String corrId) {
@@ -306,6 +439,16 @@ class PaymentWebhookResourceTest {
                 PaymentTransaction.class)
             .setParameter("cid", corrId)
             .getSingleResult();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends Enum<T>> List<WebhookEvent> findWebhookEventsByProcessingResult(
+            WebhookEvent.ProcessingResult result) {
+        return em.createQuery(
+                "SELECT w FROM WebhookEvent w WHERE w.processingResult = :result",
+                WebhookEvent.class)
+            .setParameter("result", result)
+            .getResultList();
     }
 
     private static String checkoutSessionCompletedPayload(String correlationId, String sessionId) {

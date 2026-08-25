@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stripe.StripeClient;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
+import com.stripe.model.BalanceTransaction;
 import com.stripe.model.Charge;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
@@ -133,8 +134,12 @@ public class StripePSPService implements PSPInterface {
         }
         Event event = verify(payload, signature, webhookSecret);
 
-        // 4. Map the verified event to a PaymentEventResult.
-        return mapEvent(event, payload, correlationId);
+        // 4. Resolve the Stripe API key for this product (needed to fetch the balance
+        //    transaction for fee extraction from charge.updated events).
+        String secretKey = resolveSecretKey(correlationId, sessionId);
+
+        // 5. Map the verified event to a PaymentEventResult.
+        return mapEvent(event, payload, correlationId, secretKey);
     }
 
     // ==================== helpers: client + amounts ====================
@@ -273,6 +278,55 @@ public class StripePSPService implements PSPInterface {
             .findFirst();
     }
 
+    // ==================== helpers: secret key resolution ====================
+
+    /**
+     * Resolves the Stripe secret key for the product associated with this webhook event.
+     * Needed to make API calls (e.g. fetching the balance transaction for fee data).
+     */
+    private String resolveSecretKey(String correlationId, String sessionId) {
+        if (correlationId != null) {
+            Optional<String> key = findSecretKeyByCorrelationId(correlationId);
+            if (key.isPresent()) {
+                return key.get();
+            }
+        }
+        if (sessionId != null) {
+            return findSecretKeyBySessionId(sessionId).orElse(null);
+        }
+        return null;
+    }
+
+    private Optional<String> findSecretKeyByCorrelationId(String correlationId) {
+        return em.createQuery(
+                "SELECT pd.stripeSecretKey FROM NonMultitenancyProductDefinition pd " +
+                "WHERE pd.id IN (" +
+                "  SELECT t.productDefinitionId FROM PaymentTransaction t " +
+                "  WHERE t.correlationId = :cid" +
+                ")",
+                String.class)
+            .setParameter("cid", correlationId)
+            .setMaxResults(1)
+            .getResultStream()
+            .filter(s -> s != null && !s.isBlank())
+            .findFirst();
+    }
+
+    private Optional<String> findSecretKeyBySessionId(String sessionId) {
+        return em.createQuery(
+                "SELECT pd.stripeSecretKey FROM NonMultitenancyProductDefinition pd " +
+                "WHERE pd.id IN (" +
+                "  SELECT t.productDefinitionId FROM PaymentTransaction t " +
+                "  WHERE t.pspSessionId = :sid" +
+                ")",
+                String.class)
+            .setParameter("sid", sessionId)
+            .setMaxResults(1)
+            .getResultStream()
+            .filter(s -> s != null && !s.isBlank())
+            .findFirst();
+    }
+
     // ==================== helpers: signature verification ====================
 
     private Event verify(String payload, String signature, String secret) {
@@ -288,7 +342,8 @@ public class StripePSPService implements PSPInterface {
 
     // ==================== helpers: event mapping ====================
 
-    private PaymentEventResult mapEvent(Event event, String rawPayload, String correlationId) {
+    private PaymentEventResult mapEvent(Event event, String rawPayload, String correlationId,
+                                        String secretKey) {
         PaymentEventResult result = new PaymentEventResult();
         result.setPspEventId(event.getId());
         result.setEventType(event.getType());
@@ -344,12 +399,17 @@ public class StripePSPService implements PSPInterface {
                     result.setPspTransactionRef(charge.getPaymentIntent());
                     result.setCurrency(charge.getCurrency());
                     result.setGrossAmount(fromMinorUnits(charge.getAmount()));
-                    if (charge.getBalanceTransactionObject() != null) {
-                        result.setFeeAmount(fromMinorUnits(charge.getBalanceTransactionObject().getFee()));
+                    // Stripe webhooks include balance_transaction as an ID string, not an
+                    // expanded object. If the object is null, fetch it via API to get the fee.
+                    BalanceTransaction balanceTxn = charge.getBalanceTransactionObject();
+                    if (balanceTxn == null && charge.getBalanceTransaction() != null && secretKey != null) {
+                        balanceTxn = fetchBalanceTransaction(charge.getBalanceTransaction(), secretKey);
+                    }
+                    if (balanceTxn != null) {
+                        result.setFeeAmount(fromMinorUnits(balanceTxn.getFee()));
                     }
                 }
-                // charge.updated only updates the fee; status stays PENDING so PaymentService
-                // treats it as an IGNORED event (no state transition).
+                // charge.updated only updates the fee; status stays PENDING.
                 result.setStatus(PaymentStatus.PENDING);
             }
             default -> {
@@ -358,6 +418,20 @@ public class StripePSPService implements PSPInterface {
             }
         }
         return result;
+    }
+
+    /**
+     * Fetches a balance transaction by ID from the Stripe API to extract the fee.
+     * Returns {@code null} if the API call fails — the fee will simply not be recorded.
+     */
+    private BalanceTransaction fetchBalanceTransaction(String balanceTxnId, String secretKey) {
+        try {
+            StripeClient client = newClient(secretKey);
+            return client.v1().balanceTransactions().retrieve(balanceTxnId);
+        } catch (StripeException e) {
+            // Non-fatal — fee will not be recorded for this event.
+            return null;
+        }
     }
 
     private static String metadataCorrelationId(

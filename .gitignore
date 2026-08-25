@@ -45,6 +45,7 @@ nb-configuration.xml
 .certs/
 
 # Playwright
+e2e-tests/tmp/*
 e2e-tests/test-results/
 e2e-tests/playwright-report/
 e2e-tests/blob-report/

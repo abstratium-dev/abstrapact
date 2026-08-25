@@ -1,6 +1,7 @@
 package dev.abstratium.abstrapact.non_multitenancy.sales.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import org.hibernate.envers.Audited;
 
@@ -47,14 +48,14 @@ public class NonMultitenancyProductDefinition {
     private boolean crossTenantApiAllowed = false;
 
     // ---- Payment handling: per-product Stripe credentials and B2C redirect URLs ----
-    // See docs/DESIGN_OF_PAYMENT.md. Credentials are @JsonIgnore so they are never
-    // exposed in REST responses to customers.
-    @JsonIgnore
-    @Column(name = "stripe_secret_key", length = 100)
+    // See docs/DESIGN_OF_PAYMENT.md. Credentials use WRITE_ONLY so they can be set
+    // via the API but never exposed in REST responses to customers.
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @Column(name = "stripe_secret_key", length = 255)
     private String stripeSecretKey;
 
-    @JsonIgnore
-    @Column(name = "stripe_webhook_secret", length = 100)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @Column(name = "stripe_webhook_secret", length = 255)
     private String stripeWebhookSecret;
 
     @Column(name = "payment_success_redirect_url", length = 500)

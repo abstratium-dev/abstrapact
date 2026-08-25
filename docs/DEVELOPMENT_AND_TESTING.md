@@ -104,6 +104,17 @@ Start the component:
     quarkus dev
 ```
 
+For E2E tests that use Stripe payments (e.g. `05-payment-flow.spec.ts`), ensure `STRIPE_API_KEY` is set in your environment. When using `mvn verify -Pe2e`, the `start-e2e-server.sh` script automatically starts the Stripe CLI helper in the background.
+
+When running tests manually against a dev server (`mvn quarkus:dev`), start the helper separately:
+
+```bash
+# In a separate terminal (requires STRIPE_API_KEY to be set)
+node e2e-tests/start-stripe-cli.js
+```
+
+This helper starts `stripe listen`, captures the webhook signing secret, and serves it on `http://localhost:19997/webhook-secret` for the tests to fetch automatically.
+
 And then the e2e tests:
 
 ```bash
@@ -201,11 +212,33 @@ Establishes a direct connection with Stripe, allowing you to tail your test mode
         --filter-http-method POST \
         --filter-status-code-type 4XX
 
-## Redirect Webhooks to local server
+## Redirect Webhooks to local server (manual)
 
     stripe listen --forward-to http://localhost:8088/api/payment/stripe/webhook --events=payment_intent.succeeded,*
 
     stripe listen  --print-secret
+
+## Automated Webhook Setup for E2E Tests
+
+For E2E tests, `start-e2e-server.sh` automatically starts the helper script if `STRIPE_API_KEY` is set. No manual step needed when using `mvn verify -Pe2e`.
+
+For manual testing, run the helper directly:
+
+```bash
+node e2e-tests/start-stripe-cli.js
+```
+
+This script:
+1. Starts `stripe listen --forward-to localhost:8088/public/payment/webhook`
+2. Captures the webhook signing secret (`whsec_...`)
+3. Serves it on `http://localhost:19997/webhook-secret` for tests to fetch
+4. Logs all Stripe CLI output to `tmp/stripe-cli.log`
+
+Prerequisites:
+- `STRIPE_API_KEY` env var must be set (from Stripe Dashboard → Developers → API Keys, test mode)
+- The Stripe CLI must be installed (`npm install --global @stripe/cli`)
+
+The E2E tests fetch the secret automatically via `fetchStripeWebhookSecret()` in `05-payment-flow.spec.ts`.
 
 ## Trigger events
 

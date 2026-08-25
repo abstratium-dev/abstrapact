@@ -16,14 +16,16 @@
     2026-08-17 20:00:38,537 WARN  [dev.abs.abs.bou.oau.AuthorizationResource] (executor-thread-1) [skey:] Invalid redirect_uri for client 058ebe1e-e9c8-4359-ab77-e943990ab0dd__abstratium-abstracore: requested=http://localhost:10081/oauth/callback, allowed=["http://localhost:8081/oauth/callback"]
 
 
-- rebuild and deploy abstraccount
-
-- finish testing imple of payment
+- finish testing impl of payment — E2E tests (05-payment-flow.spec.ts) are written but not yet run
 - review idempotency, is it what i would expect?
+  - see https://www.the-main-thread.com/p/java-idempotency-keys-ietf-quarkus
+- work out how to write other e2e tests that really use the sandbox
 - do security review of payment APIs
 - add e2e 04 which asserts prices are correctly calculated
 - check e2e tests of payment work
-- work out how to write other e2e tests that really use the sandbox
+- security check esp. around payment
+- ensure that the whsec is used to verify that the body is correct and double check there are tests for that.
+- run e2e with only info, warn and error logs to see what comes out in quarkus, esp. around stripe webhooks and calls to stripe.
 
 - remove excess REST interfaces for contracts, since they are handled mainly in the SalesProcessService
 

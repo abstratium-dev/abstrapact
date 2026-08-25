@@ -42,6 +42,11 @@ docker run -it --rm \
 
 e2e tests will work against this running image. see dev readme for tips on how to run them manually.
 
+For payment E2E tests, ensure `STRIPE_API_KEY` is set so the helper auto-starts, or run it manually:
+```bash
+node e2e-tests/start-stripe-cli.js
+```
+
 Delete test accounts as follows (which cascade deletes other data like federated identities, roles, credentials, authorization codes, etc.):
 
 ```

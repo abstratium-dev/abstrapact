@@ -1,6 +1,7 @@
 package dev.abstratium.abstrapact.product.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import org.hibernate.annotations.TenantId;
 import org.hibernate.envers.Audited;
@@ -50,13 +51,13 @@ public class ProductDefinition {
 
     // ---- Payment handling: per-product Stripe credentials and B2C redirect URLs ----
     // See docs/DESIGN_OF_PAYMENT.md. Mirrors NonMultitenancyProductDefinition.
-    // Credentials are @JsonIgnore so they are never exposed in REST responses to customers.
-    @JsonIgnore
-    @Column(name = "stripe_secret_key", length = 100)
+    // Credentials use WRITE_ONLY so they can be set via the API but never exposed in responses.
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @Column(name = "stripe_secret_key", length = 255)
     private String stripeSecretKey;
 
-    @JsonIgnore
-    @Column(name = "stripe_webhook_secret", length = 100)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @Column(name = "stripe_webhook_secret", length = 255)
     private String stripeWebhookSecret;
 
     @Column(name = "payment_success_redirect_url", length = 500)

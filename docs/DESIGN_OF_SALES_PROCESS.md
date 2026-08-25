@@ -27,6 +27,9 @@ Both variants share the same early steps (draft, offer, acceptance, approval). T
 | 5 | **Document Preparation** | (no contract state change) | System / SME |
 | 6 | **Payment Handling** | `APPROVED -> AWAITING_PAYMENT -> RUNNING` (pay-first)<br>`APPROVED -> RUNNING` (bill-over-time) | System / Customer |
 
+Once the contract reaches `RUNNING`, the sales process is complete. The `ProcessInstance`
+is transitioned to `COMPLETED`.
+
 ### Current Implementation Status
 
 - **Approval (step 4):** Currently implemented as a placeholder that always auto-approves.
@@ -37,10 +40,11 @@ Both variants share the same early steps (draft, offer, acceptance, approval). T
   contract value, product type, customer history, or other factors.
 - **Document preparation (step 5):** Not yet implemented. Will be added when the
   contract document generation requirements are defined.
-- **Payment handling (step 6):** Placeholder only. The `triggerPaymentHandling`
-  method exists but does not yet move the contract out of `APPROVED`. The actual
-  payment logic (moving to `AWAITING_PAYMENT` or `RUNNING` based on the payment
-  model) will be implemented once payment specifications are provided.
+- **Payment handling (step 6):** Implemented. Prepaid contracts transition to
+  `AWAITING_PAYMENT` and a Stripe Checkout Session is created. A successful payment
+  webhook transitions the contract to `RUNNING` and marks the sales process as
+  `COMPLETED`. Postpaid contracts throw `UnsupportedPaymentModelException` —
+  periodic invoicing is not yet implemented.
 
 ### Payment Handling Divergence
 

@@ -94,7 +94,7 @@ graph TD
         STRIPE -->|creates| SC[Stripe Checkout Session]
         WH[Webhook Endpoint] --> WHS[Webhook Handler Service]
         WHS --> PSI
-        WHS -->|every verified event| WE[WebhookEvent Store]
+        WHS -->|every event incl. rejected| WE[WebhookEvent Store]
         SR[Success/Cancel Redirect] -->|redirects browser| B2C
         EXP[CSV Export Endpoint]
     end
@@ -188,7 +188,7 @@ dev.abstratium.abstrapact.non_multitenancy.sales.payment
 │       └── StripePSPService.java            # Stripe implementation of PSPInterface
 └── entity
     ├── PaymentTransaction.java              # JPA entity
-    └── WebhookEvent.java                    # JPA entity — audit log of every verified webhook call
+    └── WebhookEvent.java                    # JPA entity — audit log of every webhook call (including rejected)
 ```
 
 ---
@@ -266,8 +266,8 @@ public class PaymentEventResult {
 Four new columns for per-product Stripe credentials and B2C redirect URLs:
 
 ```sql
-ALTER TABLE T_product_definition ADD COLUMN stripe_secret_key VARCHAR(100);
-ALTER TABLE T_product_definition ADD COLUMN stripe_webhook_secret VARCHAR(100);
+ALTER TABLE T_product_definition ADD COLUMN stripe_secret_key VARCHAR(255);
+ALTER TABLE T_product_definition ADD COLUMN stripe_webhook_secret VARCHAR(255);
 ALTER TABLE T_product_definition ADD COLUMN payment_success_redirect_url VARCHAR(500);
 ALTER TABLE T_product_definition ADD COLUMN payment_cancel_redirect_url VARCHAR(500);
 ```
@@ -387,22 +387,25 @@ public class PaymentTransaction {
 
 ### New Table: `T_webhook_event`
 
-Records **every** webhook call that passes signature verification — matched, unmatched,
-stale, and duplicate events alike — providing a complete audit trail of all PSP
-communication.
+Records **every** webhook call — matched, unmatched, stale, duplicate, and rejected events
+alike — providing a complete audit trail of all PSP communication. Only webhooks whose
+payload exceeds the configurable size limit
+(`abstrapact.payment.webhook.max-payload-size-bytes`, default: 128KB) are not recorded;
+those are logged via the JBoss logger only.
 
 ```sql
 CREATE TABLE T_webhook_event (
     id VARCHAR(36) PRIMARY KEY,
     organisation_id VARCHAR(36),
     psp_identifier VARCHAR(30) NOT NULL,
-    psp_event_id VARCHAR(255) NOT NULL,
-    event_type VARCHAR(100) NOT NULL,
+    psp_event_id VARCHAR(255),
+    event_type VARCHAR(100),
     correlation_id VARCHAR(36),
     payment_transaction_id VARCHAR(36),
     matched BOOLEAN NOT NULL,
     processing_result VARCHAR(30) NOT NULL,
-    raw_payload TEXT NOT NULL,
+    rejection_reason VARCHAR(500),
+    raw_payload TEXT,
     received_at TIMESTAMP NOT NULL,
     CONSTRAINT UQ_webhook_event_psp_event
         UNIQUE (psp_identifier, psp_event_id),
@@ -416,8 +419,11 @@ CREATE INDEX I_webhook_event_matched ON T_webhook_event(matched);
 CREATE INDEX I_webhook_event_processing_result ON T_webhook_event(processing_result);
 ```
 
-The `organisation_id` may be null for unmatched events. The `processing_result` column
-records the outcome:
+The `organisation_id` may be null for unmatched and rejected events. The `psp_event_id`
+and `event_type` may be null for rejected events where the payload could not be parsed.
+The `raw_payload` may be null for rejected events where only a partial recording was
+possible. The `rejection_reason` is set only when `processing_result=REJECTED`. The
+`processing_result` column records the outcome:
 
 | Value | Meaning |
 |---|---|
@@ -426,6 +432,7 @@ records the outcome:
 | `UNMATCHED` | No matching `PaymentTransaction` found. No state change. |
 | `STALE` | Matching transaction found but too old (see [Staleness Check](#staleness-check)). Transaction marked `STALE`, contract **not** transitioned. Requires manual review. |
 | `IGNORED` | Event type not actively processed (e.g. `charge.refunded` before refund support). No state change. |
+| `REJECTED` | Webhook failed signature verification or could not be associated with any product. No state change. The `rejection_reason` column explains why. |
 
 ```java
 @Entity
@@ -463,8 +470,12 @@ public class WebhookEvent {
     private ProcessingResult processingResult;
 
     @Lob
-    @Column(name = "raw_payload", nullable = false)
+    @Column(name = "raw_payload")
     private String rawPayload;
+
+    /** Why the webhook was rejected (only set when processingResult == REJECTED). */
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
 
     @Column(name = "received_at", nullable = false)
     private LocalDateTime receivedAt;
@@ -474,7 +485,8 @@ public class WebhookEvent {
         DUPLICATE,
         UNMATCHED,
         STALE,
-        IGNORED
+        IGNORED,
+        REJECTED
     }
 
     // getters / setters
@@ -488,8 +500,31 @@ Both new tables and their Envers audit tables (`T_payment_transaction_AUD`,
 
 ## Webhook Handling
 
-The webhook endpoint (`POST /api/public/payment/webhook`) is **not** behind OIDC
+The webhook endpoint (`POST /public/payment/webhook`) is **not** behind OIDC
 authentication — it is called by Stripe, not by an authenticated user.
+
+### Payload Size Limit
+
+Webhooks whose payload exceeds the configurable size limit
+(`abstrapact.payment.webhook.max-payload-size-bytes`, default: 128KB) are **not** recorded
+in `T_webhook_event` — they are logged via the JBoss logger only. This protects the
+database from oversized or malicious payloads. The size check is performed before any
+processing is attempted.
+
+### Rejected Webhook Recording
+
+Rejected webhooks (signature verification failure, no matching product, malformed payload)
+are recorded in `T_webhook_event` with `processing_result=REJECTED` and a
+`rejection_reason` explaining why the webhook was rejected. This provides a persistent
+audit trail of rejection attempts, making it possible to distinguish between:
+
+- **Configuration errors** — e.g. a product's webhook secret is wrong or missing.
+- **Attacks** — e.g. forged webhook payloads from an unauthenticated source.
+- **Bugs** — e.g. a malformed payload that cannot be parsed.
+
+The `psp_event_id`, `event_type`, and `correlation_id` fields are extracted from the
+untrusted payload on a best-effort basis and may be null (e.g. for malformed JSON). The
+`raw_payload` is stored in full (subject to the payload size limit above).
 
 ### Signature Verification with Per-Product Secrets
 
@@ -506,8 +541,8 @@ process:
    webhookSecret)` with that product's webhook secret.
 4. If no correlation ID is found or no matching transaction exists (unmatched event),
    try verifying the signature against all configured product webhook secrets. If none
-   match, the event is discarded with a `400` response — it is not recorded in
-   `T_webhook_event` because it cannot be trusted.
+   match, the event is recorded with `processing_result=REJECTED` and a `400` response
+   is returned.
 
 > For unmatched events, trying all webhook secrets is O(n) in the number of products.
 > This is acceptable for the initial implementation. If the number of products grows
@@ -518,7 +553,10 @@ process:
 ### Event Processing
 
 Every verified event is persisted as a `WebhookEvent` row **before** further processing,
-ensuring the audit trail is complete even if processing fails partway through. The
+ensuring the audit trail is complete even if processing fails partway through. Rejected
+events (signature failure, no matching product, malformed payload) are also persisted
+with `processing_result=REJECTED` and a `rejection_reason` — see
+[Rejected Webhook Recording](#rejected-webhook-recording). The
 `PaymentService.handlePaymentResult` method:
 
 1. Persists the webhook event row with `matched=false`, `processing_result=IGNORED` as
@@ -526,6 +564,8 @@ ensuring the audit trail is complete even if processing fails partway through. T
 2. Attempts to find a `PaymentTransaction` by the correlation ID.
 3. **If not found** → `matched=false`, `processing_result=UNMATCHED`. No state change.
 4. **If found** → `matched=true`. Then:
+   - Fee-only event (`charge.updated`) with fee data on a `SUCCEEDED` or `STALE` transaction →
+     update `fee_amount` and `net_amount`, no state transition. `processing_result=PROCESSED`.
    - Transaction already in terminal state → `processing_result=DUPLICATE`. No state change.
    - Event type not processed by abstrapact → `processing_result=IGNORED`. No state change.
    - Success event + transaction is stale (see [Staleness Check](#staleness-check)) →
@@ -534,6 +574,8 @@ ensuring the audit trail is complete even if processing fails partway through. T
      transition contract to `RUNNING`. `processing_result=PROCESSED`.
    - Failure event → update to `FAILED`. Contract remains in `AWAITING_PAYMENT`.
      `processing_result=PROCESSED`.
+   - PENDING event with fee data (e.g. `charge.updated` before `payment_intent.succeeded`) →
+     store fee, no state transition. `processing_result=PROCESSED`.
 5. In all cases, return `200` to Stripe so the event is not retried.
 
 The webhook endpoint must respond within 10 seconds (Stripe's timeout before redirecting
@@ -550,36 +592,54 @@ enqueue the event and return `200` immediately.
 | `payment_intent.succeeded` | Extract correlation ID from PaymentIntent metadata; mark payment succeeded |
 | `checkout.session.async_payment_succeeded` | Same as `checkout.session.completed` (delayed payment methods) |
 | `checkout.session.async_payment_failed` | Mark payment failed; contract remains in `AWAITING_PAYMENT` |
-| `charge.updated` | Update fee amount from `balance_transaction` data (fees may arrive in a later event) |
+| `charge.updated` | Update fee amount from `balance_transaction` data. May arrive after the transaction is already `SUCCEEDED` — in that case, the fee is updated without any state transition. Stripe webhooks include `balance_transaction` as an ID string (not expanded), so the service makes a separate API call to retrieve the balance transaction and extract the fee. |
 
 > **Fee data timing:** Stripe does not always include fee data in the initial
-> `payment_intent.succeeded` event. The `charge.updated` event captures the fee once the
-> `balance_transaction` is available.
+> `payment_intent.succeeded` event. The `charge.updated` event references the
+> `balance_transaction` by ID — the service fetches it via the Stripe API to extract the
+> fee. `charge.updated` is a handled event type: if the transaction is still `PENDING`, the
+> fee is stored without a state transition; if the transaction is already `SUCCEEDED`, the
+> fee is updated (bypassing the terminal-state duplicate check).
 
 ### Resource
 
 ```java
-@Path("/api/public/payment/webhook")
+@Path("/public/payment/webhook")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@PermitAll
 public class PaymentWebhookResource {
 
     @Inject
     PaymentService paymentService;
 
     @Inject
-    PSPInterface psp;
+    PSPSelector pspSelector;
 
     @POST
     @Operation(summary = "Receive a PSP webhook event")
     public Response handleWebhook(String payload, @HeaderParam("Stripe-Signature") String signature) {
+        // 1. Reject oversized payloads — logged but not recorded.
+        if (payload.length() > paymentService.getMaxPayloadSizeBytes()) {
+            log.warnf("Webhook payload exceeds max size (%d > %d bytes) — not recording",
+                payload.length(), paymentService.getMaxPayloadSizeBytes());
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity("Webhook payload exceeds maximum size")
+                .build();
+        }
+
         try {
-            PaymentEventResult result = psp.processWebhookEvent(payload, signature);
+            PaymentEventResult result = pspSelector.getActive()
+                .processWebhookEvent(payload, signature);
             paymentService.handlePaymentResult(result);
             return Response.ok().build();
         } catch (WebApplicationException e) {
+            // Record the rejected event for audit/debugging.
+            String reason = extractRejectionReason(e);
+            paymentService.recordRejectedEvent(payload, reason);
             return e.getResponse();
         } catch (Exception e) {
+            paymentService.recordRejectedEvent(payload, "Unexpected error: " + e.getMessage());
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
     }
@@ -836,6 +896,27 @@ to create a hosted payment page. Key parameters:
 > explicitly so that the correlation ID is available in `payment_intent.succeeded` events.
 > See the [Stripe metadata documentation](https://docs.stripe.com/metadata/use-cases).
 
+#### Adaptive Pricing (currency conversion fees)
+
+**Adaptive Pricing must be enabled on each Stripe account** in the [Stripe Dashboard](https://dashboard.stripe.com/settings/adaptive-pricing).
+
+Without Adaptive Pricing, when a customer's card is in a different currency than the
+charge currency (e.g. CHF charge, GBP card), Stripe converts the currency and the
+**merchant absorbs the conversion fee** (typically 2-4% on top of the standard processing
+fee). This reduces the merchant's net amount.
+
+With Adaptive Pricing enabled:
+- Stripe automatically presents the price in the customer's local currency
+- The exchange rate includes a 2-4% conversion fee **paid by the customer**
+- The merchant receives the original amount (in their currency) minus only the standard
+  Stripe processing fee
+- The `presentment_details` hash in webhook events shows the customer's local currency
+  amount, while the `PaymentTransaction` records the merchant's currency and the standard
+  processing fee only
+
+See the [Adaptive Pricing documentation](https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing)
+for details.
+
 ### Stripe SDK
 
 Add the Stripe Java SDK as a dependency (use a version published at least 7 days ago —
@@ -909,6 +990,7 @@ public class StripePSPService implements PSPInterface {
 | `abstrapact.payment.stripe.success-url` | abstrapact's own success redirect endpoint (must include `{CHECKOUT_SESSION_ID}`) | `https://abstrapact.example.com/api/public/payment/success?session_id={CHECKOUT_SESSION_ID}` |
 | `abstrapact.payment.stripe.cancel-url` | abstrapact's own cancel redirect endpoint (must include `{CHECKOUT_SESSION_ID}`) | `https://abstrapact.example.com/api/public/payment/cancel?session_id={CHECKOUT_SESSION_ID}` |
 | `abstrapact.payment.webhook.stale-after-hours` | Hours after which a `PENDING` transaction is considered stale. Default: `24` | `24` |
+| `abstrapact.payment.webhook.max-payload-size-bytes` | Maximum webhook payload size in bytes. Webhooks exceeding this limit are not recorded in `T_webhook_event` — they are logged via the JBoss logger only. Default: `131072` (128KB) | `131072` |
 
 These are set via environment variables or `application.properties` and must **never** be
 committed to the repository. Stripe API keys and webhook secrets are **not** here — they
@@ -1084,10 +1166,12 @@ After implementing `StripePSPService` and the webhook endpoint:
 ### Integration Tests (`@QuarkusTest`)
 
 - `PaymentWebhookResourceTest`: signed payload → contract transitions to `RUNNING`,
-  `WebhookEvent` with `PROCESSED`. Unsigned payload → 400, no `WebhookEvent` row.
-  Unknown correlation ID → `WebhookEvent` with `UNMATCHED`, contract unchanged. Same
+  `WebhookEvent` with `PROCESSED`. Unsigned payload → 400, `WebhookEvent` with `REJECTED`
+  and rejection reason. Unknown correlation ID → `WebhookEvent` with `REJECTED`. Same
   event twice → one `WebhookEvent` row, second delivery `DUPLICATE`. Old `PENDING`
-  transaction + success event → `STALE`, contract not transitioned.
+  transaction + success event → `STALE`, contract not transitioned. Malformed payload →
+  `WebhookEvent` with `REJECTED` and null event id/type. Oversized payload → 400, no
+  `WebhookEvent` row recorded.
 - `PaymentRedirectResourceTest`: success with configured redirect → `302` to B2C URL
   with `{contractId}` replaced. `PENDING` transaction → `status=processing`. No redirect
   URL configured → HTML page. Unknown session id → `404`. Cancel endpoint → cancel
@@ -1100,49 +1184,74 @@ After implementing `StripePSPService` and the webhook endpoint:
 ### E2E Tests
 
 E2E tests use the existing Playwright-based framework (see `e2e-tests/tests/`) and the
-Stripe CLI to simulate webhook events.
+**real Stripe API** (test mode) with the Stripe CLI for webhook forwarding. No mock Stripe
+API is used — this ensures the integration with Stripe is genuinely tested.
+
+### Prerequisites
+
+1. **Stripe CLI installed:**
+   ```bash
+   # See https://docs.stripe.com/cli
+   ```
+2. **Stripe test API key set as an environment variable** (authenticates both the Stripe
+   CLI and the abstrapact server — no `stripe login` needed):
+   ```bash
+   export STRIPE_API_KEY=sk_test_...   # from Stripe Dashboard → Developers → API Keys
+   ```
+   Update this when the key expires (every few months).
+3. **Stripe CLI helper started** (in a separate terminal):
+   ```bash
+   node e2e-tests/start-stripe-cli.js
+   ```
+   This starts `stripe listen --forward-to localhost:8088/public/payment/webhook`,
+   scrapes the `whsec_...` signing secret from the CLI output, and serves it via HTTP
+   on `localhost:19999` so the tests can fetch it automatically. The PID is stored in
+   `tmp/stripe-cli.pid` and logs in `tmp/stripe-cli.log`.
+4. **E2E server started:**
+   ```bash
+   ./mvnw package -DskipTests
+   cd e2e-tests && ./start-e2e-server.sh
+   ```
+
+The webhook signing secret (`whsec_...`) is fetched automatically by the tests from the
+helper script's HTTP endpoint (`GET http://localhost:19999/webhook-secret`). No manual
+copying is required. It can also be overridden via the `STRIPE_TEST_WEBHOOK_SECRET`
+environment variable if needed.
+
+If the Stripe CLI helper is not running or the API key env var is not set, the
+payment-related E2E tests are skipped automatically (via `test.skip`).
 
 #### `05-payment-flow.spec.ts` — Happy Path
 
-1. Create a product definition (prepaid, fixed price) with Stripe test credentials and
-   redirect URLs configured.
+1. Create a product definition (prepaid, fixed price) with real Stripe test credentials
+   and redirect URLs configured.
 2. Create a customer contract via the cross-tenant API.
-3. Offer and accept the contract. Verify the response contains a `checkoutUrl` pointing
-   to `checkout.stripe.com`.
-4. Start the Stripe CLI listener: `stripe listen --forward-to localhost:8080/api/public/payment/webhook`.
-5. Trigger a test payment event: `stripe trigger checkout.session.completed` (or
-   construct a signed payload with the correct correlation id in metadata).
-6. Poll `GET /api/public/sales/contracts/{id}` until `RUNNING`.
-7. Verify `PaymentTransaction` with status `SUCCEEDED` and `WebhookEvent` with
+3. Offer and accept the contract. Verify the response contains a real `checkoutUrl`
+   pointing to `checkout.stripe.com`.
+4. Navigate Playwright to the Stripe hosted checkout page.
+5. Fill in the card details using the standard Stripe test card
+   (`4242 4242 4242 4242`, any future expiry, any CVC) and click "Pay".
+6. Stripe processes the payment and sends a real webhook (forwarded by the Stripe CLI
+   to `localhost:8088/public/payment/webhook`).
+7. Poll `GET /api/public/sales/contracts/{id}` until `RUNNING`.
+8. Verify `PaymentTransaction` with status `SUCCEEDED` and `WebhookEvent` with
    `processing_result=PROCESSED`.
 
-#### `05-payment-flow.spec.ts` — Cancel Path
+#### `05-payment-flow.spec.ts` — Invalid Signature
 
 1. Create a product definition and contract as above. Accept and verify the `checkoutUrl`.
-2. Do not trigger a payment event (simulating "Back" on the Stripe page).
-3. Call `GET /api/public/payment/cancel?session_id={cs_id}` and verify `302` redirect (or
-   HTML page if no redirect URL configured).
+2. Construct a webhook payload manually with the real Stripe session ID but an invalid
+   signature.
+3. POST to `/public/payment/webhook` and verify `400` response.
 4. Verify the contract remains in `AWAITING_PAYMENT`.
+5. This test does not require the Stripe CLI listener — it sends the webhook directly.
 
-#### `05-payment-flow.spec.ts` — Success Redirect
-
-1. Create a product definition with `payment_success_redirect_url` configured, and a
-   contract. Accept and trigger the payment event.
-2. Call `GET /api/public/payment/success?session_id={cs_id}` and verify `302` redirect to
-   the configured B2C URL with `{contractId}` replaced.
-3. Repeat with the webhook not yet processed (transaction `PENDING`) and verify
-   `status=processing`.
-
-#### `05-payment-flow.spec.ts` — Postpaid Rejection
-
-1. Create a product definition with `paymentModel=POSTPAID`.
-2. Create and accept a contract. Verify the response is `422` with
-   `UnsupportedPaymentModelException`.
-3. Verify the contract remains in `APPROVED` (not `RUNNING`).
-
-> **Test infrastructure:** The e2e tests require the Stripe CLI with a test mode API key.
-> The test product definition must have `stripe_secret_key` and `stripe_webhook_secret`
-> set to the Stripe CLI's test values.
+> **Test infrastructure:** The E2E tests use the real Stripe API in test mode. The
+> Stripe CLI must be running and forwarding webhooks to the abstrapact server. The test
+> product definition uses the Stripe test mode API key (`sk_test_...`) and the webhook
+> signing secret from `stripe listen`. Tests are skipped automatically if the
+> `STRIPE_TEST_SECRET_KEY` and `STRIPE_TEST_WEBHOOK_SECRET` environment variables are not
+> set.
 
 ---
 
@@ -1159,6 +1268,9 @@ Stripe CLI to simulate webhook events.
       `T_webhook_event`, `T_webhook_event_AUD`; add `stripe_secret_key`,
       `stripe_webhook_secret`, `payment_success_redirect_url`,
       `payment_cancel_redirect_url` columns to `T_product_definition`.
+- [ ] **V01.027** — make `psp_event_id`, `event_type`, `raw_payload` nullable on
+      `T_webhook_event`; add `rejection_reason` column; add `REJECTED` to the
+      `processing_result` check constraint.
 
 ### Domain Model
 

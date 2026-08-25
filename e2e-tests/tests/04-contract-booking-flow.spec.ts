@@ -8,6 +8,30 @@ import { registerNewUser } from '../pages/auth-server.page';
 const RUN_ID = Date.now().toString();
 const PART_UNIT_PRICE = 25.00;
 
+// Stripe test credentials.
+// The API key is read from STRIPE_API_KEY (used by both the Stripe CLI and abstrapact).
+// The webhook secret is fetched from the start-stripe-cli.js helper script's HTTP server.
+// Can be overridden via STRIPE_TEST_WEBHOOK_SECRET.
+const STRIPE_TEST_SECRET_KEY = process.env.STRIPE_API_KEY || process.env.STRIPE_TEST_SECRET_KEY;
+let stripeWebhookSecret: string | null = process.env.STRIPE_TEST_WEBHOOK_SECRET || null;
+
+/**
+ * Fetches the Stripe webhook signing secret from the start-stripe-cli.js helper.
+ * See 05-payment-flow.spec.ts for details.
+ */
+async function fetchStripeWebhookSecret(): Promise<string | null> {
+    try {
+        const resp = await fetch('http://localhost:19997/webhook-secret', {
+            signal: AbortSignal.timeout(5000),
+        });
+        if (!resp.ok) return null;
+        const body = await resp.json();
+        return (body.secret && body.secret.startsWith('whsec_')) ? body.secret : null;
+    } catch {
+        return null;
+    }
+}
+
 function productCodeFor(testId: string): string {
     return `BK-PROD-${RUN_ID}-${testId}`;
 }
@@ -59,8 +83,8 @@ async function createCrossTenantProduct(page: Page, productCode: string, partCod
             billingModel: 'FIXED_PRICE',
             paymentModel: 'PREPAID',
             crossTenantApiAllowed: true,
-            stripeSecretKey: 'sk_test_e2e_mock',
-            stripeWebhookSecret: 'whsec_e2e_mock',
+            stripeSecretKey: STRIPE_TEST_SECRET_KEY,
+            stripeWebhookSecret: stripeWebhookSecret,
         },
     });
     expect(resp.status(), `Create product failed: ${resp.status()}`).toBe(201);
@@ -99,6 +123,11 @@ test.describe('04 Contract Booking Flow', () => {
     let sellerOrgId: string;
 
     test.beforeEach(async ({ page }: { page: Page }) => {
+        // Fetch the webhook secret from the helper if not already set.
+        if (!stripeWebhookSecret) {
+            stripeWebhookSecret = await fetchStripeWebhookSecret();
+        }
+
         page.on('console', msg => {
             if (msg.type() === 'error') {
                 const text = msg.text();
@@ -121,6 +150,9 @@ test.describe('04 Contract Booking Flow', () => {
     });
 
     test('BK1: customer creates, offers, and accepts a contract with correct pricing', async ({ page }: { page: Page }) => {
+        test.skip(!STRIPE_TEST_SECRET_KEY || !stripeWebhookSecret,
+            'Set STRIPE_TEST_SECRET_KEY and STRIPE_TEST_WEBHOOK_SECRET env vars. See start-e2e-server.sh for instructions.');
+
         const log = testStepLogger('BK1');
 
         // ── Step 1: create the cross-tenant product as the seller user ──────────
@@ -333,6 +365,9 @@ test.describe('04 Contract Booking Flow', () => {
     });
 
     test('BK3: cannot offer an already-accepted contract', async ({ page }: { page: Page }) => {
+        test.skip(!STRIPE_TEST_SECRET_KEY || !stripeWebhookSecret,
+            'Set STRIPE_TEST_SECRET_KEY and STRIPE_TEST_WEBHOOK_SECRET env vars. See start-e2e-server.sh for instructions.');
+
         const log = testStepLogger('BK3');
 
         log('Create product and sign in as customer');

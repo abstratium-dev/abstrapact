@@ -33,6 +33,7 @@ The numeric prefixes ensure Playwright runs them alphabetically in the correct o
 ### `/start-e2e-server.sh`
 Shell script that starts the Quarkus application for e2e testing. It:
 - Runs the built JAR file with the `e2e` profile (uses H2 in-memory database)
+- Automatically starts the Stripe CLI helper (`start-stripe-cli.js`) in the background if `STRIPE_API_KEY` is set
 - Is automatically invoked by Playwright when `BASE_URL` is set
 
 ## Environment Variables
@@ -57,6 +58,10 @@ cd e2e-tests
 npx playwright test
 ```
 
+When using `mvn verify -Pe2e` (Maven integration), `start-e2e-server.sh` automatically
+starts the Stripe CLI helper (`start-stripe-cli.js`) in the background if `STRIPE_API_KEY`
+is set. No manual step needed.
+
 ### Maven Integration (CI/CD)
 
 #### Run all e2e tests:
@@ -68,8 +73,9 @@ This will:
 1. Build the application with H2 database support
 2. Package the JAR
 3. Start the server via `start-e2e-server.sh`
-4. Run tests
-6. Stop the server
+4. Start the Stripe CLI helper automatically (if `STRIPE_API_KEY` is set)
+5. Run tests
+6. Stop the server and the helper
 
 The `e2e` profile runs both test suites sequentially to ensure complete coverage of all scenarios.
 
@@ -162,6 +168,14 @@ npx playwright show-report
 The server is not running. Either:
 - Start Quarkus manually with `mvn quarkus:dev`, or
 - Set `BASE_URL=http://localhost:8088` to let Playwright start the server
+
+### Payment E2E tests fail with "Stripe webhook secret is not available"
+`STRIPE_API_KEY` is not set. The `start-e2e-server.sh` script automatically starts
+the Stripe CLI helper when this key is present. Set it in your environment:
+```bash
+export STRIPE_API_KEY=sk_test_...
+```
+Get the key from Stripe Dashboard → Developers → API Keys (test mode).
 
 ### Test timeout waiting for elements
 The Angular application may not have loaded yet. Ensure you're waiting for elements with appropriate timeouts:

@@ -23,9 +23,15 @@ import org.jboss.logging.Logger;
  * Stripe, not by an authenticated user. Signature verification (per-product webhook
  * secret) is the authentication mechanism.
  *
- * <p>Every verified event is recorded in {@code T_webhook_event}. The handler responds
- * {@code 200} to Stripe for matched, unmatched, stale, and duplicate events alike so the
- * event is not retried. Only signature verification failure returns {@code 400}.
+ * <p>Every webhook is recorded in {@code T_webhook_event} — matched, unmatched, stale,
+ * duplicate, and rejected events alike — providing a complete audit trail. Only webhooks
+ * whose payload exceeds the configurable size limit
+ * ({@code abstrapact.payment.webhook.max-payload-size-bytes}) are not recorded; those are
+ * logged via the JBoss logger only.
+ *
+ * <p>The handler responds {@code 200} to Stripe for matched, unmatched, stale, and
+ * duplicate events alike so the event is not retried. Signature verification failure and
+ * oversized payloads return {@code 400}.
  */
 @Path("/public/payment/webhook")
 @Produces(MediaType.APPLICATION_JSON)
@@ -44,9 +50,20 @@ public class PaymentWebhookResource {
     @POST
     @Operation(summary = "Receive a PSP webhook event")
     public Response handleWebhook(String payload, @HeaderParam("Stripe-Signature") String signature) {
+        long start = System.currentTimeMillis();
+        int payloadLength = payload == null ? 0 : payload.length();
         log.debugf("Received webhook (payload length=%d, signature present=%s)",
-            payload == null ? 0 : payload.length(),
+            payloadLength,
             String.valueOf(signature != null && !signature.isBlank()));
+
+        // 1. Check payload size — oversized webhooks are logged but not recorded.
+        if (payloadLength > paymentService.getMaxPayloadSizeBytes()) {
+            log.warnf("Webhook payload exceeds max size (%d > %d bytes) — not recording",
+                payloadLength, paymentService.getMaxPayloadSizeBytes());
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity("Webhook payload exceeds maximum size")
+                .build();
+        }
 
         try {
             PaymentEventResult result = pspSelector.getActive().processWebhookEvent(payload, signature);
@@ -57,16 +74,33 @@ public class PaymentWebhookResource {
                 result.getStatus());
 
             paymentService.handlePaymentResult(result);
-            log.debugf("Webhook handled successfully for correlationId=%s", result.getCorrelationId());
+            log.infof("Webhook handled successfully for correlationId=%s in %s milliseconds", result.getCorrelationId(), System.currentTimeMillis() - start);
             return Response.ok().build();
         } catch (WebApplicationException e) {
+            String reason = extractRejectionReason(e);
             log.warnf(e, "Webhook rejected with status %d: %s",
-                e.getResponse().getStatus(),
-                e.getMessage());
+                e.getResponse().getStatus(), reason);
+            // Record the rejected event for audit/debugging.
+            paymentService.recordRejectedEvent(payload, reason);
             return e.getResponse();
         } catch (Exception e) {
             log.errorf(e, "Unexpected error processing webhook");
+            // Record the rejected event for audit/debugging.
+            paymentService.recordRejectedEvent(payload, "Unexpected error: " + e.getMessage());
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
+    }
+
+    /**
+     * Extracts a human-readable rejection reason from a {@link WebApplicationException}.
+     * The exception message is usually just the HTTP status (e.g. "HTTP 400 Bad Request"),
+     * so the response entity is preferred when available.
+     */
+    private static String extractRejectionReason(WebApplicationException e) {
+        Object entity = e.getResponse().getEntity();
+        if (entity != null) {
+            return entity.toString();
+        }
+        return e.getMessage();
     }
 }
