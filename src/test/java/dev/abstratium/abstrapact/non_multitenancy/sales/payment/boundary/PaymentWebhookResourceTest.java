@@ -261,6 +261,57 @@ class PaymentWebhookResourceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void webhookWrongCorrelationIdDoesNotTransitionContract() {
+        // An attacker who knows the session id (e.g. from a redirect URL) but not the
+        // secret correlation id cannot trigger a state transition. The signature is valid
+        // (resolved via the session id → product definition) but the correlation id is
+        // unknown → UNMATCHED, no state change.
+        String payload = checkoutSessionCompletedPayload("attacker-corr-id", pspSessionId);
+        String signature = WebhookSignatureTestHelper.sign(payload, WEBHOOK_SECRET);
+
+        given()
+            .header("Stripe-Signature", signature)
+            .contentType("application/json")
+            .body(payload)
+        .when()
+            .post("/public/payment/webhook")
+        .then()
+            .statusCode(200);
+
+        // Contract should remain AWAITING_PAYMENT — the correlation id did not match
+        NonMultitenancyContract contract = em.find(NonMultitenancyContract.class, contractId);
+        assertEquals(ContractState.AWAITING_PAYMENT, contract.getState());
+
+        // Transaction should remain PENDING
+        PaymentTransaction tx = findTransactionByCorrelationId(correlationId);
+        assertEquals(PaymentTransaction.PaymentStatus.PENDING, tx.getStatus());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void webhookClientReferenceIdIsIgnoredForMatching() {
+        // Stripe includes client_reference_id (our contract id) in the checkout session
+        // object, but our code must NEVER use it for matching — it is guessable/visible.
+        // Only correlation_id in metadata is trusted for matching.
+        String payload = checkoutSessionCompletedPayloadWithClientReferenceId(contractId, pspSessionId);
+        String signature = WebhookSignatureTestHelper.sign(payload, WEBHOOK_SECRET);
+
+        given()
+            .header("Stripe-Signature", signature)
+            .contentType("application/json")
+            .body(payload)
+        .when()
+            .post("/public/payment/webhook")
+        .then()
+            .statusCode(200);
+
+        // Contract should remain AWAITING_PAYMENT — client_reference_id is ignored
+        NonMultitenancyContract contract = em.find(NonMultitenancyContract.class, contractId);
+        assertEquals(ContractState.AWAITING_PAYMENT, contract.getState());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
     void webhookFailureEventMarksTransactionFailed() {
         String payload = asyncPaymentFailedPayload(correlationId, pspSessionId);
         String signature = WebhookSignatureTestHelper.sign(payload, WEBHOOK_SECRET);
@@ -472,6 +523,34 @@ class PaymentWebhookResourceTest {
               }
             }
             """.formatted(sessionId, sessionId, sessionId, metadata);
+    }
+
+    /**
+     * A payload that contains {@code client_reference_id} (our contract id, which is
+     * visible/ guessable) but no {@code correlation_id} in metadata. Our code must
+     * ignore {@code client_reference_id} for matching — only {@code correlation_id}
+     * in metadata is trusted.
+     */
+    private static String checkoutSessionCompletedPayloadWithClientReferenceId(
+            String clientReferenceId, String sessionId) {
+        return """
+            {
+              "id": "evt_integration_%s",
+              "type": "checkout.session.completed",
+              "data": {
+                "object": {
+                  "id": "%s",
+                  "object": "checkout.session",
+                  "client_reference_id": "%s",
+                  "payment_intent": "pi_integration_%s",
+                  "payment_status": "paid",
+                  "amount_total": 10000,
+                  "currency": "eur",
+                  "metadata": {}
+                }
+              }
+            }
+            """.formatted(sessionId, sessionId, clientReferenceId, sessionId);
     }
 
     private static String asyncPaymentFailedPayload(String correlationId, String sessionId) {

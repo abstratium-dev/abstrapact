@@ -391,6 +391,52 @@ class StripePSPServiceTest {
         assertEquals(400, ex.getResponse().getStatus());
     }
 
+    // ==================== Correlation id extraction security ====================
+
+    @Test
+    void extractCorrelationIdIgnoresClientReferenceId() {
+        // The contract id is placed in client_reference_id on the Stripe checkout
+        // session. It is visible to the customer and therefore must NOT be used for
+        // matching. Only the secret correlation_id in metadata is trusted.
+        String payload = """
+            {
+              "id": "evt_1",
+              "type": "checkout.session.completed",
+              "data": {
+                "object": {
+                  "id": "cs_1",
+                  "client_reference_id": "visible-contract-id",
+                  "metadata": {}
+                }
+              }
+            }
+            """;
+
+        String result = psp.extractCorrelationId(payload);
+
+        assertNull(result, "client_reference_id must not be used as correlation_id");
+    }
+
+    @Test
+    void extractCorrelationIdPrefersMetadataOverClientReferenceId() {
+        // Even if both fields are present, only metadata.correlation_id is used.
+        String payload = """
+            {
+              "data": {
+                "object": {
+                  "id": "cs_1",
+                  "client_reference_id": "visible-contract-id",
+                  "metadata": {"correlation_id": "secret-corr-id"}
+                }
+              }
+            }
+            """;
+
+        String result = psp.extractCorrelationId(payload);
+
+        assertEquals("secret-corr-id", result);
+    }
+
     // ==================== helpers ====================
 
     private CreatePaymentRequest newPaymentRequest() {
