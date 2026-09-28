@@ -214,7 +214,7 @@ Establishes a direct connection with Stripe, allowing you to tail your test mode
 
 ## Redirect Webhooks to local server (manual)
 
-    stripe listen --forward-to http://localhost:8088/api/payment/stripe/webhook --events=payment_intent.succeeded,*
+    stripe listen --forward-to http://localhost:8088/api/payment/stripe/webhook --events=payment_intent.succeeded
 
     stripe listen  --print-secret
 

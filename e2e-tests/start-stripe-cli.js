@@ -12,7 +12,7 @@
  *   node start-stripe-cli.js
  *
  * What it does:
- *   1. Spawns `stripe listen --forward-to localhost:8088/public/payment/webhook`
+ *   1. Spawns `stripe listen --all-snapshot --forward-to localhost:8088/public/payment/webhook`
  *   2. Mirrors stdout/stderr to the console and to tmp/stripe-cli.log
  *   3. Scrapes the whsec_... signing secret from the output
  *   4. Starts an HTTP server on port 19999 that serves the secret as JSON
@@ -62,7 +62,10 @@ httpServer.listen(HTTP_PORT, () => {
 });
 
 // ─── Start the Stripe CLI listener ────────────────────────────────────────────
-const stripeArgs = ['listen', '--forward-to', FORWARD_TO];
+// --all-snapshot is required by newer stripe-cli versions (>= 1.25) to forward
+// all events with full payload. Without it, the CLI exits with:
+//   "must specify events to forward using --events, --all-snapshot, or --all-thin"
+const stripeArgs = ['listen', '--all-snapshot', '--forward-to', FORWARD_TO];
 console.log(`[stripe] Starting: stripe ${stripeArgs.join(' ')}`);
 
 stripeProc = spawn('stripe', stripeArgs, {
