@@ -11,6 +11,7 @@ In abstrapact, the following mutations are non-idempotent today:
 | `POST /api/public/sales/contracts` | Duplicate draft contracts |
 | `POST /api/public/sales/contracts/{id}/accept` | Duplicate `PaymentTransaction` rows + duplicate Stripe Checkout Sessions |
 | `POST /api/public/sales/contracts/{id}/offer` | Duplicate state-transition audit steps (contract state machine may protect this, but it is not guaranteed) |
+| `POST /api/public/sales/contracts/{id}/retry-payment` | Duplicate `PaymentTransaction` rows + duplicate Stripe Checkout Sessions |
 
 A concrete example: a B2C user clicks "Pay now". The frontend calls `accept`. The network times out. The frontend retries. Without idempotency, two `PaymentTransaction` rows are created, two Stripe Checkout Sessions are opened, and the user sees two checkout pages.
 
@@ -47,7 +48,18 @@ The following endpoints mutate state and must accept an `Idempotency-Key` header
 | `POST /api/public/sales/contracts` | Account-scoped | Prevents duplicate draft contracts on retry |
 | `POST /api/public/sales/contracts/{id}/accept` | Contract-scoped | Prevents duplicate payment transactions on retry |
 
-The `offer` endpoint (`POST /api/public/sales/contracts/{id}/offer`) is borderline — the contract state machine already prevents transitions from non-DRAFT states, so retries after success are naturally safe (they fail with 422). However, retries during the narrow window before the transaction commits could still create duplicate audit steps. For completeness, `offer` should also accept the header.
+The `offer` endpoint (`POST /api/public/sales/contracts/{id}/offer`) is also protected: although the contract state machine already rejects transitions from non-DRAFT states, the idempotency record additionally guarantees that a retried `offer` replays the original `200` instead of failing with `422`, and closes the narrow race window that could produce duplicate audit steps.
+
+**Implemented scopes:**
+
+| Scope value | Endpoint | `scope_id` | Fingerprint input |
+|---|---|---|---|
+| `contract_create` | `POST /api/public/sales/contracts` | caller account id | `SHA-256(accountId + ":" + serializedRequest)` — serialized *after* product-code prefixing so logically identical payloads match |
+| `contract_offer` | `POST /api/public/sales/contracts/{id}/offer` | contract id | `SHA-256(contractId + ":" + accountId)` |
+| `contract_accept` | `POST /api/public/sales/contracts/{id}/accept` | contract id | `SHA-256(contractId + ":" + accountId)` — the operation has no body, so the path parameter + caller define it |
+| `contract_retry_payment` | `POST /api/public/sales/contracts/{id}/retry-payment` | contract id | `SHA-256(contractId + ":" + accountId)` |
+
+**Expiry semantics:** `expires_at` is enforced in `IdempotencyService.execute()`, not only by the cleanup job. When a lookup finds a record whose `expires_at` is in the past, the record is deleted and the request is treated as new (the processor runs again and a fresh record is persisted). The hourly cleanup job is only a backstop for abandoned rows.
 
 ## 4. Data Model
 
@@ -75,8 +87,8 @@ CREATE INDEX I_idempotency_record_expires ON T_idempotency_record(expires_at);
 **Fields explained:**
 
 - `idempotency_key` — the key supplied by the client in the `Idempotency-Key` header.
-- `scope` — prevents key collisions across different operation types. A client may reuse the same UUID for different endpoints; the scope disambiguates.
-- `scope_id` — for account-scoped keys, the account id. For contract-scoped keys, the contract id. For Stripe outbound, a fixed value like `'stripe'`.
+- `scope` — prevents key collisions across different operation types. A client may reuse the same UUID for different endpoints; the scope disambiguates. Implemented values: `contract_create`, `contract_accept`.
+- `scope_id` — for `contract_create`, the caller account id. For `contract_accept`, the contract id.
 - `request_fingerprint` — SHA-256 hash of the request payload. Detects key reuse with different parameters.
 - `status_code` + `response_body` — the cached result to replay on retry.
 - `expires_at` — records older than 24 hours are eligible for deletion (Stripe's retention window is 24 hours; we align with that).
@@ -180,18 +192,25 @@ public Response accept(
     String fingerprint = Hashing.sha256(body);
     String accountId = accountId();
 
-    IdempotencyRecord record = idempotencyService.execute(
-        idempotencyKey,
-        "contract_accept",
-        contractId,
-        fingerprint,
-        () -> {
-            String checkoutUrl = salesProcessService.acceptContract(contractId, accountId);
-            CustomerContractResponse response = contractService.getContract(contractId, accountId);
-            response.setCheckoutUrl(checkoutUrl);
-            String json = objectMapper.writeValueAsString(response);
-            return new ProcessedResponse(200, json);
-        });
+    IdempotencyRecord record;
+    try {
+        record = idempotencyService.execute(
+            idempotencyKey,
+            "contract_accept",
+            contractId,
+            fingerprint,
+            () -> {
+                String checkoutUrl = salesProcessService.acceptContract(contractId, accountId);
+                CustomerContractResponse response = contractService.getContract(contractId, accountId);
+                response.setCheckoutUrl(checkoutUrl);
+                String json = objectMapper.writeValueAsString(response);
+                return new ProcessedResponse(200, json);
+            });
+    } catch (IdempotencyRaceException e) {
+        // A concurrent request with the same key won the race and committed.
+        // Replay its cached response in a fresh transaction.
+        record = idempotencyService.replay(idempotencyKey, "contract_accept", fingerprint);
+    }
 
     return Response.status(record.getStatusCode())
         .entity(record.getResponseBody())
@@ -221,31 +240,59 @@ The `PaymentService.createPaymentForContract()` method must be made idempotent a
 
 **Approach**: Before creating a new `PaymentTransaction`, check if one already exists for the contract in `PENDING` status. If yes, reuse it (return the existing checkout URL from the existing `psp_session_id`). If no, create one.
 
-```java
-@Transactional
-public CreatePaymentResponse createPaymentForContract(String contractId, String actorAccountId) {
-    // Check for existing PENDING transaction (idempotency guard)
-    Optional<PaymentTransaction> existing = findPendingTransactionForContract(contractId);
-    if (existing.isPresent()) {
-        // Reuse the existing transaction. If the Stripe session was already created,
-        // return its URL. If not, create the Stripe session now.
-        PaymentTransaction tx = existing.get();
-        if (tx.getPspSessionId() != null) {
-            return new CreatePaymentResponse(resolveCheckoutUrl(tx.getPspSessionId()), tx.getPspSessionId());
-        }
-        // Stripe session not yet created — create it now and store the session id.
-        return createStripeSessionAndStore(tx);
-    }
+#### Two-phase transaction split
 
-    // No existing transaction — create new one (original logic)
-    // ...
-}
-```
+The payment attempt is created in **two separate transactions**, so the PSP network call never happens inside the transaction that records the attempt:
+
+1. `PaymentTransactionService.persistNewPending()` (`REQUIRES_NEW`) persists the `PENDING` row and commits immediately. A concurrent duplicate insert fails on `UQ_payment_transaction_pending_contract` *before* any Stripe call is made — so no orphaned Checkout Session is ever created on the losing side.
+2. The PSP creates the session; `PaymentTransactionService.storeSession()` (`REQUIRES_NEW`) commits the `psp_session_id` + `checkout_url` independently.
+
+Consequences:
+
+- If the caller's outer transaction later rolls back (e.g. a same-key idempotency race), the committed `PENDING` row remains — a retry finds it via the state-based guard and either returns its stored URL or creates the session that was never stored.
+- A `PENDING` row without `psp_session_id` means "attempt recorded, Stripe call died". The next attempt simply calls Stripe with the same `correlation_id`.
 
 This is a **state-based idempotency** guard, distinct from the header-based idempotency record. Both are needed:
 
 - **Header-based idempotency** prevents the `accept` endpoint from being called twice with different payloads.
 - **State-based idempotency** prevents the `PaymentTransaction` from being created twice even if the endpoint is called with a different key (edge case: two different clients accepting the same contract — which should be blocked by authorization anyway).
+
+#### Database backstop: partial unique on `contract_id` while `PENDING`
+
+The state-based guard alone cannot close the race: two concurrent accepts with *different* keys can both read the contract as `OFFERED` (READ COMMITTED hides the winner's uncommitted transition) and both pass `findPendingTransactionForContract` before either commits. The business rule "one contract = one open payment attempt" is therefore also enforced by the database:
+
+```sql
+ALTER TABLE T_payment_transaction
+    ADD COLUMN pending_contract_key VARCHAR(36) GENERATED ALWAYS AS
+        (CASE WHEN status = 'PENDING' THEN contract_id ELSE NULL END) STORED;
+
+ALTER TABLE T_payment_transaction
+    ADD CONSTRAINT UQ_payment_transaction_pending_contract
+        UNIQUE (pending_contract_key);
+```
+
+MySQL does not support `WHERE` clauses on indexes, so the "at most one PENDING per contract" rule is implemented as a generated column: it holds `contract_id` only while `status='PENDING'` and `NULL` otherwise (unique indexes allow any number of `NULL`s). This also keeps the door open for a future retry-payment feature that inserts a new `PENDING` row after the previous attempt `FAILED`.
+
+The losing transaction fails on this constraint during flush, rolls back, and the REST layer recovers in a fresh transaction: `PaymentService.findPendingCheckoutUrlForContract()` returns the winner's committed `PENDING` transaction's checkout URL, which is returned to the losing client with HTTP 200. No duplicate payment session can ever be committed — a double charge is impossible.
+
+Late requests (winner already committed before they loaded the contract) never reach this path: the `OFFERED` state check in `acceptContract` rejects them with 422, which is the correct state-machine answer for a logically different request.
+
+#### Session expiry and retry-payment — "at least once"
+
+A Stripe Checkout Session expires after ~24 hours unpaid. Without a recovery path the customer could never pay: the contract stays `AWAITING_PAYMENT` (re-`accept` is rejected by the state machine) and the state-based guard would keep returning the dead checkout URL.
+
+Two mechanisms mark a dead session's transaction as `EXPIRED` (a terminal status):
+
+1. **`checkout.session.expired` webhook** — handled event type; marks the matched `PENDING` transaction `EXPIRED`.
+2. **`PaymentSessionExpiryJob`** — hourly sweeper marking `PENDING` transactions older than `abstrapact.payment.session-ttl-hours` (default 48h — deliberately longer than Stripe's 24h session maximum, so a session is never expired on our side while Stripe would still accept payment on it; values below 25h are clamped to 25h) as `EXPIRED`. Backstop in case the expiry webhook is lost.
+
+The customer starts a new attempt via **`POST /api/public/sales/contracts/{id}/retry-payment`** (requires `Idempotency-Key`, scope `contract_retry_payment`):
+
+- Contract must be `AWAITING_PAYMENT` — otherwise 422.
+- A `PENDING` transaction with a live session → returns the **existing** checkout URL.
+- Previous attempt `EXPIRED`/`FAILED` → a fresh `PENDING` row (new random `correlation_id`) and a new Stripe session. The generated-column unique constraint permits this because the old row is no longer `PENDING`.
+
+This closes the "always pays at least once" gap: any dead session can always be replaced by a live one.
 
 ### 5.5 Concurrent Requests and Race Conditions
 
@@ -256,52 +303,52 @@ This is the most critical detail. With Hibernate's default transaction isolation
 ```
 Time  Request A                                  Request B
 ----  ---------                                  ---------
- t1   find(key) → null                           
- t2   start processor (Stripe network call)      
- t3                                                find(key) → null (A not committed)
- t4                                                start processor (Stripe network call)
- t5   PaymentTransaction created                  PaymentTransaction created
- t6   Stripe session created (idempotency key=K)  Stripe returns SAME session (idempotency key=K)
- t7   INSERT idempotency record → succeeds       
- t8   COMMIT                                      
- t9                                                INSERT idempotency record → constraint violation
- t10                                               Rollback; read A's record → replay A's result
+ t1   find(key) → null
+ t2   INSERT PENDING tx → COMMIT (REQUIRES_NEW)
+ t3   Stripe call (idempotency key = corrId-A)
+ t4                                                find(key) → null (A not committed)
+ t5                                                INSERT PENDING tx → blocked on unique index
+ t6                                                → UQ_payment_transaction_pending_contract violation
+ t7                                                rollback; NEW tx polls winner's PENDING row until
+ t8                                                psp_session_id appears → returns A's checkout URL
+ t9   storeSession → COMMIT (REQUIRES_NEW)
+ t10  INSERT idempotency record → COMMIT
 ```
 
 **What happens exactly:**
 
-1. Both requests check the database. Neither sees a record (uncommitted inserts are invisible).
-2. Both execute the processor. Both create a `PaymentTransaction`.
-3. Both call Stripe with the **same idempotency key** (the `correlation_id`). Stripe returns the **same Checkout Session** for both calls.
-4. Request A commits first, inserting the idempotency record.
-5. Request B tries to insert the same record and gets a `UniqueConstraintViolationException`.
-6. B rolls back its transaction (which discards its `PaymentTransaction`), reads A's committed record, and replays A's response.
+1. Both requests check the database. Neither sees an idempotency record (uncommitted inserts are invisible).
+2. A persists its `PENDING` transaction in its own `REQUIRES_NEW` transaction — committed before the Stripe call.
+3. B's `PENDING` insert blocks on the unique index until A's inner transaction commits, then fails with `UQ_payment_transaction_pending_contract`. **B never reaches the Stripe call** — no orphaned session is created. (Each payment attempt generates its own random `correlation_id`, which doubles as the Stripe idempotency key; because the loser never calls Stripe, key divergence is a non-issue.)
+4. B's outer transaction rolls back (its contract state changes are discarded). The REST layer recovers in a fresh transaction: `findPendingCheckoutUrlForContract()` polls the winner's committed `PENDING` row until `psp_session_id` appears (bounded wait), then returns the winner's checkout URL with HTTP 200.
+5. If B instead loses on `UQ_idempotency_key_scope` (same key), it throws `IdempotencyRaceException`, rolls back, and `replay()` reads A's committed record. A failed flush marks the transaction rollback-only — recovery must happen in a NEW transaction.
+6. Timing guarantee: a unique-index `INSERT` only fails once the competing transaction has committed (the index entry blocks until then), so the winner's row is guaranteed visible.
 
-**Result:** Only one idempotency record exists, only one `PaymentTransaction` remains, and both clients receive the same checkout URL.
+**Result:** Only one `PENDING` transaction exists, exactly one Stripe session is created, and both clients receive the same checkout URL.
 
 #### Why this is safe despite the race
 
-Even though both processors run, the system is safe because of **three independent guards**:
+The system is safe because of **four independent guards**:
 
 | Guard | What it prevents |
 |---|---|
-| **Stripe idempotency key** | Both calls to Stripe use the same key → Stripe returns the same session. No duplicate Stripe session is created. |
-| **Database unique constraint** | Only one idempotency record is persisted. The loser's transaction rolls back, discarding its `PaymentTransaction`. |
-| **State-based guard** | If the loser somehow avoids rollback (should not happen), `findPendingTransactionForContract()` in `PaymentService` detects the existing PENDING transaction and reuses it instead of creating a new one. |
+| **Stripe idempotency key** | Retries *of the same payment attempt* reuse the same `correlation_id` → Stripe returns the same session instead of a duplicate. |
+| **`UQ_payment_transaction_pending_contract`** | At most one `PENDING` row per contract; the loser fails before calling Stripe — no orphan sessions, no double charge. |
+| **`UQ_idempotency_key_scope`** | Only one idempotency record; same-key losers replay the cached response. |
+| **State-based guard** | A request that sees the committed `PENDING` row reuses it instead of creating a new one. |
 
 #### If the first request dies mid-flight
 
 What if Request A dies after creating the Stripe session but before committing the idempotency record?
 
-1. Request A's transaction rolls back. The `PaymentTransaction` is NOT persisted.
-2. The Stripe session exists on Stripe's side but is orphaned (no matching row in our database).
-3. Request B retries with the same key.
-4. B's `find(key)` still returns null (A never committed).
-5. B executes the processor, creates a new `PaymentTransaction`, calls Stripe with the same idempotency key.
-6. Stripe returns the **same session** (because the idempotency key is the same).
-7. B persists the record and returns the checkout URL.
+1. A's `PENDING` row (committed in phase 1) remains; `psp_session_id` may or may not be stored depending on where A died.
+2. Request B retries with the same key. `find(key)` → null.
+3. B's state-based guard finds the `PENDING` row:
+   - `psp_session_id` present → return the stored checkout URL (same session).
+   - `psp_session_id` absent → call Stripe again **with the same `correlation_id`** → Stripe returns the same session; B stores it.
+4. B persists the record and returns the checkout URL.
 
-**Result:** The Stripe session is reused; no duplicate session is created. The orphan session on Stripe's side is harmless and auto-expires.
+**Result:** The Stripe session is reused; no duplicate session is created.
 
 #### What if the first request fails with a business error
 
@@ -762,6 +809,9 @@ The implementation requires:
 6. Add a scheduled cleanup job for expired records.
 7. Update the Angular B2C app to generate and persist idempotency keys.
 8. Tests for all of the above.
+9. Migration `V01.032__uniquePaymentTransactionContract.sql` — partial unique index on `PENDING` transactions per contract.
+10. Migration `V01.034__addExpiredPaymentStatus.sql` — `EXPIRED` status; `checkout.session.expired` webhook handling + `PaymentSessionExpiryJob` + `POST /{id}/retry-payment`.
+11. `Idempotency-Key` enforcement on `offer` and `retry-payment`; key length validation (≤ 255 chars).
 
 ## 12. Alternatives Considered
 
@@ -779,10 +829,16 @@ Idempotency is implemented at **two layers**:
 1. **Application layer** — `Idempotency-Key` header on `POST` endpoints, database-backed records with fingerprint validation.
 2. **Stripe layer** — `Idempotency-Key` passed to Stripe Checkout Session creation.
 
-Additionally, a **state-based guard** in `PaymentService.createPaymentForContract()` prevents duplicate `PaymentTransaction` rows even in edge cases.
+Additionally:
+
+- A **state-based guard** in `PaymentService` prevents duplicate `PaymentTransaction` rows even in edge cases, backed by `UQ_payment_transaction_pending_contract`.
+- Payment creation runs in **two transactions** — the `PENDING` row commits before the Stripe call, so losers never create orphan sessions.
+- **Session expiry** (`checkout.session.expired` webhook + hourly sweeper → `EXPIRED`) plus the **`retry-payment` endpoint** guarantee the customer can always pay at least once.
+- **Webhook redelivery races** that lose on `UQ_webhook_event_psp_event` are acknowledged with `200` — Stripe never sees a spurious error for a committed event.
 
 This design is watertight against:
 - Network timeouts and client retries
 - Concurrent duplicate submissions
 - Malicious key reuse with different payloads
 - Server restarts (persisted in database)
+- Expired/abandoned checkout sessions (retryable via `retry-payment`)

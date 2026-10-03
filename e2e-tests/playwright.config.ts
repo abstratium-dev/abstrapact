@@ -1,6 +1,7 @@
+import { env } from 'node:process';
 import { defineConfig, devices } from '@playwright/test';
 
-console.log("BASE_URL: ", process.env.BASE_URL);
+console.log("BASE_URL: ", env.BASE_URL);
 
 /**
  * Read environment variables from file.
@@ -32,9 +33,9 @@ export default defineConfig({
   /* Run tests in files in parallel */
   fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
-  forbidOnly: !!process.env.CI,
+  forbidOnly: !!env.CI,
   /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
+  retries: env.CI ? 2 : 0,
   /* Run tests in series - use 1 worker */
   workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
@@ -42,7 +43,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
-    baseURL: process.env.BASE_URL || 'http://localhost:8088',
+    baseURL: env.BASE_URL || 'http://localhost:8088',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -90,11 +91,11 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: process.env.BASE_URL ? {
+  webServer: env.BASE_URL ? {
     // When BASE_URL is set (Maven integration), start the built jar
     command: './start-e2e-server.sh',
     url: 'http://localhost:8088/m/health',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !env.CI,
     timeout: 12000,
     stdout: 'pipe',
     stderr: 'pipe',

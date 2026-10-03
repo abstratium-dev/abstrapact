@@ -1,6 +1,7 @@
+import { env } from 'node:process';
 import { test, expect, Page } from '@playwright/test';
 import { signInViaHeader, testStepLogger } from '../pages/test-helpers';
-import { handleAuthServer, headerSignInLink, signOut } from '../pages/TODO.page';
+import { handleAuthServer, headerSignInLink, signOut } from '../pages/test-helpers';
 import { registerNewUser } from '../pages/auth-server.page';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -12,8 +13,8 @@ const PART_UNIT_PRICE = 25.00;
 // The API key is read from STRIPE_API_KEY (used by both the Stripe CLI and abstrapact).
 // The webhook secret is fetched from the start-stripe-cli.js helper script's HTTP server.
 // Can be overridden via STRIPE_TEST_WEBHOOK_SECRET.
-const STRIPE_TEST_SECRET_KEY = process.env.STRIPE_API_KEY || process.env.STRIPE_TEST_SECRET_KEY;
-let stripeWebhookSecret: string | null = process.env.STRIPE_TEST_WEBHOOK_SECRET || null;
+const STRIPE_TEST_SECRET_KEY = env.STRIPE_API_KEY || env.STRIPE_TEST_SECRET_KEY;
+let stripeWebhookSecret: string | null = env.STRIPE_TEST_WEBHOOK_SECRET || null;
 
 /**
  * Fetches the Stripe webhook signing secret from the start-stripe-cli.js helper.
@@ -110,7 +111,12 @@ async function createCrossTenantProduct(page: Page, productCode: string, partCod
 async function getXsrfHeader(page: Page): Promise<Record<string, string>> {
     const cookies = await page.context().cookies();
     const xsrfToken = cookies.find(c => c.name === 'XSRF-TOKEN');
-    return xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {};
+    // The public contract endpoints require an Idempotency-Key on mutating
+    // requests; endpoints that don't need it ignore the header.
+    return {
+        ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {}),
+        'Idempotency-Key': crypto.randomUUID(),
+    };
 }
 
 // ─── Test ──────────────────────────────────────────────────────────────────────

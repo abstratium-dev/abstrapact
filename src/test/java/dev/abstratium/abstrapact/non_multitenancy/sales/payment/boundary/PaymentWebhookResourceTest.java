@@ -45,6 +45,9 @@ class PaymentWebhookResourceTest {
     @Inject
     TestDataCleaner cleaner;
 
+    @Inject
+    jakarta.transaction.UserTransaction userTx;
+
     private static final String WEBHOOK_SECRET = "whsec_integration_test";
     private static final String STRIPE_SECRET_KEY = "sk_test_integration";
     private static final String ORG_ID = "webhook-test-org";
@@ -216,6 +219,51 @@ class PaymentWebhookResourceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void webhookConcurrentDuplicateDeliveryReturns200() throws Exception {
+        // Stripe can deliver the same event concurrently. Every delivery must get
+        // a 200: the winner processes it, the losers either pass the
+        // existsByPspEventId check or lose the UQ_webhook_event insert race and
+        // are acknowledged idempotently — never a 500 that triggers retries.
+        String payload = checkoutSessionCompletedPayload(correlationId, pspSessionId);
+        String signature = WebhookSignatureTestHelper.sign(payload, WEBHOOK_SECRET);
+
+        int deliveries = 4;
+        java.util.concurrent.ExecutorService pool =
+            java.util.concurrent.Executors.newFixedThreadPool(deliveries);
+        java.util.concurrent.CountDownLatch ready = new java.util.concurrent.CountDownLatch(deliveries);
+        java.util.concurrent.CountDownLatch go = new java.util.concurrent.CountDownLatch(1);
+        try {
+            List<java.util.concurrent.Future<Integer>> results = new java.util.ArrayList<>();
+            for (int i = 0; i < deliveries; i++) {
+                results.add(pool.submit(() -> {
+                    ready.countDown();
+                    go.await();
+                    return given()
+                        .header("Stripe-Signature", signature)
+                        .contentType("application/json")
+                        .body(payload)
+                    .when()
+                        .post("/public/payment/webhook")
+                        .statusCode();
+                }));
+            }
+            ready.await();
+            go.countDown();
+
+            for (var f : results) {
+                assertEquals(200, f.get(), "every duplicate delivery must be acknowledged with 200");
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+
+        // Exactly one event row recorded; the contract transitioned once.
+        NonMultitenancyContract contract = em.find(NonMultitenancyContract.class, contractId);
+        assertEquals(ContractState.RUNNING, contract.getState());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
     void webhookUnmatchedEventReturns400WhenProductCannotBeIdentified() {
         // A webhook with an unknown correlation id AND unknown session id cannot be
         // associated with any product → no webhook secret to verify against → 400.
@@ -329,6 +377,65 @@ class PaymentWebhookResourceTest {
         assertEquals(PaymentTransaction.PaymentStatus.FAILED, tx.getStatus());
 
         // Contract stays AWAITING_PAYMENT
+        NonMultitenancyContract contract = em.find(NonMultitenancyContract.class, contractId);
+        assertEquals(ContractState.AWAITING_PAYMENT, contract.getState());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void webhookSessionExpiredMarksTransactionExpired() {
+        String payload = checkoutSessionExpiredPayload(correlationId, pspSessionId);
+        String signature = WebhookSignatureTestHelper.sign(payload, WEBHOOK_SECRET);
+
+        given()
+            .header("Stripe-Signature", signature)
+            .contentType("application/json")
+            .body(payload)
+        .when()
+            .post("/public/payment/webhook")
+        .then()
+            .statusCode(200);
+
+        PaymentTransaction tx = findTransactionByCorrelationId(correlationId);
+        assertEquals(PaymentTransaction.PaymentStatus.EXPIRED, tx.getStatus());
+
+        // Contract stays AWAITING_PAYMENT — the customer can retry via
+        // POST /api/public/sales/contracts/{id}/retry-payment.
+        NonMultitenancyContract contract = em.find(NonMultitenancyContract.class, contractId);
+        assertEquals(ContractState.AWAITING_PAYMENT, contract.getState());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void webhookSuccessOnExpiredTransactionIsRecordedAsStale() throws Exception {
+        // If our sweeper or an earlier expired-event marked the transaction
+        // EXPIRED but the customer still managed to pay (Stripe had not yet
+        // closed the session), the success must not be dropped as a DUPLICATE —
+        // it is recorded STALE for manual review and the webhook returns 200.
+        // Committed before the HTTP call so the request's own transaction sees it.
+        userTx.begin();
+        PaymentTransaction tx = findTransactionByCorrelationId(correlationId);
+        tx.setStatus(PaymentTransaction.PaymentStatus.EXPIRED);
+        em.merge(tx);
+        userTx.commit();
+
+        String payload = checkoutSessionCompletedPayload(correlationId, pspSessionId);
+        String signature = WebhookSignatureTestHelper.sign(payload, WEBHOOK_SECRET);
+
+        given()
+            .header("Stripe-Signature", signature)
+            .contentType("application/json")
+            .body(payload)
+        .when()
+            .post("/public/payment/webhook")
+        .then()
+            .statusCode(200);
+
+        em.clear();
+        PaymentTransaction reloaded = findTransactionByCorrelationId(correlationId);
+        assertEquals(PaymentTransaction.PaymentStatus.STALE, reloaded.getStatus());
+
+        // The contract does NOT transition automatically — STALE requires review.
         NonMultitenancyContract contract = em.find(NonMultitenancyContract.class, contractId);
         assertEquals(ContractState.AWAITING_PAYMENT, contract.getState());
     }
@@ -492,8 +599,7 @@ class PaymentWebhookResourceTest {
             .getSingleResult();
     }
 
-    @SuppressWarnings("unchecked")
-    private <T extends Enum<T>> List<WebhookEvent> findWebhookEventsByProcessingResult(
+    private List<WebhookEvent> findWebhookEventsByProcessingResult(
             WebhookEvent.ProcessingResult result) {
         return em.createQuery(
                 "SELECT w FROM WebhookEvent w WHERE w.processingResult = :result",
@@ -551,6 +657,26 @@ class PaymentWebhookResourceTest {
               }
             }
             """.formatted(sessionId, sessionId, clientReferenceId, sessionId);
+    }
+
+    private static String checkoutSessionExpiredPayload(String correlationId, String sessionId) {
+        return """
+            {
+              "id": "evt_expired_%s",
+              "type": "checkout.session.expired",
+              "data": {
+                "object": {
+                  "id": "%s",
+                  "object": "checkout.session",
+                  "payment_intent": "pi_expired_%s",
+                  "payment_status": "unpaid",
+                  "amount_total": 10000,
+                  "currency": "eur",
+                  "metadata": {"correlation_id": "%s"}
+                }
+              }
+            }
+            """.formatted(sessionId, sessionId, sessionId, correlationId);
     }
 
     private static String asyncPaymentFailedPayload(String correlationId, String sessionId) {

@@ -107,8 +107,26 @@ class PaymentTransactionServiceTest {
     }
 
     @Test
+    @Transactional
     void findByPspSessionIdReturnsTransaction() {
-        PaymentTransaction tx2 = newTransaction("corr-2", contractId, "test-org-tx",
+        // A second PENDING transaction requires its own contract:
+        // UQ_payment_transaction_pending_contract enforces at most one PENDING
+        // payment attempt per contract.
+        String contractId2 = UUID.randomUUID().toString();
+        NonMultitenancyContract contract2 = new NonMultitenancyContract();
+        contract2.setId(contractId2);
+        contract2.setOrganisationId("test-org-tx");
+        contract2.setContractReference("TX-TEST-2-" + UUID.randomUUID());
+        contract2.setContractDate(LocalDate.now());
+        contract2.setCurrency("EUR");
+        contract2.setPaymentModel(NonMultitenancyContract.PaymentModel.PREPAID);
+        contract2.setState(ContractState.AWAITING_PAYMENT);
+        contract2.setGrandTotal(new BigDecimal("12.00"));
+        contract2.setCreatedAt(LocalDateTime.now());
+        contract2.setUpdatedAt(LocalDateTime.now());
+        em.persist(contract2);
+
+        PaymentTransaction tx2 = newTransaction("corr-2", contractId2, "test-org-tx",
             PaymentTransaction.PaymentStatus.PENDING);
         tx2.setPspSessionId("cs_test_456");
         service.persist(tx2);

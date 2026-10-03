@@ -2,6 +2,10 @@
 
 Abstrapact is an application that deals with products, contracts and sales processes. See the [user guide](./USER_GUIDE.md) for more information.
 
+## Storefront Integration
+
+Abstrapact exposes a public sales API that a B2C storefront application (built with any technology) can use to create contracts and take payment via Stripe Checkout. See [docs/B2C_STOREFRONT_INTEGRATION.md](./docs/B2C_STOREFRONT_INTEGRATION.md) for the integration guide.
+
 ## Devin Hooks Installation
 
 This repository includes optional Devin hooks for enhanced safety. To install them:

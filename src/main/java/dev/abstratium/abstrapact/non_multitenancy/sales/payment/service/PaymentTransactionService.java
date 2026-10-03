@@ -24,6 +24,39 @@ public class PaymentTransactionService {
         em.persist(tx);
     }
 
+    /**
+     * Persists a new {@code PENDING} transaction in its own transaction that commits
+     * immediately (REQUIRES_NEW), before any PSP call is made.
+     *
+     * <p>Splitting the persistence of the payment attempt from the Stripe session
+     * creation means a concurrent duplicate insert hits
+     * {@code UQ_payment_transaction_pending_contract} <em>before</em> the losing
+     * request ever calls Stripe — no orphaned Checkout Session is created.
+     * The flush is eager so the constraint violation surfaces here, not at commit.
+     */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public PaymentTransaction persistNewPending(PaymentTransaction tx) {
+        em.persist(tx);
+        em.flush();
+        return tx;
+    }
+
+    /**
+     * Stores the PSP session id and checkout URL on an existing transaction in its
+     * own transaction (REQUIRES_NEW). Called after the PSP session was created, so
+     * the session data is committed independently of the caller's transaction.
+     */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void storeSession(String txId, String pspSessionId, String checkoutUrl) {
+        PaymentTransaction tx = em.find(PaymentTransaction.class, txId);
+        if (tx != null) {
+            tx.setPspSessionId(pspSessionId);
+            tx.setCheckoutUrl(checkoutUrl);
+            tx.setUpdatedAt(java.time.LocalDateTime.now());
+            em.merge(tx);
+        }
+    }
+
     public Optional<PaymentTransaction> findById(String id) {
         return Optional.ofNullable(em.find(PaymentTransaction.class, id));
     }

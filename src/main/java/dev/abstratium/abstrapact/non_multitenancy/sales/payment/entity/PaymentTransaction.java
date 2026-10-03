@@ -51,6 +51,9 @@ public class PaymentTransaction {
     @Column(name = "psp_transaction_ref", length = 255)
     private String pspTransactionRef;
 
+    @Column(name = "checkout_url", length = 500)
+    private String checkoutUrl;
+
     @Column(name = "gross_amount", precision = 19, scale = 4, nullable = false)
     private BigDecimal grossAmount;
 
@@ -140,6 +143,14 @@ public class PaymentTransaction {
         this.pspTransactionRef = pspTransactionRef;
     }
 
+    public String getCheckoutUrl() {
+        return checkoutUrl;
+    }
+
+    public void setCheckoutUrl(String checkoutUrl) {
+        this.checkoutUrl = checkoutUrl;
+    }
+
     public BigDecimal getGrossAmount() {
         return grossAmount;
     }
@@ -204,15 +215,17 @@ public class PaymentTransaction {
      *   <li>{@code SUCCEEDED} — PSP confirmed the payment; contract transitioned to RUNNING.</li>
      *   <li>{@code FAILED} — PSP reported failure; contract remains AWAITING_PAYMENT.</li>
      *   <li>{@code STALE} — success arrived too late (see staleness check); requires manual review.</li>
+     *   <li>{@code EXPIRED} — the PSP session expired without payment; a new attempt may be created.</li>
      * </ul>
      *
-     * {@code SUCCEEDED}, {@code FAILED} and {@code STALE} are terminal — subsequent events
-     * for the same correlation id are recorded as {@code DUPLICATE}.
+     * {@code SUCCEEDED}, {@code FAILED}, {@code STALE} and {@code EXPIRED} are terminal —
+     * subsequent events for the same correlation id are recorded as {@code DUPLICATE}.
      */
     public enum PaymentStatus {
         PENDING,
         SUCCEEDED,
         FAILED,
-        STALE
+        STALE,
+        EXPIRED
     }
 }

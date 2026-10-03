@@ -33,6 +33,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
 @TestProfile(NonMultitenancyCustomerContractResourceTest.TestProfile.class)
@@ -211,6 +212,7 @@ class NonMultitenancyCustomerContractResourceTest {
     void shouldCreateContractAndReturn201() {
         given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(buildRequest("REST-REF-" + System.currentTimeMillis()))
             .when()
             .post("/api/public/sales/contracts")
@@ -251,6 +253,7 @@ class NonMultitenancyCustomerContractResourceTest {
 
         given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(req)
             .when()
             .post("/api/public/sales/contracts")
@@ -263,6 +266,7 @@ class NonMultitenancyCustomerContractResourceTest {
     void shouldListContractsForCaller() {
         given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(buildRequest("REST-LIST-" + System.currentTimeMillis()))
             .when()
             .post("/api/public/sales/contracts")
@@ -282,6 +286,7 @@ class NonMultitenancyCustomerContractResourceTest {
     void shouldGetContractById() {
         String id = given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(buildRequest("REST-GET-" + System.currentTimeMillis()))
             .when()
             .post("/api/public/sales/contracts")
@@ -304,6 +309,7 @@ class NonMultitenancyCustomerContractResourceTest {
     void shouldOfferContract() {
         String id = given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(buildRequest("REST-OFFER-" + System.currentTimeMillis()))
             .when()
             .post("/api/public/sales/contracts")
@@ -314,6 +320,7 @@ class NonMultitenancyCustomerContractResourceTest {
 
         given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .when()
             .post("/api/public/sales/contracts/" + id + "/offer")
             .then()
@@ -332,6 +339,7 @@ class NonMultitenancyCustomerContractResourceTest {
     void shouldAcceptOfferedContractAndAutoApprove() {
         String id = given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(buildRequest("REST-ACCEPT-" + System.currentTimeMillis()))
             .when()
             .post("/api/public/sales/contracts")
@@ -340,10 +348,11 @@ class NonMultitenancyCustomerContractResourceTest {
             .extract()
             .path("id");
 
-        given().contentType("application/json").post("/api/public/sales/contracts/" + id + "/offer").then().statusCode(200);
+        given().contentType("application/json").header("Idempotency-Key", java.util.UUID.randomUUID().toString()).post("/api/public/sales/contracts/" + id + "/offer").then().statusCode(200);
 
         given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .when()
             .post("/api/public/sales/contracts/" + id + "/accept")
             .then()
@@ -364,6 +373,7 @@ class NonMultitenancyCustomerContractResourceTest {
     void shouldDeleteLineItemFromDraftContract() {
         String response = given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(buildRequest("REST-DEL-LI-" + System.currentTimeMillis()))
             .when()
             .post("/api/public/sales/contracts")
@@ -403,6 +413,7 @@ class NonMultitenancyCustomerContractResourceTest {
 
         given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(req)
             .when()
             .post("/api/public/sales/contracts")
@@ -415,6 +426,7 @@ class NonMultitenancyCustomerContractResourceTest {
     void shouldReturn422WhenProductNotCrossTenantAllowed() {
         given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(buildRequest("REST-DISALLOWED-" + System.currentTimeMillis(),
                 "REST-CONTRACT-PROD-DISALLOWED"))
             .when()
@@ -430,6 +442,7 @@ class NonMultitenancyCustomerContractResourceTest {
     void shouldUpdateDraftContractAndReplaceLineItems() {
         String id = given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(buildRequest("REST-PUT-ORIG-" + System.currentTimeMillis()))
             .when()
             .post("/api/public/sales/contracts")
@@ -475,6 +488,7 @@ class NonMultitenancyCustomerContractResourceTest {
     void shouldRejectUpdateWhenContractNotDraft() {
         String id = given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(buildRequest("REST-PUT-OFFERED-" + System.currentTimeMillis()))
             .when()
             .post("/api/public/sales/contracts")
@@ -485,6 +499,7 @@ class NonMultitenancyCustomerContractResourceTest {
 
         given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .when()
             .post("/api/public/sales/contracts/" + id + "/offer")
             .then()
@@ -492,6 +507,7 @@ class NonMultitenancyCustomerContractResourceTest {
 
         given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(buildRequest("REST-PUT-AFTER-OFFER-" + System.currentTimeMillis()))
             .when()
             .put("/api/public/sales/contracts/" + id)
@@ -506,6 +522,7 @@ class NonMultitenancyCustomerContractResourceTest {
     void shouldRejectAcceptOfDraftContract() {
         String id = given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(buildRequest("REST-ACCEPT-DRAFT-" + System.currentTimeMillis()))
             .when()
             .post("/api/public/sales/contracts")
@@ -517,6 +534,7 @@ class NonMultitenancyCustomerContractResourceTest {
         // Contract is still DRAFT; accepting must fail with 422.
         given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .when()
             .post("/api/public/sales/contracts/" + id + "/accept")
             .then()
@@ -536,6 +554,7 @@ class NonMultitenancyCustomerContractResourceTest {
     void shouldRejectOfferOfApprovedContract() {
         String id = given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(buildRequest("REST-OFFER-APPROVED-" + System.currentTimeMillis()))
             .when()
             .post("/api/public/sales/contracts")
@@ -546,6 +565,7 @@ class NonMultitenancyCustomerContractResourceTest {
 
         given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .when()
             .post("/api/public/sales/contracts/" + id + "/offer")
             .then()
@@ -553,6 +573,7 @@ class NonMultitenancyCustomerContractResourceTest {
 
         given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .when()
             .post("/api/public/sales/contracts/" + id + "/accept")
             .then()
@@ -561,6 +582,7 @@ class NonMultitenancyCustomerContractResourceTest {
         // Contract is now AWAITING_PAYMENT (auto-approval + payment); offering again must fail with 422.
         given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .when()
             .post("/api/public/sales/contracts/" + id + "/offer")
             .then()
@@ -574,6 +596,653 @@ class NonMultitenancyCustomerContractResourceTest {
             .body("state", equalTo("AWAITING_PAYMENT"));
     }
 
+    // ==================== Idempotency negative tests ====================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void acceptWithoutIdempotencyKeyReturns400() {
+        String id = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .body(buildRequest("REST-IDEM-400-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        given()
+            .contentType("application/json")
+            .when()
+            .post("/api/public/sales/contracts/" + id + "/accept")
+            .then()
+            .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void acceptWithSameIdempotencyKeyAndDifferentContractReturns422() {
+        // Create two contracts
+        String id1 = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .body(buildRequest("REST-IDEM-422A-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        String id2 = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .body(buildRequest("REST-IDEM-422B-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        // Offer both contracts
+        given().contentType("application/json").header("Idempotency-Key", java.util.UUID.randomUUID().toString()).post("/api/public/sales/contracts/" + id1 + "/offer").then().statusCode(200);
+        given().contentType("application/json").header("Idempotency-Key", java.util.UUID.randomUUID().toString()).post("/api/public/sales/contracts/" + id2 + "/offer").then().statusCode(200);
+
+        String idempotencyKey = java.util.UUID.randomUUID().toString();
+
+        // Accept contract 1 — succeeds
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", idempotencyKey)
+            .when()
+            .post("/api/public/sales/contracts/" + id1 + "/accept")
+            .then()
+            .statusCode(200);
+
+        // Accept contract 2 with the SAME key — 422 because fingerprint differs
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", idempotencyKey)
+            .when()
+            .post("/api/public/sales/contracts/" + id2 + "/accept")
+            .then()
+            .statusCode(422);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void acceptWithSameIdempotencyKeyTwiceReturnsSameCheckoutUrl() {
+        String id = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .body(buildRequest("REST-IDEM-REPLAY-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        given().contentType("application/json").header("Idempotency-Key", java.util.UUID.randomUUID().toString()).post("/api/public/sales/contracts/" + id + "/offer").then().statusCode(200);
+
+        String idempotencyKey = java.util.UUID.randomUUID().toString();
+
+        // First accept — creates payment
+        String checkoutUrl1 = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", idempotencyKey)
+            .when()
+            .post("/api/public/sales/contracts/" + id + "/accept")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("checkoutUrl");
+
+        // Second accept with the same key — replays the cached result
+        String checkoutUrl2 = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", idempotencyKey)
+            .when()
+            .post("/api/public/sales/contracts/" + id + "/accept")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("checkoutUrl");
+
+        assertEquals(checkoutUrl1, checkoutUrl2,
+            "Retry with same Idempotency-Key must return the same checkout URL");
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void acceptWithTenConcurrentRequestsSameKeyAllReturnSameResult() throws Exception {
+        String id = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .body(buildRequest("REST-IDEM-RACE-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        given().contentType("application/json")
+            .header("Idempotency-Key", UUID.randomUUID().toString())
+            .post("/api/public/sales/contracts/" + id + "/offer")
+            .then().statusCode(200);
+
+        String idempotencyKey = UUID.randomUUID().toString();
+        int threads = 10;
+        java.util.concurrent.ExecutorService pool =
+            java.util.concurrent.Executors.newFixedThreadPool(threads);
+        java.util.concurrent.CountDownLatch ready =
+            new java.util.concurrent.CountDownLatch(threads);
+        java.util.concurrent.CountDownLatch go =
+            new java.util.concurrent.CountDownLatch(1);
+
+        List<java.util.concurrent.Future<int[]>> futures = new java.util.ArrayList<>();
+        List<String> urls = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+        for (int i = 0; i < threads; i++) {
+            futures.add(pool.submit(() -> {
+                ready.countDown();
+                go.await();
+                io.restassured.response.Response r = given()
+                    .contentType("application/json")
+                    .header("Idempotency-Key", idempotencyKey)
+                    .when()
+                    .post("/api/public/sales/contracts/" + id + "/accept");
+                int status = r.statusCode();
+                String url = status == 200 ? r.jsonPath().getString("checkoutUrl") : null;
+                if (url != null) urls.add(url);
+                return new int[]{status};
+            }));
+        }
+
+        // Release all threads simultaneously
+        ready.await();
+        go.countDown();
+
+        List<Integer> statuses = new java.util.ArrayList<>();
+        for (var f : futures) {
+            statuses.add(f.get(60, java.util.concurrent.TimeUnit.SECONDS)[0]);
+        }
+        pool.shutdown();
+
+        // Every request must succeed and return the same checkout URL.
+        assertEquals(threads, statuses.size(), "All threads must have completed");
+        statuses.forEach(s ->
+            assertEquals(200, s, "Every concurrent request must return 200, got: " + statuses));
+        assertEquals(threads, urls.size());
+        urls.forEach(u -> assertEquals(urls.get(0), u,
+            "All responses must return the same checkout URL"));
+
+        // Exactly one payment transaction and one idempotency record must exist.
+        long txCount = em.createQuery(
+                "SELECT COUNT(t) FROM PaymentTransaction t WHERE t.contractId = :cid",
+                Long.class)
+            .setParameter("cid", id)
+            .getSingleResult();
+        assertEquals(1, txCount, "Exactly one PaymentTransaction must exist after the race");
+
+        long recordCount = em.createQuery(
+                "SELECT COUNT(r) FROM dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.IdempotencyRecord r " +
+                "WHERE r.key = :key AND r.scope = 'contract_accept'",
+                Long.class)
+            .setParameter("key", idempotencyKey)
+            .getSingleResult();
+        assertEquals(1, recordCount, "Exactly one IdempotencyRecord must exist after the race");
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void acceptWithTenConcurrentRequestsDifferentKeysCreatesOnePayment() throws Exception {
+        String id = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", UUID.randomUUID().toString())
+            .body(buildRequest("REST-IDEM-RACE-DIFF-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        given().contentType("application/json")
+            .header("Idempotency-Key", UUID.randomUUID().toString())
+            .post("/api/public/sales/contracts/" + id + "/offer")
+            .then().statusCode(200);
+
+        int threads = 10;
+        java.util.concurrent.ExecutorService pool =
+            java.util.concurrent.Executors.newFixedThreadPool(threads);
+        java.util.concurrent.CountDownLatch ready =
+            new java.util.concurrent.CountDownLatch(threads);
+        java.util.concurrent.CountDownLatch go =
+            new java.util.concurrent.CountDownLatch(1);
+
+        List<java.util.concurrent.Future<int[]>> futures = new java.util.ArrayList<>();
+        List<String> urls = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+        for (int i = 0; i < threads; i++) {
+            String key = UUID.randomUUID().toString(); // different key per request
+            futures.add(pool.submit(() -> {
+                ready.countDown();
+                go.await();
+                io.restassured.response.Response r = given()
+                    .contentType("application/json")
+                    .header("Idempotency-Key", key)
+                    .when()
+                    .post("/api/public/sales/contracts/" + id + "/accept");
+                int status = r.statusCode();
+                String url = status == 200 ? r.jsonPath().getString("checkoutUrl") : null;
+                if (url != null) urls.add(url);
+                return new int[]{status};
+            }));
+        }
+
+        ready.await();
+        go.countDown();
+
+        List<Integer> statuses = new java.util.ArrayList<>();
+        for (var f : futures) {
+            statuses.add(f.get(60, java.util.concurrent.TimeUnit.SECONDS)[0]);
+        }
+        pool.shutdown();
+
+        // The winner returns 200. Racers that lose on UQ_payment_transaction_contract
+        // recover the winner's checkout URL and also return 200. Late requests that
+        // see the committed AWAITING_PAYMENT state get 422 — the honest state-machine
+        // answer for a logically different request. No other status is acceptable.
+        assertEquals(threads, statuses.size());
+        statuses.forEach(s ->
+            org.junit.jupiter.api.Assertions.assertTrue(s == 200 || s == 422,
+                "Concurrent accept must return 200 or 422, got: " + statuses));
+        long okCount = statuses.stream().filter(s -> s == 200).count();
+        org.junit.jupiter.api.Assertions.assertTrue(okCount >= 1,
+            "At least one request must succeed, got: " + statuses);
+        urls.forEach(u -> assertEquals(urls.get(0), u,
+            "All 200 responses must return the same checkout URL"));
+
+        // Exactly one payment transaction must exist — no double-charge possible.
+        long txCount = em.createQuery(
+                "SELECT COUNT(t) FROM PaymentTransaction t WHERE t.contractId = :cid",
+                Long.class)
+            .setParameter("cid", id)
+            .getSingleResult();
+        assertEquals(1, txCount,
+            "Exactly one PaymentTransaction must exist even under different-key races");
+    }
+
+    // ==================== Create idempotency tests ====================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void createWithoutIdempotencyKeyReturns400() {
+        given()
+            .contentType("application/json")
+            .body(buildRequest("REST-CREATE-IDEM-400-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void createWithSameKeyTwiceReturnsSameContract() {
+        String key = UUID.randomUUID().toString();
+        String ref = "REST-CREATE-IDEM-REPLAY-" + System.currentTimeMillis();
+
+        String id1 = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", key)
+            .body(buildRequest(ref))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        String id2 = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", key)
+            .body(buildRequest(ref))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        assertEquals(id1, id2,
+            "Retry with the same Idempotency-Key must return the same contract");
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void createWithSameKeyAndDifferentBodyReturns422() {
+        String key = UUID.randomUUID().toString();
+
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", key)
+            .body(buildRequest("REST-CREATE-IDEM-422A-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201);
+
+        // Same key but a different payload → fingerprint mismatch → 422.
+        CreateCustomerContractRequest different =
+            buildRequest("REST-CREATE-IDEM-422B-" + System.currentTimeMillis());
+        different.getLineItems().get(0)
+            .setProductCode("REST-CONTRACT-PROD-002");
+
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", key)
+            .body(different)
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(422);
+    }
+
+    // ==================== Offer idempotency tests ====================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void offerWithoutIdempotencyKeyReturns400() {
+        String id = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .body(buildRequest("REST-OFFER-IDEM-400-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        given()
+            .contentType("application/json")
+            .when()
+            .post("/api/public/sales/contracts/" + id + "/offer")
+            .then()
+            .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void offerWithSameKeyTwiceReplaysResult() {
+        String id = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .body(buildRequest("REST-OFFER-IDEM-REPLAY-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        String key = java.util.UUID.randomUUID().toString();
+
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", key)
+            .when()
+            .post("/api/public/sales/contracts/" + id + "/offer")
+            .then()
+            .statusCode(200);
+
+        // Replay with the same key returns the cached 200 even though the
+        // contract is already OFFERED (a fresh offer would fail with 422).
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", key)
+            .when()
+            .post("/api/public/sales/contracts/" + id + "/offer")
+            .then()
+            .statusCode(200);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void offerWithSameKeyOnDifferentContractReturns422() {
+        String id1 = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .body(buildRequest("REST-OFFER-IDEM-422A-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        String id2 = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .body(buildRequest("REST-OFFER-IDEM-422B-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        String key = java.util.UUID.randomUUID().toString();
+
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", key)
+            .when()
+            .post("/api/public/sales/contracts/" + id1 + "/offer")
+            .then()
+            .statusCode(200);
+
+        // Same key on a different contract → fingerprint mismatch → 422.
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", key)
+            .when()
+            .post("/api/public/sales/contracts/" + id2 + "/offer")
+            .then()
+            .statusCode(422);
+    }
+
+    // ==================== Idempotency-Key validation tests ====================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void createWithOverlongIdempotencyKeyReturns400() {
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", "k".repeat(256))
+            .body(buildRequest("REST-KEY-LEN-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void acceptWithOverlongIdempotencyKeyReturns400() {
+        String id = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .body(buildRequest("REST-KEY-LEN-ACC-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", "k".repeat(256))
+            .when()
+            .post("/api/public/sales/contracts/" + id + "/accept")
+            .then()
+            .statusCode(400);
+    }
+
+    // ==================== Retry-payment tests ====================
+
+    private String createAwaitingPaymentContract(String ref) {
+        String id = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .body(buildRequest(ref))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .when()
+            .post("/api/public/sales/contracts/" + id + "/offer")
+            .then()
+            .statusCode(200);
+
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .when()
+            .post("/api/public/sales/contracts/" + id + "/accept")
+            .then()
+            .statusCode(200);
+
+        return id;
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void retryPaymentWithLiveSessionReturnsSameCheckoutUrl() {
+        String id = createAwaitingPaymentContract(
+            "REST-RETRY-LIVE-" + System.currentTimeMillis());
+
+        String checkoutUrl = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .when()
+            .post("/api/public/sales/contracts/" + id + "/retry-payment")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("checkoutUrl");
+
+        assertEquals("https://checkout.stripe.com/c/cs_rest_test_123", checkoutUrl);
+
+        // Still exactly one payment transaction — the live session was reused.
+        long txCount = em.createQuery(
+                "SELECT COUNT(t) FROM PaymentTransaction t WHERE t.contractId = :cid",
+                Long.class)
+            .setParameter("cid", id)
+            .getSingleResult();
+        assertEquals(1, txCount);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void retryPaymentOnDraftContractReturns422() {
+        String id = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .body(buildRequest("REST-RETRY-DRAFT-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .when()
+            .post("/api/public/sales/contracts/" + id + "/retry-payment")
+            .then()
+            .statusCode(422);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void retryPaymentAfterExpiryCreatesNewSession() throws Exception {
+        String id = createAwaitingPaymentContract(
+            "REST-RETRY-EXPIRED-" + System.currentTimeMillis());
+
+        // Simulate session expiry: mark the PENDING transaction EXPIRED directly.
+        utx.begin();
+        try {
+            em.createQuery(
+                    "UPDATE PaymentTransaction t SET t.status = :expired " +
+                    "WHERE t.contractId = :cid AND t.status = :pending")
+                .setParameter("expired",
+                    dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.PaymentTransaction.PaymentStatus.EXPIRED)
+                .setParameter("pending",
+                    dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.PaymentTransaction.PaymentStatus.PENDING)
+                .setParameter("cid", id)
+                .executeUpdate();
+            utx.commit();
+        } catch (Exception e) {
+            utx.rollback();
+            throw e;
+        }
+
+        String key = java.util.UUID.randomUUID().toString();
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", key)
+            .when()
+            .post("/api/public/sales/contracts/" + id + "/retry-payment")
+            .then()
+            .statusCode(200)
+            .body("checkoutUrl", equalTo("https://checkout.stripe.com/c/cs_rest_test_123"));
+
+        // The replay returns the same response without re-executing.
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", key)
+            .when()
+            .post("/api/public/sales/contracts/" + id + "/retry-payment")
+            .then()
+            .statusCode(200)
+            .body("checkoutUrl", equalTo("https://checkout.stripe.com/c/cs_rest_test_123"));
+
+        // Two transactions now exist: the expired attempt and the new PENDING one.
+        long txCount = em.createQuery(
+                "SELECT COUNT(t) FROM PaymentTransaction t WHERE t.contractId = :cid",
+                Long.class)
+            .setParameter("cid", id)
+            .getSingleResult();
+        assertEquals(2, txCount);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void retryPaymentWithoutIdempotencyKeyReturns400() {
+        String id = createAwaitingPaymentContract(
+            "REST-RETRY-NOKEY-" + System.currentTimeMillis());
+
+        given()
+            .contentType("application/json")
+            .when()
+            .post("/api/public/sales/contracts/" + id + "/retry-payment")
+            .then()
+            .statusCode(400);
+    }
+
     // ==================== List with orgId filter (boundary) ====================
 
     @Test
@@ -582,6 +1251,7 @@ class NonMultitenancyCustomerContractResourceTest {
         String ref = "REST-LIST-FILTER-" + System.currentTimeMillis();
         given()
             .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
             .body(buildRequest(ref))
             .when()
             .post("/api/public/sales/contracts")

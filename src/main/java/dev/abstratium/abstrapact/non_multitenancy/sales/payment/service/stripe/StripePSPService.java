@@ -16,6 +16,7 @@ import com.stripe.model.Charge;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
 import com.stripe.model.checkout.Session;
+import com.stripe.net.RequestOptions;
 import com.stripe.net.Webhook;
 import com.stripe.param.checkout.SessionCreateParams;
 
@@ -100,14 +101,29 @@ public class StripePSPService implements PSPInterface {
                 .build())
             .build();
 
+        RequestOptions options = RequestOptions.builder()
+            .setIdempotencyKey(request.getCorrelationId())
+            .build();
+
         try {
-            Session session = client.v1().checkout().sessions().create(params);
+            Session session = client.v1().checkout().sessions().create(params, options);
             return new CreatePaymentResponse(session.getUrl(), session.getId());
         } catch (StripeException e) {
-            throw new WebApplicationException(
-                Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Stripe checkout session creation failed: " + e.getMessage())
-                    .build());
+            int stripeStatus = e.getStatusCode();
+            if (stripeStatus == 0 || stripeStatus >= 500) {
+                // Network error or Stripe 5xx — the B2C client MAY retry with the same key.
+                throw new WebApplicationException(
+                    Response.status(503)
+                        .entity("Payment provider temporarily unavailable. "
+                            + "Retry with the same Idempotency-Key.")
+                        .build());
+            } else {
+                // Stripe 4xx — the request is invalid; the client should NOT retry.
+                throw new WebApplicationException(
+                    Response.status(Response.Status.BAD_REQUEST)
+                        .entity("Payment provider rejected the request: " + e.getMessage())
+                        .build());
+            }
         }
     }
 
@@ -148,6 +164,7 @@ public class StripePSPService implements PSPInterface {
         return StripeClient.builder()
             .setApiKey(secretKey)
             .setApiBase(apiBase)
+            .setMaxNetworkRetries(2)
             .build();
     }
 
@@ -367,6 +384,18 @@ public class StripePSPService implements PSPInterface {
                     boolean paid = "paid".equalsIgnoreCase(session.getPaymentStatus());
                     result.setStatus(paid ? PaymentStatus.SUCCEEDED : PaymentStatus.PENDING);
                 }
+            }
+            case "checkout.session.expired" -> {
+                Session session = asObject(event, Session.class);
+                if (session != null) {
+                    result.setCorrelationId(metadataCorrelationId(session.getMetadata(), correlationId));
+                    result.setMatched(result.getCorrelationId() != null);
+                    result.setPspSessionId(session.getId());
+                    result.setPspTransactionRef(session.getPaymentIntent());
+                    result.setCurrency(session.getCurrency());
+                    result.setGrossAmount(fromMinorUnits(session.getAmountTotal()));
+                }
+                result.setStatus(PaymentStatus.EXPIRED);
             }
             case "checkout.session.async_payment_failed" -> {
                 Session session = asObject(event, Session.class);

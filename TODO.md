@@ -15,21 +15,23 @@
 
     2026-08-17 20:00:38,537 WARN  [dev.abs.abs.bou.oau.AuthorizationResource] (executor-thread-1) [skey:] Invalid redirect_uri for client 058ebe1e-e9c8-4359-ab77-e943990ab0dd__abstratium-abstracore: requested=http://localhost:10081/oauth/callback, allowed=["http://localhost:8081/oauth/callback"]
 
+- user interface to review payments?
+  - inform users if something is wrong with a payment?
 
-- finish testing impl of payment — E2E tests (05-payment-flow.spec.ts) are written but not yet run
-- review idempotency, is it what i would expect?
-  - see https://www.the-main-thread.com/p/java-idempotency-keys-ietf-quarkus
+      Admin query endpoint — e.g. GET /api/admin/payment-transactions?status=STALE so ops can list/reconcile them.
+      Email to admin when such transactions exist.
+      A resolution path — something to mark the tx reviewed (e.g. admin "confirm & transition contract to RUNNING" endpoint, or refund instruction). Without it, STALE is terminal forever.
+
+- independent security review
+  - do security review of payment APIs
+  - security check esp. around payment
 - work out how to write other e2e tests that really use the sandbox
-- do security review of payment APIs
-- add e2e 04 which asserts prices are correctly calculated
-- check e2e tests of payment work
-- security check esp. around payment
 - ensure that the whsec is used to verify that the body is correct and double check there are tests for that.
 - run e2e with only info, warn and error logs to see what comes out in quarkus, esp. around stripe webhooks and calls to stripe.
 
 - remove excess REST interfaces for contracts, since they are handled mainly in the SalesProcessService
 
-- when calling stripe, add a uuid other than the contract id, which is generated and stored by abstrapact and which is not shown to any user. this way we can guarantee that when the callback comes, it was for our transaction. otherwise someone could create a draft, then use their own infrastructure to create a stripe callback and call us with it. altho... can they do that? we don't trust their payload because it isn't signed with the key that i really hope is unique per customer (ie i should have a key so that only i can verify the callback is for my application).
+- check this, it seems to be implemented: when calling stripe, add a uuid other than the contract id, which is generated and stored by abstrapact and which is not shown to any user. this way we can guarantee that when the callback comes, it was for our transaction. otherwise someone could create a draft, then use their own infrastructure to create a stripe callback and call us with it. altho... can they do that? we don't trust their payload because it isn't signed with the key that i really hope is unique per customer (ie i should have a key so that only i can verify the callback is for my application).
 
 - delete CreateDraftContractRequest and co, as they aren't needed except for the NonMultitenant API. there are probably a few such DTOs, defo an endpoint and maybe a service class or two
 
@@ -50,8 +52,6 @@
 - the t&c unique constraint on code also needs to prepend and remove the orgId so that different orgs can use the same code
 
 - contract t&c must state that the contract only comes into effect once the status reaches x and it is no longer in effect once status y is reached.
-
-- idempotency - see stripe docs
 
 - gutscheine! or a discount code? or unique discount codes as gutscheine?
 

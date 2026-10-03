@@ -1,6 +1,7 @@
+import { env } from 'node:process';
 import { test, expect, Page } from '@playwright/test';
 import { signInViaHeader, testStepLogger } from '../pages/test-helpers';
-import { handleAuthServer, headerSignInLink, signOut } from '../pages/TODO.page';
+import { handleAuthServer, headerSignInLink, signOut } from '../pages/test-helpers';
 import { registerNewUser } from '../pages/auth-server.page';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -12,8 +13,8 @@ const PART_UNIT_PRICE = 25.00;
 // The API key is read from STRIPE_API_KEY (used by both the Stripe CLI and abstrapact).
 // The webhook secret is fetched from the start-stripe-cli.js helper script's HTTP
 // server on localhost:19999. It can also be overridden via STRIPE_TEST_WEBHOOK_SECRET.
-const STRIPE_TEST_SECRET_KEY = process.env.STRIPE_API_KEY || process.env.STRIPE_TEST_SECRET_KEY;
-let stripeWebhookSecret: string | null = process.env.STRIPE_TEST_WEBHOOK_SECRET || null;
+const STRIPE_TEST_SECRET_KEY = env.STRIPE_API_KEY || env.STRIPE_TEST_SECRET_KEY;
+let stripeWebhookSecret: string | null = env.STRIPE_TEST_WEBHOOK_SECRET || null;
 
 // Standard Stripe test card number.
 const STRIPE_TEST_CARD_NUMBER = '4242424242424242';
@@ -112,7 +113,12 @@ async function createCrossTenantProduct(page: Page, productCode: string, partCod
 async function getXsrfHeader(page: Page): Promise<Record<string, string>> {
     const cookies = await page.context().cookies();
     const xsrfToken = cookies.find(c => c.name === 'XSRF-TOKEN');
-    return xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {};
+    // The public contract endpoints require an Idempotency-Key on mutating
+    // requests; endpoints that don't need it ignore the header.
+    return {
+        ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {}),
+        'Idempotency-Key': crypto.randomUUID(),
+    };
 }
 
 /**
@@ -179,38 +185,38 @@ async function fillStripeCheckoutAndPay(page: Page, email: string): Promise<void
     }
 
     // ── Expand the "Card" payment accordion ────────────────────────────────────
-    // The card input fields are hidden until the Card accordion is expanded.
-    // A <button> overlays the radio input and intercepts pointer events, so clicking
-    // the radio directly fails. We click the label/parent listitem instead.
-    console.log('[StripeCheckout] Expanding Card payment accordion...');
-    const cardAccordion = page.locator('label:has-text("Card")').first();
-    try {
-        await cardAccordion.waitFor({ state: 'visible', timeout: 10000 });
+    // The card input fields may already be visible when Card is the default method.
+    const cardNumberInput = page.locator('input[name="cardNumber"]').or(
+        page.getByRole('textbox', { name: 'Card number' }),
+    ).first();
+    if (!(await cardNumberInput.isVisible())) {
+        console.log('[StripeCheckout] Expanding Card payment accordion...');
+        const cardAccordion = page.getByTestId('card-accordion-item');
+        await expect(cardAccordion).toBeVisible({ timeout: 10000 });
         await cardAccordion.click({ timeout: 10000 });
-        console.log('[StripeCheckout] Clicked Card accordion label');
-    } catch {
-        // Fallback: force-click the radio directly (bypasses actionability checks).
-        const cardRadio = page.getByRole('radio', { name: 'Card' });
-        await cardRadio.click({ force: true, timeout: 5000 });
-        console.log('[StripeCheckout] Force-clicked Card radio');
+    } else {
+        console.log('[StripeCheckout] Card fields already expanded');
     }
 
-    // Wait for the card fields to appear inside the expanded accordion.
-    await page.waitForTimeout(500);
+    await expect(cardNumberInput).toBeVisible({ timeout: 10000 });
 
     // ── Fill card number ────────────────────────────────────────────────────────
     console.log('[StripeCheckout] Filling card number...');
-    await page.getByRole('textbox', { name: 'Card number' }).fill(STRIPE_TEST_CARD_NUMBER, { timeout: 10000 });
+    await cardNumberInput.fill(STRIPE_TEST_CARD_NUMBER, { timeout: 10000 });
 
     // ── Fill expiry date ────────────────────────────────────────────────────────
     console.log('[StripeCheckout] Filling expiry...');
-    await page.getByRole('textbox', { name: 'Expiration' }).fill(STRIPE_TEST_CARD_EXPIRY, { timeout: 10000 });
+    await page.locator('input[name="cardExpiry"]').or(
+        page.getByRole('textbox', { name: 'Expiration' }),
+    ).first().fill(STRIPE_TEST_CARD_EXPIRY, { timeout: 10000 });
 
     // ── Fill CVC ────────────────────────────────────────────────────────────────
     // Use getByRole('textbox') to avoid matching the SVG icon which also has an
     // aria-label containing "CVC".
     console.log('[StripeCheckout] Filling CVC...');
-    await page.getByRole('textbox', { name: 'CVC' }).fill(STRIPE_TEST_CARD_CVC, { timeout: 10000 });
+    await page.locator('input[name="cardCvc"]').or(
+        page.getByRole('textbox', { name: 'CVC' }),
+    ).first().fill(STRIPE_TEST_CARD_CVC, { timeout: 10000 });
 
     // Cardholder name (if present — some configurations require it).
     const nameInput = page.getByLabel('Cardholder name');
@@ -297,7 +303,7 @@ test.describe('05 Payment Flow', () => {
         await page.goto('/');
         await signInViaHeader(page);
         sellerOrgId = await resolveSellerOrgId(page);
-        for (const testId of ['PF1', 'PF2']) {
+        for (const testId of ['PF1', 'PF2', 'PF3']) {
             await cleanupProduct(page, sellerOrgId, productCodeFor(testId));
         }
     });
@@ -457,15 +463,13 @@ test.describe('05 Payment Flow', () => {
      * webhook payload with an invalid signature directly to the webhook endpoint.
      */
     test('PF2: webhook with invalid signature returns 400 and does not transition', async ({ page }: { page: Page }) => {
-        if (!stripeWebhookSecret) {
+        if (!STRIPE_TEST_SECRET_KEY) {
             throw new Error(
-                'Stripe webhook secret is not available. ' +
-                'Start the helper script in a separate terminal:\n' +
-                '  node e2e-tests/start-stripe-cli.js\n' +
-                'Or set STRIPE_TEST_WEBHOOK_SECRET env var directly.'
+                'STRIPE_TEST_SECRET_KEY (or STRIPE_API_KEY) env var is not set. ' +
+                'Set it with: export STRIPE_API_KEY=sk_test_...\n' +
+                'Get the key from Stripe Dashboard → Developers → API Keys (test mode).'
             );
         }
-
         const log = testStepLogger('PF2');
 
         // ── Setup: create product, sign in as customer, create + offer + accept ──
@@ -509,9 +513,10 @@ test.describe('05 Payment Flow', () => {
         const contract = await createResp.json();
         const contractId = contract.id;
 
-        await page.request.post(`/api/public/sales/contracts/${contractId}/offer`, {
+        const offerResp = await page.request.post(`/api/public/sales/contracts/${contractId}/offer`, {
             headers: await getXsrfHeader(page),
         });
+        expect(offerResp.status(), `Offer failed: ${await offerResp.text()}`).toBe(200);
 
         const acceptResp = await page.request.post(`/api/public/sales/contracts/${contractId}/accept`, {
             headers: await getXsrfHeader(page),
@@ -563,5 +568,122 @@ test.describe('05 Payment Flow', () => {
         const finalContract = await getResp.json();
         expect(finalContract.state, 'Contract must still be AWAITING_PAYMENT').toBe('AWAITING_PAYMENT');
         console.log(`[PF2] Contract remains AWAITING_PAYMENT after invalid webhook`);
+    });
+
+    /**
+     * PF3: session expiry + retry-payment — create contract, offer, accept (real
+     * checkout URL), expire the session on Stripe's side, wait for the forwarded
+     * checkout.session.expired webhook to mark the transaction EXPIRED, then call
+     * POST /{id}/retry-payment and expect a NEW checkout session.
+     *
+     * Prerequisites: same as PF1 (stripe CLI forwarding + STRIPE_API_KEY).
+     */
+    test('PF3: expired checkout session can be retried via retry-payment', async ({ page }: { page: Page }) => {
+        if (!STRIPE_TEST_SECRET_KEY) {
+            throw new Error(
+                'STRIPE_TEST_SECRET_KEY (or STRIPE_API_KEY) env var is not set. ' +
+                'Set it with: export STRIPE_API_KEY=sk_test_...\n' +
+                'Get the key from Stripe Dashboard → Developers → API Keys (test mode).'
+            );
+        }
+        if (!stripeWebhookSecret) {
+            throw new Error(
+                'Stripe webhook secret is not available. ' +
+                'Start the helper: node e2e-tests/start-stripe-cli.js'
+            );
+        }
+        const log = testStepLogger('PF3');
+
+        // ── Setup: create product, register customer, create + offer + accept ──
+        const productCode = productCodeFor('PF3');
+        const partCode = partCodeFor('PF3');
+        log('Create product and set up contract');
+        await createCrossTenantProduct(page, productCode, partCode);
+
+        await page.goto('/');
+        await signOut(page);
+        await headerSignInLink(page).click();
+        await page.waitForURL(/auth-t\.abstratium\.dev\/signin\//, { timeout: 15000 });
+
+        const pf3Email = `e2e-pf3-${timestamp}@example.com`;
+        await registerNewUser(page, {
+            email: pf3Email,
+            fullName: `E2E PF3 ${timestamp}`,
+            orgName: `E2E PF3 Org ${timestamp}`,
+            password: newUserPassword,
+        });
+        await handleAuthServer(page, pf3Email, newUserPassword);
+        await expect(page.locator('#signout-link')).toBeVisible({ timeout: 15000 });
+
+        const createResp = await page.request.post('/api/public/sales/contracts', {
+            headers: await getXsrfHeader(page),
+            data: {
+                orgId: sellerOrgId,
+                contractReference: `E2E-PF3-${timestamp}`,
+                lineItems: [{
+                    productCode: productCode,
+                    displayOrder: 1,
+                    partInstances: [{
+                        partCode: partCode,
+                        attributeValues: [],
+                        childPartInstances: [],
+                    }],
+                }],
+            },
+        });
+        expect(createResp.status()).toBe(201);
+        const contract = await createResp.json();
+        const contractId = contract.id;
+
+        const offerResp = await page.request.post(`/api/public/sales/contracts/${contractId}/offer`, {
+            headers: await getXsrfHeader(page),
+        });
+        expect(offerResp.status(), `Offer failed: ${await offerResp.text()}`).toBe(200);
+
+        const acceptResp = await page.request.post(`/api/public/sales/contracts/${contractId}/accept`, {
+            headers: await getXsrfHeader(page),
+        });
+        expect(acceptResp.status(), `Accept failed: ${await acceptResp.text()}`).toBe(200);
+        const acceptJson = await acceptResp.json();
+        const sessionMatch = acceptJson.checkoutUrl.match(/(cs_test_[A-Za-z0-9]+)/);
+        expect(sessionMatch, 'Could not extract session ID from checkout URL').not.toBeNull();
+        const sessionId = sessionMatch![1];
+        console.log(`[PF3] Initial session: ${sessionId}`);
+
+        // ── Expire the session on Stripe's side ───────────────────────────────
+        log('Expire the checkout session via Stripe API');
+        const expireResp = await page.request.post(
+            `https://api.stripe.com/v1/checkout/sessions/${sessionId}/expire`,
+            { headers: { 'Authorization': `Bearer ${STRIPE_TEST_SECRET_KEY}` } },
+        );
+        expect(expireResp.status(), `Expire session failed: ${await expireResp.text()}`).toBe(200);
+        console.log(`[PF3] Session ${sessionId} expired on Stripe, waiting for webhook`);
+
+        // ── Poll retry-payment until the expired webhook lands and a NEW session
+        //    is created (while the tx is still PENDING it returns the old URL) ──
+        log('Poll retry-payment until a new session is issued');
+        let newSessionId: string | null = null;
+        const deadline = Date.now() + 60000;
+        while (Date.now() < deadline) {
+            const retryResp = await page.request.post(`/api/public/sales/contracts/${contractId}/retry-payment`, {
+                headers: await getXsrfHeader(page),
+            });
+            expect(retryResp.status(), `Retry-payment failed: ${await retryResp.text()}`).toBe(200);
+            const retryJson = await retryResp.json();
+            const m = (retryJson.checkoutUrl || '').match(/(cs_test_[A-Za-z0-9]+)/);
+            if (m && m[1] !== sessionId) {
+                newSessionId = m[1];
+                break;
+            }
+            await page.waitForTimeout(2000);
+        }
+        expect(newSessionId,
+            'retry-payment should return a NEW session after the old one expired').not.toBeNull();
+        console.log(`[PF3] retry-payment returned new session: ${newSessionId}`);
+
+        const getResp = await page.request.get(`/api/public/sales/contracts/${contractId}`);
+        const finalContract = await getResp.json();
+        expect(finalContract.state, 'Contract must remain AWAITING_PAYMENT').toBe('AWAITING_PAYMENT');
+        console.log(`[PF3] Contract still AWAITING_PAYMENT with fresh session ${newSessionId}`);
     });
 });

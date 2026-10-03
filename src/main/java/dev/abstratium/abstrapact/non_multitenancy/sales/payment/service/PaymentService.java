@@ -1,5 +1,6 @@
 package dev.abstratium.abstrapact.non_multitenancy.sales.payment.service;
 
+import dev.abstratium.abstrapact.contracts.entity.ContractState;
 import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyContract;
 import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyContractLineItem;
 import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyProductDefinition;
@@ -38,6 +39,12 @@ public class PaymentService {
 
     /** System actor id recorded on contract state transitions triggered by webhooks. */
     public static final String SYSTEM_ACTOR = "system";
+
+    /** How long to wait for a racing winner's PSP session to appear on a PENDING tx. */
+    private static final Duration PENDING_SESSION_WAIT = Duration.ofSeconds(30);
+
+    /** Poll interval while waiting for the winner's PSP session. */
+    private static final Duration PENDING_SESSION_POLL = Duration.ofMillis(100);
 
     @Inject
     EntityManager em;
@@ -80,9 +87,17 @@ public class PaymentService {
     /**
      * Creates a payment (Stripe Checkout Session) for a prepaid contract.
      *
-     * <p>Loads the contract, resolves the product definition from the first line item,
-     * generates a correlation id, persists a {@code PENDING} {@link PaymentTransaction},
-     * calls the active PSP, and stores the PSP session id on the transaction.
+     * <p>Runs in two phases so the PSP call happens outside the database
+     * transaction that records the payment attempt:
+     *
+     * <ol>
+     *   <li>Persist a {@code PENDING} {@link PaymentTransaction} and commit it
+     *       immediately ({@code REQUIRES_NEW}). A concurrent duplicate insert fails
+     *       on {@code UQ_payment_transaction_pending_contract} <em>before</em> any
+     *       Stripe call is made, so no orphaned Checkout Session is created.</li>
+     *   <li>Call the PSP to create the checkout session, then store the session id
+     *       and checkout URL in a second {@code REQUIRES_NEW} transaction.</li>
+     * </ol>
      *
      * @param contractId      the contract to create a payment for
      * @param actorAccountId  the caller's account id (used for the contract access check)
@@ -91,6 +106,34 @@ public class PaymentService {
     @Transactional
     public CreatePaymentResponse createPaymentForContract(String contractId, String actorAccountId) {
         NonMultitenancyContract contract = loadContractForAccount(contractId, actorAccountId);
+        return createPayment(contract);
+    }
+
+    /**
+     * Starts a new payment attempt for a contract that is {@code AWAITING_PAYMENT}.
+     *
+     * <p>If a {@code PENDING} transaction with a live session exists, its checkout
+     * URL is returned unchanged. If the previous attempt is {@code EXPIRED} or
+     * {@code FAILED}, a fresh {@code PENDING} transaction and Stripe session are
+     * created (the {@code UQ_payment_transaction_pending_contract} constraint
+     * permits a new {@code PENDING} row once the old one is terminal).
+     *
+     * @return the checkout URL for the (re-)created session
+     */
+    @Transactional
+    public String retryPayment(String contractId, String actorAccountId) {
+        NonMultitenancyContract contract = loadContractForAccount(contractId, actorAccountId);
+        if (contract.getState() != ContractState.AWAITING_PAYMENT) {
+            throw new WebApplicationException(
+                Response.status(422)
+                    .entity("Contract must be in AWAITING_PAYMENT state to retry payment, but is: "
+                        + contract.getState())
+                    .build());
+        }
+        return createPayment(contract).getCheckoutUrl();
+    }
+
+    private CreatePaymentResponse createPayment(NonMultitenancyContract contract) {
         NonMultitenancyProductDefinition productDef = resolveProductDefinition(contract);
 
         if (productDef.getStripeSecretKey() == null || productDef.getStripeSecretKey().isBlank()) {
@@ -99,6 +142,21 @@ public class PaymentService {
                     .entity("Product definition has no Stripe secret key configured: "
                         + productDef.getProductCode())
                     .build());
+        }
+
+        // State-based idempotency guard: if a PENDING transaction already exists for
+        // this contract, reuse it instead of creating a duplicate.
+        PaymentTransaction existing = findPendingTransactionForContract(contract.getId());
+        if (existing != null) {
+            if (existing.getPspSessionId() != null) {
+                // The Stripe session was already created — just return the checkout URL.
+                return new CreatePaymentResponse(
+                    resolveCheckoutUrl(existing),
+                    existing.getPspSessionId());
+            }
+            // Transaction exists but no Stripe session yet (first attempt died before
+            // calling Stripe). Fall through to create the Stripe session.
+            return createStripeSessionAndStore(existing, productDef.getStripeSecretKey());
         }
 
         String correlationId = UUID.randomUUID().toString();
@@ -116,22 +174,95 @@ public class PaymentService {
         tx.setStatus(PaymentStatus.PENDING);
         tx.setCreatedAt(now);
         tx.setUpdatedAt(now);
-        transactionService.persist(tx);
+        // Committed in its own transaction BEFORE the Stripe call. A concurrent
+        // insert fails here on UQ_payment_transaction_pending_contract — before an
+        // orphaned Stripe session could be created.
+        transactionService.persistNewPending(tx);
 
+        return createStripeSessionAndStore(tx, productDef.getStripeSecretKey());
+    }
+
+    // ==================== helpers: state-based idempotency ====================
+
+    /**
+     * Returns the checkout URL of the existing PENDING transaction for the
+     * contract, or {@code null} if none exists.
+     *
+     * <p>Used by the REST layer to recover when a concurrent {@code accept} or
+     * {@code retry-payment} with a different idempotency key lost the race on
+     * {@code UQ_payment_transaction_pending_contract}: the losing transaction
+     * rolled back, but the client can still receive the winner's checkout URL.
+     * Must run in a fresh transaction after the loser has rolled back.
+     *
+     * <p>Because the winner commits its {@code PENDING} row before calling Stripe,
+     * the losing request may observe the row before {@code psp_session_id} is
+     * stored. This method polls briefly for the winner's session to appear; it
+     * returns {@code null} if the winner's PSP call never completes.
+     */
+    @Transactional
+    public String findPendingCheckoutUrlForContract(String contractId) {
+        long deadline = System.nanoTime() + PENDING_SESSION_WAIT.toNanos();
+        while (true) {
+            PaymentTransaction existing = findPendingTransactionForContract(contractId);
+            if (existing == null) {
+                return null;
+            }
+            if (existing.getPspSessionId() != null) {
+                return resolveCheckoutUrl(existing);
+            }
+            if (System.nanoTime() > deadline) {
+                return null;
+            }
+            // Detach so the next poll re-reads the row instead of returning the
+            // stale persistence-context copy.
+            em.clear();
+            try {
+                Thread.sleep(PENDING_SESSION_POLL.toMillis());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
+        }
+    }
+
+    private PaymentTransaction findPendingTransactionForContract(String contractId) {
+        List<PaymentTransaction> results = em.createQuery(
+                "SELECT t FROM PaymentTransaction t WHERE t.contractId = :cid AND t.status = :status",
+                PaymentTransaction.class)
+            .setParameter("cid", contractId)
+            .setParameter("status", PaymentStatus.PENDING)
+            .setMaxResults(1)
+            .getResultList();
+        return results.isEmpty() ? null : results.get(0);
+    }
+
+    private String resolveCheckoutUrl(PaymentTransaction tx) {
+        if (tx.getCheckoutUrl() != null) {
+            return tx.getCheckoutUrl();
+        }
+        // Fallback: reconstruct from Stripe session. This should not happen
+        // if the checkout URL was stored properly on creation.
+        return successUrl.replace("{CHECKOUT_SESSION_ID}", tx.getPspSessionId());
+    }
+
+    private CreatePaymentResponse createStripeSessionAndStore(
+            PaymentTransaction tx, String stripeSecretKey) {
         CreatePaymentRequest request = new CreatePaymentRequest();
-        request.setContractId(contract.getId());
-        request.setCorrelationId(correlationId);
-        request.setAmount(contract.getGrandTotal());
-        request.setCurrency(contract.getCurrency());
-        request.setDescription("Contract " + contract.getContractReference());
+        request.setContractId(tx.getContractId());
+        request.setCorrelationId(tx.getCorrelationId());
+        request.setAmount(tx.getGrossAmount());
+        request.setCurrency(tx.getCurrency());
+        request.setDescription("Contract " + tx.getContractId());
         request.setSuccessUrl(successUrl);
         request.setCancelUrl(cancelUrl);
-        request.setStripeSecretKey(productDef.getStripeSecretKey());
+        request.setStripeSecretKey(stripeSecretKey);
 
         CreatePaymentResponse response = pspSelector.getActive().createPayment(request);
 
-        tx.setPspSessionId(response.getPspSessionId());
-        em.merge(tx);
+        // Stored in its own transaction (REQUIRES_NEW) so the session data survives
+        // even if the caller's transaction later rolls back.
+        transactionService.storeSession(tx.getId(), response.getPspSessionId(),
+            response.getCheckoutUrl());
 
         return response;
     }
@@ -300,10 +431,32 @@ public class PaymentService {
             return new ProcessingOutcome(ProcessingResult.PROCESSED, tx, updated, false);
         }
 
+        // Success arriving for a transaction we already marked EXPIRED (e.g. the
+        // customer paid on a session that Stripe had not yet expired, or a late
+        // success raced our expiry sweep): the payment is real and must not be
+        // dropped. Record it as STALE for manual review — same semantics as a
+        // success arriving after the staleness window.
+        if (tx.getStatus() == PaymentStatus.EXPIRED
+                && result.getStatus() == PaymentStatus.SUCCEEDED) {
+            PaymentTransaction stale = new PaymentTransaction();
+            stale.setId(tx.getId());
+            stale.setStatus(PaymentStatus.STALE);
+            if (result.getFeeAmount() != null) {
+                stale.setFeeAmount(result.getFeeAmount());
+                stale.setNetAmount(tx.getGrossAmount().subtract(result.getFeeAmount()));
+            }
+            if (result.getPspTransactionRef() != null) {
+                stale.setPspTransactionRef(result.getPspTransactionRef());
+            }
+            stale.setUpdatedAt(LocalDateTime.now());
+            return new ProcessingOutcome(ProcessingResult.STALE, tx, stale, false);
+        }
+
         // Terminal state → duplicate.
         if (tx.getStatus() == PaymentStatus.SUCCEEDED
                 || tx.getStatus() == PaymentStatus.FAILED
-                || tx.getStatus() == PaymentStatus.STALE) {
+                || tx.getStatus() == PaymentStatus.STALE
+                || tx.getStatus() == PaymentStatus.EXPIRED) {
             return new ProcessingOutcome(ProcessingResult.DUPLICATE, tx, null, false);
         }
 
@@ -333,6 +486,17 @@ public class PaymentService {
             }
             updated.setUpdatedAt(LocalDateTime.now());
             return new ProcessingOutcome(ProcessingResult.PROCESSED, tx, updated, true);
+        }
+
+        // Session-expired path. The checkout session died unpaid — mark the
+        // transaction EXPIRED so a fresh payment attempt can be created via
+        // POST /api/public/sales/contracts/{id}/retry-payment.
+        if (result.getStatus() == PaymentStatus.EXPIRED) {
+            PaymentTransaction expired = new PaymentTransaction();
+            expired.setId(tx.getId());
+            expired.setStatus(PaymentStatus.EXPIRED);
+            expired.setUpdatedAt(LocalDateTime.now());
+            return new ProcessingOutcome(ProcessingResult.PROCESSED, tx, expired, false);
         }
 
         // Failure path.
@@ -464,6 +628,7 @@ public class PaymentService {
             case "checkout.session.completed",
                  "checkout.session.async_payment_succeeded",
                  "checkout.session.async_payment_failed",
+                 "checkout.session.expired",
                  "payment_intent.succeeded",
                  "charge.updated" -> true; // fee update; may arrive after SUCCEEDED
             default -> false;

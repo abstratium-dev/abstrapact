@@ -64,7 +64,7 @@ class SalesProcessServiceTest {
         }
     }
 
-    static final int WIREMOCK_PORT = 19997;
+    static final int WIREMOCK_PORT = 19994;
 
     static WireMockServer wireMock;
 

@@ -84,11 +84,44 @@ public class PaymentWebhookResource {
             paymentService.recordRejectedEvent(payload, reason);
             return e.getResponse();
         } catch (Exception e) {
+            // A concurrent delivery of the same event can race past the
+            // existsByPspEventId check and lose on UQ_webhook_event_psp_event at
+            // flush/commit time. The winner already committed the event and its
+            // state changes, so this delivery is a true duplicate: acknowledge it
+            // with 200 instead of a 500 that would trigger Stripe retries.
+            if (isDuplicateEventViolation(e)) {
+                log.infof("Duplicate webhook event lost the insert race on "
+                    + "UQ_webhook_event_psp_event — acknowledging with 200");
+                return Response.ok().build();
+            }
             log.errorf(e, "Unexpected error processing webhook");
             // Record the rejected event for audit/debugging.
             paymentService.recordRejectedEvent(payload, "Unexpected error: " + e.getMessage());
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
+    }
+
+    /**
+     * Walks the cause chain looking for a {@code UQ_webhook_event_psp_event}
+     * unique-constraint violation (which may surface as a Hibernate
+     * {@code ConstraintViolationException} or be wrapped in a
+     * {@code PersistenceException}/{@code RollbackException} from commit).
+     */
+    private static boolean isDuplicateEventViolation(Throwable e) {
+        while (e != null) {
+            String msg = e.getMessage();
+            if (msg != null && msg.toUpperCase().contains("UQ_WEBHOOK_EVENT")) {
+                return true;
+            }
+            if (e instanceof org.hibernate.exception.ConstraintViolationException cve) {
+                String name = cve.getConstraintName();
+                if (name != null && name.toUpperCase().contains("WEBHOOK_EVENT")) {
+                    return true;
+                }
+            }
+            e = e.getCause();
+        }
+        return false;
     }
 
     /**

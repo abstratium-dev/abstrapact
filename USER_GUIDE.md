@@ -4,6 +4,11 @@
 
 abstrapact is an application for contract management, sales processes, and products. It provides a web-based UI built with Angular, backed by a Quarkus REST API, and uses OIDC authentication via the Abstrauth authorization server.
 
+If you are building a B2C storefront that sells products through abstrapact, see
+[docs/B2C_STOREFRONT_INTEGRATION.md](./docs/B2C_STOREFRONT_INTEGRATION.md) — it
+describes the public sales API (contract lifecycle, payment via Stripe Checkout,
+and the required `Idempotency-Key` handling) in a technology-agnostic way.
+
 
 ### Overview
 #### Key Features

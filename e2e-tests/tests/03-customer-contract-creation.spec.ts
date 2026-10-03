@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { signInViaHeader, testStepLogger } from '../pages/test-helpers';
-import { handleAuthServer, headerSignInLink, signOut } from '../pages/TODO.page';
+import { handleAuthServer, headerSignInLink, signOut } from '../pages/test-helpers';
 import { registerNewUser } from '../pages/auth-server.page';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -173,7 +173,10 @@ test.describe('03 Customer Contract Creation', () => {
         };
         console.log(`[CC1] Contract request:\n${JSON.stringify(contractRequest, null, 2)}`);
         const contractResp = await page.request.post('/api/public/sales/contracts', {
-            headers: xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {},
+            headers: {
+                ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {}),
+                'Idempotency-Key': crypto.randomUUID(),
+            },
             data: contractRequest,
         });
 
@@ -229,7 +232,10 @@ test.describe('03 Customer Contract Creation', () => {
         const xsrfToken = xsrfCookie.find(c => c.name === 'XSRF-TOKEN');
 
         const contractResp = await page.request.post('/api/public/sales/contracts', {
-            headers: xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {},
+            headers: {
+                ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {}),
+                'Idempotency-Key': crypto.randomUUID(),
+            },
             data: {
                 orgId: sellerOrgId,
                 contractReference: `E2E-CC2-${timestamp}`,
@@ -279,7 +285,10 @@ test.describe('03 Customer Contract Creation', () => {
         const xsrfToken = xsrfCookie.find(c => c.name === 'XSRF-TOKEN');
 
         const contractResp = await page.request.post('/api/public/sales/contracts', {
-            headers: xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {},
+            headers: {
+                ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {}),
+                'Idempotency-Key': crypto.randomUUID(),
+            },
             data: {
                 contractReference: `E2E-CC3-${timestamp}`,
                 publicNotes: 'Should fail - missing orgId',
@@ -328,7 +337,10 @@ test.describe('03 Customer Contract Creation', () => {
         const xsrfToken = xsrfCookie.find(c => c.name === 'XSRF-TOKEN');
 
         const contractResp = await page.request.post('/api/public/sales/contracts', {
-            headers: xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {},
+            headers: {
+                ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken.value } : {}),
+                'Idempotency-Key': crypto.randomUUID(),
+            },
             data: {
                 orgId: sellerOrgId,
                 contractReference: `E2E-CC4-${timestamp}`,
