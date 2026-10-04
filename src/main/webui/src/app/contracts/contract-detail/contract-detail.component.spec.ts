@@ -1,0 +1,260 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { Router } from '@angular/router';
+import { of } from 'rxjs';
+import { ContractDetailComponent } from './contract-detail.component';
+import {
+  ContractsModelService,
+  CustomerContract,
+  ContractStateChange,
+  PaymentAttempt,
+} from '../contracts.model.service';
+import { ContractsController } from '../contracts.controller';
+
+describe('ContractDetailComponent', () => {
+  let component: ContractDetailComponent;
+  let fixture: ComponentFixture<ContractDetailComponent>;
+  let controller: jasmine.SpyObj<ContractsController>;
+  let router: jasmine.SpyObj<Router>;
+
+  let selectedContractSignal: ReturnType<typeof signal<CustomerContract | null>>;
+  let selectedContractLoadingSignal: ReturnType<typeof signal<boolean>>;
+  let selectedContractErrorSignal: ReturnType<typeof signal<string | null>>;
+  let stateChangesSignal: ReturnType<typeof signal<ContractStateChange[]>>;
+  let stateChangesLoadingSignal: ReturnType<typeof signal<boolean>>;
+  let paymentAttemptsSignal: ReturnType<typeof signal<PaymentAttempt[]>>;
+  let paymentAttemptsLoadingSignal: ReturnType<typeof signal<boolean>>;
+
+  const mockContract: CustomerContract = {
+    id: 'contract-1',
+    contractReference: 'REF-001',
+    sellerOrganisationId: 'org-1',
+    contractDate: '2024-01-15',
+    currency: 'EUR',
+    grandTotal: 123.45,
+    state: 'AWAITING_PAYMENT',
+    publicNotes: 'Test notes',
+    createdAt: '2024-01-15T10:00:00Z',
+    updatedAt: '2024-01-15T10:00:00Z',
+    lineItems: [],
+    checkoutUrl: 'https://checkout.example.com',
+  };
+
+  const mockStateChanges: ContractStateChange[] = [
+    {
+      id: 'step-1',
+      processInstanceId: 'pi-1',
+      stepTimestamp: '2024-01-15T10:00:00Z',
+      fromState: 'DRAFT',
+      toState: 'OFFERED',
+      actorUserId: 'user-1',
+      reason: null,
+    }
+  ];
+
+  const mockPaymentAttempts: PaymentAttempt[] = [
+    {
+      id: 'tx-1',
+      status: 'PENDING',
+      grossAmount: 123.45,
+      feeAmount: null,
+      netAmount: null,
+      currency: 'EUR',
+      pspIdentifier: 'stripe',
+      pspSessionId: 'cs_123',
+      pspTransactionRef: null,
+      checkoutUrl: 'https://checkout.example.com',
+      correlationId: 'corr-1',
+      createdAt: '2024-01-15T10:00:00Z',
+      updatedAt: '2024-01-15T10:00:00Z',
+    }
+  ];
+
+  beforeEach(async () => {
+    const controllerSpy = jasmine.createSpyObj('ContractsController', ['getContract']);
+    const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+
+    selectedContractSignal = signal<CustomerContract | null>(null);
+    selectedContractLoadingSignal = signal<boolean>(false);
+    selectedContractErrorSignal = signal<string | null>(null);
+    stateChangesSignal = signal<ContractStateChange[]>([]);
+    stateChangesLoadingSignal = signal<boolean>(false);
+    paymentAttemptsSignal = signal<PaymentAttempt[]>([]);
+    paymentAttemptsLoadingSignal = signal<boolean>(false);
+
+    const modelServiceSpy = jasmine.createSpyObj('ContractsModelService', [], {
+      selectedContract$: selectedContractSignal.asReadonly(),
+      selectedContractLoading$: selectedContractLoadingSignal.asReadonly(),
+      selectedContractError$: selectedContractErrorSignal.asReadonly(),
+      stateChanges$: stateChangesSignal.asReadonly(),
+      stateChangesLoading$: stateChangesLoadingSignal.asReadonly(),
+      paymentAttempts$: paymentAttemptsSignal.asReadonly(),
+      paymentAttemptsLoading$: paymentAttemptsLoadingSignal.asReadonly(),
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [ContractDetailComponent],
+      providers: [
+        { provide: ContractsController, useValue: controllerSpy },
+        { provide: ContractsModelService, useValue: modelServiceSpy },
+        { provide: Router, useValue: routerSpy },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: convertToParamMap({ id: 'contract-1' })
+            }
+          }
+        }
+      ]
+    }).compileComponents();
+
+    controller = TestBed.inject(ContractsController) as jasmine.SpyObj<ContractsController>;
+    router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+
+    fixture = TestBed.createComponent(ContractDetailComponent);
+    component = fixture.componentInstance;
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  describe('Initialization', () => {
+    it('should load contract on init', () => {
+      fixture.detectChanges();
+      expect(controller.getContract).toHaveBeenCalledWith('contract-1');
+    });
+
+    it('should navigate back when no contract id', async () => {
+      TestBed.resetTestingModule();
+      const controllerSpy = jasmine.createSpyObj('ContractsController', ['getContract']);
+      const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+      const modelServiceSpy = jasmine.createSpyObj('ContractsModelService', [], {
+        selectedContract$: selectedContractSignal.asReadonly(),
+        selectedContractLoading$: selectedContractLoadingSignal.asReadonly(),
+        selectedContractError$: selectedContractErrorSignal.asReadonly(),
+        stateChanges$: stateChangesSignal.asReadonly(),
+        stateChangesLoading$: stateChangesLoadingSignal.asReadonly(),
+        paymentAttempts$: paymentAttemptsSignal.asReadonly(),
+        paymentAttemptsLoading$: paymentAttemptsLoadingSignal.asReadonly(),
+      });
+
+      await TestBed.configureTestingModule({
+        imports: [ContractDetailComponent],
+        providers: [
+          { provide: ContractsController, useValue: controllerSpy },
+          { provide: ContractsModelService, useValue: modelServiceSpy },
+          { provide: Router, useValue: routerSpy },
+          {
+            provide: ActivatedRoute,
+            useValue: {
+              snapshot: {
+                paramMap: convertToParamMap({})
+              }
+            }
+          }
+        ]
+      }).compileComponents();
+
+      const localFixture = TestBed.createComponent(ContractDetailComponent);
+      localFixture.detectChanges();
+
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/contracts']);
+    });
+  });
+
+  describe('Navigation', () => {
+    it('should navigate back to contracts list', () => {
+      component.onBack();
+      expect(router.navigate).toHaveBeenCalledWith(['/contracts']);
+    });
+  });
+
+  describe('Utility Methods', () => {
+    it('should format date correctly', () => {
+      expect(component.formatDate('2024-01-15')).toBe('2024-01-15 00:00:00.000');
+    });
+
+    it('should return N/A for null date', () => {
+      expect(component.formatDate(null)).toBe('N/A');
+    });
+
+    it('should format datetime correctly', () => {
+      expect(component.formatDateTime('2024-01-15T10:00:00Z')).toBe('2024-01-15 10:00:00.000');
+    });
+
+    it('should format currency correctly', () => {
+      expect(component.formatCurrency(123.45, 'EUR')).toContain('€');
+    });
+
+    it('should return N/A for null amount', () => {
+      expect(component.formatCurrency(null, 'EUR')).toBe('N/A');
+    });
+
+    it('should return correct state classes', () => {
+      expect(component.getStateClass('DRAFT')).toBe('badge-secondary');
+      expect(component.getStateClass('OFFERED')).toBe('badge-info');
+      expect(component.getStateClass('ACCEPTED')).toBe('badge-success');
+      expect(component.getStateClass('AWAITING_PAYMENT')).toBe('badge-warning');
+      expect(component.getStateClass('CANCELLED')).toBe('badge-error');
+    });
+
+    it('should return correct payment status classes', () => {
+      expect(component.getPaymentStatusClass('SUCCEEDED')).toBe('badge-success');
+      expect(component.getPaymentStatusClass('FAILED')).toBe('badge-error');
+      expect(component.getPaymentStatusClass('PENDING')).toBe('badge-warning');
+      expect(component.getPaymentStatusClass('UNKNOWN')).toBe('badge-secondary');
+    });
+  });
+
+  describe('Template Rendering', () => {
+    it('should show loading state', () => {
+      selectedContractLoadingSignal.set(true);
+      fixture.detectChanges();
+
+      const loadingElement = fixture.nativeElement.querySelector('.loading');
+      expect(loadingElement).toBeTruthy();
+      expect(loadingElement.textContent).toContain('Loading contract');
+    });
+
+    it('should show error state', () => {
+      selectedContractErrorSignal.set('Failed to load contract');
+      fixture.detectChanges();
+
+      const errorElement = fixture.nativeElement.querySelector('.error-box');
+      expect(errorElement).toBeTruthy();
+      expect(errorElement.textContent).toContain('Failed to load contract');
+    });
+
+    it('should render contract details', () => {
+      selectedContractSignal.set(mockContract);
+      fixture.detectChanges();
+
+      const title = fixture.nativeElement.querySelector('.card-header h2');
+      expect(title.textContent).toContain('REF-001');
+
+      const badge = fixture.nativeElement.querySelector('.badge');
+      expect(badge.textContent).toContain('AWAITING_PAYMENT');
+    });
+
+    it('should render state changes', () => {
+      selectedContractSignal.set(mockContract);
+      stateChangesSignal.set(mockStateChanges);
+      fixture.detectChanges();
+
+      const rows = fixture.nativeElement.querySelectorAll('.detail-row');
+      expect(rows.length).toBeGreaterThan(0);
+    });
+
+    it('should render payment attempts', () => {
+      selectedContractSignal.set(mockContract);
+      paymentAttemptsSignal.set(mockPaymentAttempts);
+      fixture.detectChanges();
+
+      const badges = fixture.nativeElement.querySelectorAll('.badge');
+      expect(badges.length).toBeGreaterThan(0);
+    });
+  });
+});

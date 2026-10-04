@@ -58,7 +58,9 @@ public class PaymentRedirectResource {
                     .build();
             }
             return htmlPage("Payment successful",
-                "Your payment has been received. Contract " + tx.getContractId() + ".");
+                "Your payment has been received. Contract " + tx.getContractId() + ".",
+                "/contracts/" + tx.getContractId(),
+                "View my contract");
         }
 
         if (tx.getStatus() == PaymentStatus.PENDING) {
@@ -121,6 +123,14 @@ public class PaymentRedirectResource {
         String html = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>"
             + escape(title) + "</title></head><body><h1>" + escape(title)
             + "</h1><p>" + escape(body) + "</p></body></html>";
+        return Response.ok(html, MediaType.TEXT_HTML_TYPE).build();
+    }
+
+    private static Response htmlPage(String title, String body, String linkHref, String linkText) {
+        String html = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>"
+            + escape(title) + "</title></head><body><h1>" + escape(title)
+            + "</h1><p>" + escape(body) + "</p><p><a href=\"" + escape(linkHref)
+            + "\" data-testid=\"payment-success-return-link\">" + escape(linkText) + "</a></p></body></html>";
         return Response.ok(html, MediaType.TEXT_HTML_TYPE).build();
     }
 

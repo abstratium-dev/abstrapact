@@ -492,6 +492,25 @@ h2 {
   color: var(--color-success-text);
 }
 
+.badge-info {
+  background-color: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+.badge-warning {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.badge-error {
+  background-color: var(--color-error-bg);
+  color: var(--color-error-text);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
 /* ===== DETAIL ROWS ===== */
 .detail-section {
   display: flex;

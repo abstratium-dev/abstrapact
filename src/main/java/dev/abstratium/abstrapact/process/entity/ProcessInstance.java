@@ -27,6 +27,9 @@ public class ProcessInstance {
     @Column(name = "process_version", length = 20)
     private String processVersion;
 
+    @Column(name = "contract_id", length = 36)
+    private String contractId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "state", length = 20, nullable = false)
     private ProcessInstanceState state;
@@ -68,6 +71,14 @@ public class ProcessInstance {
 
     public void setProcessVersion(String processVersion) {
         this.processVersion = processVersion;
+    }
+
+    public String getContractId() {
+        return contractId;
+    }
+
+    public void setContractId(String contractId) {
+        this.contractId = contractId;
     }
 
     public ProcessInstanceState getState() {

@@ -7,6 +7,10 @@ import dev.abstratium.abstrapact.contracts.boundary.dto.ContractSummary;
 import dev.abstratium.abstrapact.contracts.boundary.dto.CreateDraftContractRequest;
 import dev.abstratium.abstrapact.contracts.boundary.dto.LineItemRequest;
 import dev.abstratium.abstrapact.contracts.boundary.dto.PartInstanceAttributeRequest;
+import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.ContractStateChangeResponse;
+import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.PaymentAttemptResponse;
+import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.PaymentTransaction;
+import dev.abstratium.abstrapact.process.entity.ProcessInstanceStep;
 import dev.abstratium.core.service.ConfigService;
 import dev.abstratium.abstrapact.product.entity.PartDefinition;
 import dev.abstratium.abstrapact.product.entity.PartInstance;
@@ -85,6 +89,67 @@ public class ContractService {
             .stream()
             .map(this::toSummary)
             .toList();
+    }
+
+    /**
+     * Returns the state changes recorded for a contract's sales process instance,
+     * ordered chronologically. The contract is loaded through the tenant-scoped
+     * {@link Contract} entity, so the caller's organisation is enforced by the
+     * Hibernate discriminator.
+     */
+    public List<ContractStateChangeResponse> listStateChanges(String contractId) {
+        Contract contract = em.find(Contract.class, contractId);
+        if (contract == null) {
+            throw notFound("Contract not found: " + contractId);
+        }
+        return em.createQuery(
+                "SELECT s FROM ProcessInstanceStep s " +
+                "WHERE s.processInstance.contractId = :contractId " +
+                "ORDER BY s.stepTimestamp ASC",
+                ProcessInstanceStep.class)
+            .setParameter("contractId", contractId)
+            .getResultStream()
+            .map(this::toStateChangeResponse)
+            .toList();
+    }
+
+    /**
+     * Returns all payment attempts recorded for the contract, ordered by creation
+     * time descending (most recent first). The tenant-scoped {@link Contract}
+     * lookup already guarantees that the contract belongs to the caller's
+     * organisation; the non-tenant payment transactions are then filtered by the
+     * contract id, which is a UUID and therefore cannot collide across tenants.
+     */
+    public List<PaymentAttemptResponse> listPaymentAttempts(String contractId) {
+        Contract contract = em.find(Contract.class, contractId);
+        if (contract == null) {
+            throw notFound("Contract not found: " + contractId);
+        }
+        return em.createQuery(
+                "SELECT t FROM PaymentTransaction t " +
+                "WHERE t.contractId = :contractId " +
+                "ORDER BY t.createdAt DESC",
+                PaymentTransaction.class)
+            .setParameter("contractId", contractId)
+            .getResultStream()
+            .map(this::toPaymentAttemptResponse)
+            .toList();
+    }
+
+    /**
+     * Returns a single payment attempt by id, scoped to the contract. The
+     * tenant-scoped {@link Contract} lookup already guarantees the organisation.
+     */
+    public PaymentAttemptResponse getPaymentAttempt(String contractId, String txId) {
+        Contract contract = em.find(Contract.class, contractId);
+        if (contract == null) {
+            throw notFound("Contract not found: " + contractId);
+        }
+        PaymentTransaction tx = em.find(PaymentTransaction.class, txId);
+        if (tx == null || !tx.getContractId().equals(contractId)) {
+            throw notFound("Payment attempt not found: " + txId);
+        }
+        return toPaymentAttemptResponse(tx);
     }
 
     @Transactional
@@ -221,5 +286,42 @@ public class ContractService {
         summary.setCreatedAt(contract.getCreatedAt());
         summary.setUpdatedAt(contract.getUpdatedAt());
         return summary;
+    }
+
+    private ContractStateChangeResponse toStateChangeResponse(ProcessInstanceStep s) {
+        ContractStateChangeResponse r = new ContractStateChangeResponse();
+        r.setId(s.getId());
+        r.setProcessInstanceId(s.getProcessInstance().getId());
+        r.setStepTimestamp(s.getStepTimestamp());
+        r.setFromState(s.getFromState());
+        r.setToState(s.getToState());
+        r.setActorUserId(s.getActorUserId());
+        r.setReason(s.getReason());
+        return r;
+    }
+
+    private PaymentAttemptResponse toPaymentAttemptResponse(PaymentTransaction t) {
+        PaymentAttemptResponse r = new PaymentAttemptResponse();
+        r.setId(t.getId());
+        r.setStatus(t.getStatus());
+        r.setGrossAmount(t.getGrossAmount());
+        r.setFeeAmount(t.getFeeAmount());
+        r.setNetAmount(t.getNetAmount());
+        r.setCurrency(t.getCurrency());
+        r.setPspIdentifier(t.getPspIdentifier());
+        r.setPspSessionId(t.getPspSessionId());
+        r.setPspTransactionRef(t.getPspTransactionRef());
+        r.setCheckoutUrl(t.getCheckoutUrl());
+        r.setCorrelationId(t.getCorrelationId());
+        r.setCreatedAt(t.getCreatedAt());
+        r.setUpdatedAt(t.getUpdatedAt());
+        return r;
+    }
+
+    private static jakarta.ws.rs.WebApplicationException notFound(String message) {
+        return new jakarta.ws.rs.WebApplicationException(
+            jakarta.ws.rs.core.Response.status(jakarta.ws.rs.core.Response.Status.NOT_FOUND)
+                .entity(message)
+                .build());
     }
 }

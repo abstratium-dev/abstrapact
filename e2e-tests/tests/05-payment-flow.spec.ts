@@ -3,6 +3,17 @@ import { test, expect, Page } from '@playwright/test';
 import { signInViaHeader, testStepLogger } from '../pages/test-helpers';
 import { handleAuthServer, headerSignInLink, signOut } from '../pages/test-helpers';
 import { registerNewUser } from '../pages/auth-server.page';
+import {
+    navigateToContractsList,
+    assertContractVisibleInList,
+    openContractDetail,
+    assertContractDetailState,
+    assertPaymentAttemptCount,
+    assertPaymentAttemptStatus,
+    assertStateChangeCount,
+    goBackToContractsList,
+    clickPaymentSuccessReturnLink,
+} from '../pages/contracts.page';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -166,7 +177,7 @@ async function assertStripeCheckoutContent(page: Page, expectedAmount: number): 
 
 async function fillStripeCheckoutAndPay(page: Page, email: string): Promise<void> {
     console.log('[StripeCheckout] Waiting for Stripe checkout page to load...');
-    await page.waitForLoadState('networkidle');
+    await page.getByTestId('hosted-payment-submit-button').waitFor({ state: 'visible', timeout: 15000 });
 
     // Verify the checkout page shows the correct amount and details.
     await assertStripeCheckoutContent(page, PART_UNIT_PRICE);
@@ -412,6 +423,18 @@ test.describe('05 Payment Flow', () => {
         // Verify the checkout URL points to the real Stripe checkout page.
         expect(acceptJson.checkoutUrl).toContain('checkout.stripe.com');
 
+        // ── Step 5b: verify contract state in the UI before payment ──────────────
+        log('Verify contract is AWAITING_PAYMENT in the contracts UI before payment');
+        await navigateToContractsList(page);
+        await assertContractVisibleInList(page, contractId, 'AWAITING_PAYMENT');
+        await openContractDetail(page, contractId);
+        await assertContractDetailState(page, 'AWAITING_PAYMENT');
+        // Accepting a PREPAID contract creates a pending payment transaction immediately.
+        await assertPaymentAttemptCount(page, 1);
+        await assertPaymentAttemptStatus(page, 0, 'PENDING');
+        await assertStateChangeCount(page, 5); // DRAFT -> OFFERED -> ACCEPTED -> APPROVED -> AWAITING_PAYMENT
+        console.log('[PF1] Pre-payment UI verification passed');
+
         // ── Step 6: navigate to Stripe's hosted checkout page and pay ───────────
         log('Navigate to Stripe checkout page and complete payment');
         await page.goto(acceptJson.checkoutUrl);
@@ -455,6 +478,27 @@ test.describe('05 Payment Flow', () => {
         // or may still be AWAITING_PAYMENT (if the webhook is still in flight).
         log('Poll contract state until RUNNING');
         await waitForContractState(page, contractId, 'RUNNING', 60000);
+
+        // ── Step 8b: verify contract and payment state in the UI after payment ───
+        log('Verify contract is RUNNING and payment is SUCCEEDED in the contracts UI');
+        await clickPaymentSuccessReturnLink(page, contractId);
+        await assertContractDetailState(page, 'RUNNING');
+        await assertStateChangeCount(page, 6); // includes AWAITING_PAYMENT -> RUNNING
+        await assertPaymentAttemptCount(page, 1);
+        await assertPaymentAttemptStatus(page, 0, 'SUCCEEDED');
+        await goBackToContractsList(page);
+        await assertContractVisibleInList(page, contractId, 'RUNNING');
+        console.log('[PF1] Post-payment UI verification passed');
+
+        // ── Step 9: print manual verification info ─────────────────────────────
+        const baseUrl = page.context().pages()[0].url().replace(/\/contracts.*$/, '') || env.BASE_URL || 'http://localhost:8088';
+        console.log('\n===== MANUAL VERIFICATION INFO =====');
+        console.log(`Username: ${newUserEmail}`);
+        console.log(`Password: ${newUserPassword}`);
+        console.log(`Contract ID: ${contractId}`);
+        console.log(`Contracts list URL: ${baseUrl}/contracts`);
+        console.log(`Contract detail URL: ${baseUrl}/contracts/${contractId}`);
+        console.log('=====================================\n');
 
         console.log(`[PF1] Payment flow completed successfully: id=${contractId}, state=RUNNING`);
     });

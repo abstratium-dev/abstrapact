@@ -233,6 +233,13 @@ Therefore every write operation in the cross-tenant API must follow this pattern
 
 The list and single-view endpoints (`GET /api/public/sales/contracts` and `GET /api/public/sales/contracts/{id}`) only touch non-tenant entities (`NonMultitenancyContract`, `NonMultitenancyContractAccountRole`, etc.). Because these entities have no `@TenantId`, the value in `CurrentOrgContext` does not affect the query result. The caller's `sub` claim and the optional `orgId` query parameter are used directly for scoping.
 
+The state-change and payment-attempt read endpoints (`GET /api/public/sales/contracts/{id}/state-changes`, `GET /api/public/sales/contracts/{id}/payment-attempts`, and `GET /api/public/sales/contracts/{id}/payment-attempts/{txId}`) authorize the caller using **either** of the following:
+
+1. The caller is linked to the contract as a `CUSTOMER` via `T_contract_account_role`.
+2. The caller's resolved organisation id (`CurrentOrgContext#getOrgId()`) matches the contract's seller organisation id.
+
+The resource captures the caller's organisation id **before** updating `CurrentOrgContext` to the seller's organisation, so the authorisation decision is based on the caller's own organisation.
+
 ### Avoiding a Premature Session
 
 No JPA session may be opened for the wrong tenant before `CurrentOrgContext` is updated. In particular:
@@ -258,8 +265,24 @@ All endpoints require the authenticated role `abstratium-abstrapact_user`. The c
 | `DELETE` | `/api/public/sales/contracts/{id}/line-items/{lineItemId}` | Remove a line item from a contract that is still in `DRAFT`. |
 | `POST`   | `/api/public/sales/contracts/{id}/offer` | Customer finalises the draft; the contract moves from `DRAFT` to `OFFERED` so the SME can make a formal offer. |
 | `POST`   | `/api/public/sales/contracts/{id}/accept` | Move the contract from `OFFERED` to `ACCEPTED`. |
+| `POST`   | `/api/public/sales/contracts/{id}/retry-payment` | Create a new payment session for an `AWAITING_PAYMENT` contract whose previous attempt expired or failed. |
+| `GET`    | `/api/public/sales/contracts/{id}/state-changes` | List the recorded contract state changes for the sales process instance. Authorised for the linked customer or for members of the contract's seller organisation. |
+| `GET`    | `/api/public/sales/contracts/{id}/payment-attempts` | List all payment attempts recorded for the contract. Authorised for the linked customer or for members of the contract's seller organisation. |
+| `GET`    | `/api/public/sales/contracts/{id}/payment-attempts/{txId}` | Get a single payment attempt by id. Authorised for the linked customer or for members of the contract's seller organisation. |
 
 Payment endpoints (`/purchase`, `/pay`) are out of scope and will be added later.
+
+### Seller / Organisation-Managed Endpoints
+
+Sellers (users acting on behalf of the organisation that owns the product definitions and contracts) manage contracts through the standard tenant-scoped API. The following read-only endpoints expose contract state history and payment attempts for that management use case. They inherit the same `@RolesAllowed(Roles.USER)` protection as the other `/api/contracts` endpoints; access is scoped to the caller's organisation by the Hibernate discriminator on the `Contract` entity.
+
+Base path: `/api/contracts`
+
+| Method | Path | Summary |
+|--------|------|---------|
+| `GET` | `/api/contracts/{id}/state-changes` | List the recorded contract state changes for the sales process instance. |
+| `GET` | `/api/contracts/{id}/payment-attempts` | List all payment attempts recorded for the contract. |
+| `GET` | `/api/contracts/{id}/payment-attempts/{txId}` | Get a single payment attempt by id. |
 
 ### DTOs
 
@@ -341,6 +364,46 @@ public class CustomerContractResponse {
 ```
 
 `CustomerContractLineItemResponse` should expose the line item id, display order, line total, and the full `ProductInstance` / `PartInstance` tree for the line item.
+
+#### `ContractStateChangeResponse`
+
+A read-only DTO returned by the state-changes endpoint:
+
+```java
+public class ContractStateChangeResponse {
+    private String id;
+    private String processInstanceId;
+    private LocalDateTime stepTimestamp;
+    private String fromState;
+    private String toState;
+    private String actorUserId;
+    private String reason;
+    // getters / setters
+}
+```
+
+#### `PaymentAttemptResponse`
+
+A read-only DTO returned by the payment-attempt endpoints. It exposes the lifecycle status and financial details of a payment transaction without leaking PSP credentials:
+
+```java
+public class PaymentAttemptResponse {
+    private String id;
+    private PaymentStatus status;
+    private BigDecimal grossAmount;
+    private BigDecimal feeAmount;
+    private BigDecimal netAmount;
+    private String currency;
+    private String pspIdentifier;
+    private String pspSessionId;
+    private String pspTransactionRef;
+    private String checkoutUrl;
+    private String correlationId;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    // getters / setters
+}
+```
 
 ---
 

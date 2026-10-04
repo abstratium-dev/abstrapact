@@ -4,7 +4,13 @@ import dev.abstratium.abstrapact.Roles;
 import dev.abstratium.core.service.CurrentOrgContext;
 import dev.abstratium.core.service.OrgScopedCodec;
 import dev.abstratium.core.util.Hashing;
-import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.*;
+import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.ContractStateChangeResponse;
+import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.CreateCustomerContractRequest;
+import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.CustomerContractResponse;
+import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.CustomerContractSummary;
+import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.CustomerLineItemRequest;
+import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.PartInstanceRequest;
+import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.PaymentAttemptResponse;
 import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.IdempotencyRecord;
 import dev.abstratium.abstrapact.non_multitenancy.sales.payment.service.IdempotencyRaceException;
 import dev.abstratium.abstrapact.non_multitenancy.sales.payment.service.IdempotencyService;
@@ -149,6 +155,38 @@ public class NonMultitenancyCustomerContractResource {
     @Operation(summary = "Get a single contract by id")
     public CustomerContractResponse get(@PathParam("id") String id) {
         return contractService.getContract(id, accountId());
+    }
+
+    @GET
+    @Path("/{id}/state-changes")
+    @Operation(summary = "List state changes for a contract")
+    public List<ContractStateChangeResponse> listStateChanges(@PathParam("id") String id) {
+        String callerOrgId = currentOrgContext.getOrgId();
+        String sellerOrgId = resolveOrgIdFromContract(id);
+        currentOrgContext.setOrgId(sellerOrgId);
+        return contractService.listStateChanges(id, accountId(), callerOrgId);
+    }
+
+    @GET
+    @Path("/{id}/payment-attempts")
+    @Operation(summary = "List payment attempts for a contract")
+    public List<PaymentAttemptResponse> listPaymentAttempts(@PathParam("id") String id) {
+        String callerOrgId = currentOrgContext.getOrgId();
+        String sellerOrgId = resolveOrgIdFromContract(id);
+        currentOrgContext.setOrgId(sellerOrgId);
+        return contractService.listPaymentAttempts(id, accountId(), callerOrgId);
+    }
+
+    @GET
+    @Path("/{id}/payment-attempts/{txId}")
+    @Operation(summary = "Get a single payment attempt for a contract")
+    public PaymentAttemptResponse getPaymentAttempt(
+            @PathParam("id") String id,
+            @PathParam("txId") String txId) {
+        String callerOrgId = currentOrgContext.getOrgId();
+        String sellerOrgId = resolveOrgIdFromContract(id);
+        currentOrgContext.setOrgId(sellerOrgId);
+        return contractService.getPaymentAttempt(id, txId, accountId(), callerOrgId);
     }
 
     @PUT

@@ -3,6 +3,7 @@ package dev.abstratium.abstrapact.non_multitenancy.sales.boundary;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.CreateCustomerContractRequest;
 import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.CustomerLineItemRequest;
+import dev.abstratium.abstrapact.non_multitenancy.sales.service.NonMultitenancyCustomerContractService;
 import dev.abstratium.abstrapact.product.entity.ProductDefinition;
 import dev.abstratium.abstrapact.product.service.ProductDefinitionService;
 import dev.abstratium.core.service.OrgScopedCodec;
@@ -34,6 +35,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
 @TestProfile(NonMultitenancyCustomerContractResourceTest.TestProfile.class)
@@ -55,6 +57,9 @@ class NonMultitenancyCustomerContractResourceTest {
 
     @Inject
     ProductDefinitionService productDefinitionService;
+
+    @Inject
+    NonMultitenancyCustomerContractService contractService;
 
     @Inject
     TestDataCleaner cleaner;
@@ -1327,5 +1332,311 @@ class NonMultitenancyCustomerContractResourceTest {
             .then()
             .statusCode(200)
             .body("contractReference", not(hasItem(ref)));
+    }
+
+    // ==================== State change view tests ====================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldListStateChangesForContract() {
+        String id = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", UUID.randomUUID().toString())
+            .body(buildRequest("REST-STATE-CHANGES-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("id");
+
+        given().contentType("application/json")
+            .header("Idempotency-Key", UUID.randomUUID().toString())
+            .post("/api/public/sales/contracts/" + id + "/offer")
+            .then().statusCode(200);
+
+        given().contentType("application/json")
+            .header("Idempotency-Key", UUID.randomUUID().toString())
+            .post("/api/public/sales/contracts/" + id + "/accept")
+            .then().statusCode(200);
+
+        List<Map<String, Object>> changes = given()
+            .when()
+            .get("/api/public/sales/contracts/" + id + "/state-changes")
+            .then()
+            .statusCode(200)
+            .body("size()", greaterThan(0))
+            .extract()
+            .jsonPath()
+            .getList("$");
+
+        // Start + offer + accept + approve + awaiting_payment = 5 transitions.
+        assertEquals(5, changes.size());
+        assertEquals("DRAFT", changes.get(0).get("toState"));
+        assertEquals("OFFERED", changes.get(1).get("toState"));
+        assertEquals("ACCEPTED", changes.get(2).get("toState"));
+        assertEquals("APPROVED", changes.get(3).get("toState"));
+        assertEquals("AWAITING_PAYMENT", changes.get(4).get("toState"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404WhenListingStateChangesForMissingContract() {
+        given()
+            .when()
+            .get("/api/public/sales/contracts/" + UUID.randomUUID() + "/state-changes")
+            .then()
+            .statusCode(404);
+    }
+
+    // ==================== Payment attempt view tests ====================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldListPaymentAttemptsForContract() {
+        String id = createAwaitingPaymentContract(
+            "REST-PAYMENT-ATTEMPTS-" + System.currentTimeMillis());
+
+        List<Map<String, Object>> attempts = given()
+            .when()
+            .get("/api/public/sales/contracts/" + id + "/payment-attempts")
+            .then()
+            .statusCode(200)
+            .body("size()", equalTo(1))
+            .extract()
+            .jsonPath()
+            .getList("$");
+
+        assertEquals("PENDING", attempts.get(0).get("status"));
+        assertNotNull(attempts.get(0).get("id"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldGetSinglePaymentAttemptForContract() {
+        String id = createAwaitingPaymentContract(
+            "REST-PAYMENT-ATTEMPT-GET-" + System.currentTimeMillis());
+
+        String txId = given()
+            .when()
+            .get("/api/public/sales/contracts/" + id + "/payment-attempts")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("id[0]");
+
+        given()
+            .when()
+            .get("/api/public/sales/contracts/" + id + "/payment-attempts/" + txId)
+            .then()
+            .statusCode(200)
+            .body("id", equalTo(txId))
+            .body("status", equalTo("PENDING"))
+            .body("contractId", nullValue())
+            .body("productDefinitionId", nullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404WhenPaymentAttemptDoesNotBelongToContract() {
+        String id = createAwaitingPaymentContract(
+            "REST-PAYMENT-ATTEMPT-NOTFOUND-" + System.currentTimeMillis());
+
+        given()
+            .when()
+            .get("/api/public/sales/contracts/" + id + "/payment-attempts/" + UUID.randomUUID())
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404WhenListingPaymentAttemptsForMissingContract() {
+        given()
+            .when()
+            .get("/api/public/sales/contracts/" + UUID.randomUUID() + "/payment-attempts")
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "other-customer", roles = {"abstratium-abstrapact_user"})
+    void shouldForbidPaymentAttemptAccessForOtherCustomer() throws Exception {
+        String contractId = UUID.randomUUID().toString();
+        String txId = UUID.randomUUID().toString();
+        String productId = UUID.randomUUID().toString();
+        String ref = "REST-PAYMENT-SCOPING-" + System.currentTimeMillis();
+
+        // Create the product definition, contract, account role and payment transaction
+        // via native SQL so the test identity (other-customer) never needs to read
+        // tenant-scoped entities belonging to the default org.
+        utx.begin();
+        try {
+            em.createNativeQuery(
+                    "INSERT INTO T_product_definition " +
+                    "(id, organisation_id, product_code, description, billing_model, payment_model, " +
+                    " product_valid_from, cross_tenant_api_allowed) " +
+                    "VALUES (:id, :orgId, :code, :desc, 'FIXED_PRICE', 'PREPAID', :validFrom, true)")
+                .setParameter("id", productId)
+                .setParameter("orgId", defaultOrgId)
+                .setParameter("code", "REST-PAYMENT-SCOPING-PROD-" + System.currentTimeMillis())
+                .setParameter("desc", "Payment scoping test product")
+                .setParameter("validFrom", java.sql.Date.valueOf(LocalDate.now()))
+                .executeUpdate();
+
+            em.createNativeQuery(
+                    "INSERT INTO T_contract " +
+                    "(id, organisation_id, contract_reference, contract_date, currency, " +
+                    " grand_total, payment_model, state, public_notes, created_at, updated_at) " +
+                    "VALUES (:id, :orgId, :ref, :date, 'EUR', 100, 'PREPAID', 'AWAITING_PAYMENT', 'notes', :now, :now)")
+                .setParameter("id", contractId)
+                .setParameter("orgId", defaultOrgId)
+                .setParameter("ref", ref)
+                .setParameter("date", java.sql.Date.valueOf(LocalDate.now()))
+                .setParameter("now", java.sql.Timestamp.valueOf(java.time.LocalDateTime.now()))
+                .executeUpdate();
+
+            em.createNativeQuery(
+                    "INSERT INTO T_contract_account_role " +
+                    "(id, organisation_id, contract_id, account_id, role_type) " +
+                    "VALUES (:id, :orgId, :contractId, 'testuser', 'CUSTOMER')")
+                .setParameter("id", UUID.randomUUID().toString())
+                .setParameter("orgId", defaultOrgId)
+                .setParameter("contractId", contractId)
+                .executeUpdate();
+
+            em.createNativeQuery(
+                    "INSERT INTO T_payment_transaction " +
+                    "(id, organisation_id, contract_id, product_definition_id, psp_identifier, " +
+                    " correlation_id, gross_amount, currency, status, created_at, updated_at) " +
+                    "VALUES (:id, :orgId, :contractId, :productId, 'stripe', :correlationId, " +
+                    " 100, 'EUR', 'PENDING', :now, :now)")
+                .setParameter("id", txId)
+                .setParameter("orgId", defaultOrgId)
+                .setParameter("contractId", contractId)
+                .setParameter("productId", productId)
+                .setParameter("correlationId", UUID.randomUUID().toString())
+                .setParameter("now", java.sql.Timestamp.valueOf(java.time.LocalDateTime.now()))
+                .executeUpdate();
+
+            utx.commit();
+        } catch (Exception e) {
+            utx.rollback();
+            throw e;
+        }
+
+        given()
+            .when()
+            .get("/api/public/sales/contracts/" + contractId + "/payment-attempts")
+            .then()
+            .statusCode(403);
+
+        given()
+            .when()
+            .get("/api/public/sales/contracts/" + contractId + "/payment-attempts/" + txId)
+            .then()
+            .statusCode(403);
+
+        given()
+            .when()
+            .get("/api/public/sales/contracts/" + contractId + "/state-changes")
+            .then()
+            .statusCode(403);
+    }
+
+    // ==================== Security tests for new read endpoints ====================
+
+    @Test
+    void shouldRequireAuthenticationForStateChangesEndpoint() {
+        given()
+            .when()
+            .get("/api/public/sales/contracts/" + UUID.randomUUID() + "/state-changes")
+            .then()
+            .statusCode(anyOf(is(400), is(401)));
+    }
+
+    @Test
+    void shouldRequireAuthenticationForPaymentAttemptsEndpoint() {
+        given()
+            .when()
+            .get("/api/public/sales/contracts/" + UUID.randomUUID() + "/payment-attempts")
+            .then()
+            .statusCode(anyOf(is(400), is(401)));
+    }
+
+    // ==================== Organisation scoping on service layer ====================
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void serviceShouldAllowStateChangesWhenCallerOrgMatchesContractOrg() {
+        String contractId = createAwaitingPaymentContract(
+            "REST-SVC-STATE-ORG-OK-" + System.currentTimeMillis());
+
+        List<dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.ContractStateChangeResponse> changes =
+            contractService.listStateChanges(contractId, "other-customer", defaultOrgId);
+
+        assertEquals(5, changes.size());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void serviceShouldRejectStateChangesWhenCallerOrgDoesNotMatchContractOrg() {
+        String contractId = createAwaitingPaymentContract(
+            "REST-SVC-STATE-ORG-FORBIDDEN-" + System.currentTimeMillis());
+
+        jakarta.ws.rs.WebApplicationException ex = org.junit.jupiter.api.Assertions.assertThrows(
+            jakarta.ws.rs.WebApplicationException.class,
+            () -> contractService.listStateChanges(contractId, "other-customer", OTHER_ORG_ID));
+        assertEquals(403, ex.getResponse().getStatus());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void serviceShouldAllowPaymentAttemptsWhenCallerOrgMatchesContractOrg() {
+        String contractId = createAwaitingPaymentContract(
+            "REST-SVC-PAYMENTS-ORG-OK-" + System.currentTimeMillis());
+
+        List<dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.PaymentAttemptResponse> attempts =
+            contractService.listPaymentAttempts(contractId, "other-customer", defaultOrgId);
+
+        assertEquals(1, attempts.size());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void serviceShouldRejectPaymentAttemptsWhenCallerOrgDoesNotMatchContractOrg() {
+        String contractId = createAwaitingPaymentContract(
+            "REST-SVC-PAYMENTS-ORG-FORBIDDEN-" + System.currentTimeMillis());
+
+        jakarta.ws.rs.WebApplicationException ex = org.junit.jupiter.api.Assertions.assertThrows(
+            jakarta.ws.rs.WebApplicationException.class,
+            () -> contractService.listPaymentAttempts(contractId, "other-customer", OTHER_ORG_ID));
+        assertEquals(403, ex.getResponse().getStatus());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void serviceShouldAllowSinglePaymentAttemptWhenCallerOrgMatchesContractOrg() {
+        String contractId = createAwaitingPaymentContract(
+            "REST-SVC-PAYMENT-GET-ORG-OK-" + System.currentTimeMillis());
+        String txId = contractService.listPaymentAttempts(contractId, "testuser", null).get(0).getId();
+
+        dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.PaymentAttemptResponse attempt =
+            contractService.getPaymentAttempt(contractId, txId, "other-customer", defaultOrgId);
+
+        assertEquals(txId, attempt.getId());
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void serviceShouldRejectSinglePaymentAttemptWhenCallerOrgDoesNotMatchContractOrg() {
+        String contractId = createAwaitingPaymentContract(
+            "REST-SVC-PAYMENT-GET-ORG-FORBIDDEN-" + System.currentTimeMillis());
+        String txId = contractService.listPaymentAttempts(contractId, "testuser", null).get(0).getId();
+
+        jakarta.ws.rs.WebApplicationException ex = org.junit.jupiter.api.Assertions.assertThrows(
+            jakarta.ws.rs.WebApplicationException.class,
+            () -> contractService.getPaymentAttempt(contractId, txId, "other-customer", OTHER_ORG_ID));
+        assertEquals(403, ex.getResponse().getStatus());
     }
 }

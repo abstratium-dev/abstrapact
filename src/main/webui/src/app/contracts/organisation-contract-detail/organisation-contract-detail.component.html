@@ -1,0 +1,79 @@
+<div class="container" data-testid="organisation-contract-detail-page">
+  <div class="page-header">
+    <h1>Contract Details</h1>
+    <div class="header-actions">
+      <button class="btn-secondary" (click)="onBack()">
+        Back to Organisation Contracts
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="contractLoading()" class="loading">
+    <p>Loading contract...</p>
+  </div>
+
+  <div *ngIf="contractError()" class="error-box">
+    <p>{{ contractError() }}</p>
+    <button (click)="onBack()">Go Back</button>
+  </div>
+
+  <div *ngIf="!contractLoading() && !contractError() && contract()">
+    <div class="card" data-testid="organisation-contract-summary-card">
+      <div class="card-header">
+        <h2>{{ contract()!.contractReference }}</h2>
+        <span class="badge" [class]="getStateClass(contract()!.state)" data-testid="organisation-contract-state-badge">
+          {{ contract()!.state }}
+        </span>
+      </div>
+      <div class="detail-section">
+        <div class="detail-row">
+          <span class="label">Contract Date</span>
+          <span class="value">{{ formatDate(contract()!.contractDate) }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Total</span>
+          <span class="value">{{ formatCurrency(contract()!.grandTotal, contract()!.currency) }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Payment Model</span>
+          <span class="value">{{ contract()!.paymentModel }}</span>
+        </div>
+        <div class="detail-row" *ngIf="contract()!.publicNotes">
+          <span class="label">Notes</span>
+          <span class="value">{{ contract()!.publicNotes }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" *ngIf="!stateChangesLoading() && stateChanges().length > 0" data-testid="organisation-state-changes-card">
+      <div class="card-header">
+        <h2>State Changes</h2>
+      </div>
+      <div class="detail-section">
+        <div class="detail-row state-change-row" *ngFor="let change of stateChanges()" data-testid="organisation-state-change-row">
+          <span class="label">{{ formatDateTime(change.stepTimestamp) }}</span>
+          <span class="value">
+            <span *ngIf="change.fromState">{{ change.fromState }} &rarr; </span>{{ change.toState }}
+            <span *ngIf="change.actorUserId" class="text-muted">by {{ change.actorUserId }}</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" *ngIf="!paymentAttemptsLoading() && paymentAttempts().length > 0" data-testid="organisation-payment-attempts-card">
+      <div class="card-header">
+        <h2>Payment Attempts</h2>
+      </div>
+      <div class="detail-section">
+        <div class="detail-row payment-attempt-row" *ngFor="let attempt of paymentAttempts()" data-testid="organisation-payment-attempt-row">
+          <span class="label">{{ formatDateTime(attempt.createdAt) }}</span>
+          <span class="value">
+            {{ formatCurrency(attempt.grossAmount, attempt.currency) }}
+            <span class="badge" [class]="getPaymentStatusClass(attempt.status)" data-testid="organisation-payment-status-badge">{{ attempt.status }}</span>
+            <span *ngIf="attempt.pspIdentifier" class="text-muted">({{ attempt.pspIdentifier }})</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

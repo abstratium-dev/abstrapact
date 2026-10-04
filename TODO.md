@@ -17,12 +17,21 @@
 
 - user interface to review payments?
   - X work on adding REST endpoints
-  - work on adding angular user interface
-  - inform users if something is wrong with a payment?
+    - tests:
+      - X user cannot read state changes of contracts outside of the org: NMCContractService#listStateChanges
+      - X user cannot read payment attempts of contracts outside of the org: NMCContractService#listPaymentAttempts
+      - X user cannot read payment attempt of contracts outside of the org: NMCContractService#getPaymentAttempt
+      - purchase from a different org, and view that contract
+  - X work on adding angular user interface (view own contracts list + detail)
 
-      Admin query endpoint — e.g. GET /api/admin/payment-transactions?status=STALE so ops can list/reconcile them.
-      Email to admin when such transactions exist.
-      A resolution path — something to mark the tx reviewed (e.g. admin "confirm & transition contract to RUNNING" endpoint, or refund instruction). Without it, STALE is terminal forever.
+  - add user interface and endpoints for loading all payments to the org.
+
+  - add a "reconcilliation" link from a payment to the stripe page, so that admins can verify payments in stripe - of course only if the contract belongs to the org that the user belongs to
+
+  - inform users if something is wrong with a payment?
+      - Admin query endpoint — e.g. GET /api/admin/payment-transactions?status=STALE so ops can list/reconcile them.
+      - Email to admin when such transactions exist.
+      - A resolution path — something to mark the tx reviewed (e.g. admin "confirm & transition contract to RUNNING" endpoint, or refund instruction). Without it, STALE is terminal forever.
 
 - independent security review
   - do security review of payment APIs

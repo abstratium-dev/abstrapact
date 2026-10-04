@@ -1,0 +1,41 @@
+<div class="container" data-testid="contracts-list-page">
+  <div class="page-header">
+    <h1>My Contracts</h1>
+  </div>
+
+  <div *ngIf="loading()" class="loading">
+    <p>Loading contracts...</p>
+  </div>
+
+  <div *ngIf="error()" class="error-box">
+    <p>{{ error() }}</p>
+    <button (click)="onRetry()">Retry</button>
+  </div>
+
+  <div *ngIf="!loading() && !error() && contracts().length === 0" class="info-message">
+    <p>No contracts found.</p>
+  </div>
+
+  <div *ngIf="!loading() && !error() && contracts().length > 0">
+    <div class="card-list" data-testid="contracts-card-list">
+      <div class="card contract-tile" *ngFor="let contract of contracts()" (click)="onView(contract)" [attr.data-testid]="'contract-tile-' + contract.id">
+        <div class="card-header">
+          <h2 class="tile-title">{{ contract.contractReference }}</h2>
+          <span class="badge" [class]="getStateClass(contract.state)" data-testid="contract-state-badge">
+            {{ contract.state }}
+          </span>
+        </div>
+        <div class="detail-section">
+          <div class="detail-row">
+            <span class="label">Contract Date</span>
+            <span class="value">{{ formatDate(contract.contractDate) }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Total</span>
+            <span class="value">{{ formatCurrency(contract.grandTotal, contract.currency) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

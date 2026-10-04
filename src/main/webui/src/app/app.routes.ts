@@ -25,5 +25,13 @@ export const routes: Routes = [
   { path: 'terms-and-conditions/:id', loadComponent: () => import('./terms-and-conditions/terms-and-conditions-detail/terms-and-conditions-detail.component').then(m => m.TermsAndConditionsDetailComponent), canActivate: [authGuard] },
   { path: 'terms-and-conditions/:id/edit', loadComponent: () => import('./terms-and-conditions/terms-and-conditions-form/terms-and-conditions-form.component').then(m => m.TermsAndConditionsFormComponent), canActivate: [authGuard] },
 
+  // Customer contracts routes
+  { path: 'contracts', loadComponent: () => import('./contracts/contracts-list/contracts-list.component').then(m => m.ContractsListComponent), canActivate: [authGuard] },
+  { path: 'contracts/:id', loadComponent: () => import('./contracts/contract-detail/contract-detail.component').then(m => m.ContractDetailComponent), canActivate: [authGuard] },
+
+  // Organisation contracts routes
+  { path: 'organisation-contracts', loadComponent: () => import('./contracts/organisation-contracts-list/organisation-contracts-list.component').then(m => m.OrganisationContractsListComponent), canActivate: [authGuard] },
+  { path: 'organisation-contracts/:id', loadComponent: () => import('./contracts/organisation-contract-detail/organisation-contract-detail.component').then(m => m.OrganisationContractDetailComponent), canActivate: [authGuard] },
+
   { path: '**', loadComponent: () => import('./core/not-found/not-found.component').then(m => m.NotFoundComponent) }
 ];

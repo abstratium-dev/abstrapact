@@ -4,6 +4,7 @@ import dev.abstratium.abstrapact.contracts.entity.ContractState;
 import dev.abstratium.abstrapact.contracts.entity.ContractTermsLink.TermsScope;
 import dev.abstratium.abstrapact.non_multitenancy.sales.entity.*;
 import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.*;
+import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.PaymentTransaction;
 import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyProductDefinition;
 import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyProductInstance;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -261,6 +262,70 @@ public class NonMultitenancyCustomerContractService {
         return toResponse(contract, contract.getLineItems());
     }
 
+    /**
+     * Returns the state changes recorded for the contract's sales process instance,
+     * ordered chronologically.
+     *
+     * @param contractId the contract id
+     * @param accountId  the caller's JWT {@code sub} claim
+     * @return list of state change responses
+     */
+    public List<ContractStateChangeResponse> listStateChanges(String contractId, String accountId, String callerOrgId) {
+        loadContractForAccountOrOrg(contractId, accountId, callerOrgId);
+        return em.createQuery(
+                "SELECT s FROM NonMultitenancyProcessInstanceStep s " +
+                "WHERE s.processInstance.contractId = :contractId " +
+                "ORDER BY s.stepTimestamp ASC",
+                NonMultitenancyProcessInstanceStep.class)
+            .setParameter("contractId", contractId)
+            .getResultStream()
+            .map(this::toStateChangeResponse)
+            .toList();
+    }
+
+    /**
+     * Returns all payment attempts recorded for the contract, ordered by creation
+     * time descending (most recent first).
+     *
+     * @param contractId the contract id
+     * @param accountId  the caller's JWT {@code sub} claim
+     * @param callerOrgId the caller's organisation id; may be null when not available
+     * @return list of payment attempt responses
+     */
+    public List<PaymentAttemptResponse> listPaymentAttempts(String contractId, String accountId, String callerOrgId) {
+        loadContractForAccountOrOrg(contractId, accountId, callerOrgId);
+        return em.createQuery(
+                "SELECT t FROM PaymentTransaction t WHERE t.contractId = :contractId " +
+                "ORDER BY t.createdAt DESC",
+                PaymentTransaction.class)
+            .setParameter("contractId", contractId)
+            .getResultStream()
+            .map(this::toPaymentAttemptResponse)
+            .toList();
+    }
+
+    /**
+     * Returns a single payment attempt for the contract.
+     *
+     * @param contractId the contract id
+     * @param txId       the payment transaction id
+     * @param accountId  the caller's JWT {@code sub} claim
+     * @param callerOrgId the caller's organisation id; may be null when not available
+     * @return the payment attempt response
+     * @throws WebApplicationException 404 if the attempt does not belong to the contract
+     */
+    public PaymentAttemptResponse getPaymentAttempt(String contractId, String txId, String accountId, String callerOrgId) {
+        loadContractForAccountOrOrg(contractId, accountId, callerOrgId);
+        PaymentTransaction tx = em.find(PaymentTransaction.class, txId);
+        if (tx == null || !tx.getContractId().equals(contractId)) {
+            throw new WebApplicationException(
+                Response.status(Response.Status.NOT_FOUND)
+                    .entity("Payment attempt not found: " + txId)
+                    .build());
+        }
+        return toPaymentAttemptResponse(tx);
+    }
+
     // ==================== Org resolution ====================
 
     /**
@@ -338,6 +403,13 @@ public class NonMultitenancyCustomerContractService {
     }
 
     private NonMultitenancyContract loadContractForAccount(String contractId, String accountId) {
+        return loadContractForAccountOrOrg(contractId, accountId, null);
+    }
+
+    private NonMultitenancyContract loadContractForAccountOrOrg(
+            String contractId,
+            String accountId,
+            String callerOrgId) {
         NonMultitenancyContract contract = em.find(NonMultitenancyContract.class, contractId);
         if (contract == null) {
             throw new WebApplicationException(
@@ -345,6 +417,14 @@ public class NonMultitenancyCustomerContractService {
                     .entity("Contract not found: " + contractId)
                     .build());
         }
+
+        // Seller view: allow access when the caller's organisation owns the contract.
+        if (callerOrgId != null && !callerOrgId.isBlank()
+                && contract.getOrganisationId().equals(callerOrgId)) {
+            return contract;
+        }
+
+        // Customer view: allow access when the caller is linked to the contract.
         boolean linked = em.createQuery(
                 "SELECT COUNT(r) FROM NonMultitenancyContractAccountRole r " +
                 "WHERE r.contract.id = :cid AND r.accountId = :aid AND r.roleType = 'CUSTOMER'",
@@ -408,6 +488,36 @@ public class NonMultitenancyCustomerContractService {
             liResponses.add(liR);
         }
         r.setLineItems(liResponses);
+        return r;
+    }
+
+    private ContractStateChangeResponse toStateChangeResponse(NonMultitenancyProcessInstanceStep s) {
+        ContractStateChangeResponse r = new ContractStateChangeResponse();
+        r.setId(s.getId());
+        r.setProcessInstanceId(s.getProcessInstance().getId());
+        r.setStepTimestamp(s.getStepTimestamp());
+        r.setFromState(s.getFromState());
+        r.setToState(s.getToState());
+        r.setActorUserId(s.getActorUserId());
+        r.setReason(s.getReason());
+        return r;
+    }
+
+    private PaymentAttemptResponse toPaymentAttemptResponse(PaymentTransaction t) {
+        PaymentAttemptResponse r = new PaymentAttemptResponse();
+        r.setId(t.getId());
+        r.setStatus(t.getStatus());
+        r.setGrossAmount(t.getGrossAmount());
+        r.setFeeAmount(t.getFeeAmount());
+        r.setNetAmount(t.getNetAmount());
+        r.setCurrency(t.getCurrency());
+        r.setPspIdentifier(t.getPspIdentifier());
+        r.setPspSessionId(t.getPspSessionId());
+        r.setPspTransactionRef(t.getPspTransactionRef());
+        r.setCheckoutUrl(t.getCheckoutUrl());
+        r.setCorrelationId(t.getCorrelationId());
+        r.setCreatedAt(t.getCreatedAt());
+        r.setUpdatedAt(t.getUpdatedAt());
         return r;
     }
 

@@ -6,6 +6,8 @@ import dev.abstratium.abstrapact.contracts.entity.ContractState;
 import dev.abstratium.abstrapact.contracts.boundary.dto.ContractSummary;
 import dev.abstratium.abstrapact.contracts.boundary.dto.CreateDraftContractRequest;
 import dev.abstratium.abstrapact.contracts.service.ContractService;
+import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.ContractStateChangeResponse;
+import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.PaymentAttemptResponse;
 import dev.abstratium.core.service.CurrentOrgContext;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -64,6 +66,29 @@ public class ContractResource {
             return Response.ok(contract.get()).build();
         }
         return Response.status(Response.Status.NOT_FOUND).build();
+    }
+
+    @GET
+    @Path("/{id}/state-changes")
+    @Operation(summary = "List state changes for a contract")
+    public List<ContractStateChangeResponse> listStateChanges(@PathParam("id") String id) {
+        return service.listStateChanges(id);
+    }
+
+    @GET
+    @Path("/{id}/payment-attempts")
+    @Operation(summary = "List payment attempts for a contract")
+    public List<PaymentAttemptResponse> listPaymentAttempts(@PathParam("id") String id) {
+        return service.listPaymentAttempts(id);
+    }
+
+    @GET
+    @Path("/{id}/payment-attempts/{txId}")
+    @Operation(summary = "Get a single payment attempt for a contract")
+    public PaymentAttemptResponse getPaymentAttempt(
+            @PathParam("id") String id,
+            @PathParam("txId") String txId) {
+        return service.getPaymentAttempt(id, txId);
     }
 
     @DELETE
