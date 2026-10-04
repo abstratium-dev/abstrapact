@@ -144,7 +144,7 @@ class NonMultitenancyCustomerContractServiceTest {
             buildRequest("REF-FORBIDDEN-001"), defaultOrgId, ACCOUNT_ID);
 
         WebApplicationException ex = assertThrows(WebApplicationException.class,
-            () -> service.getContract(resp.getId(), "wrong-account"));
+            () -> service.getContract(resp.getId(), "wrong-account", null));
         assertEquals(403, ex.getResponse().getStatus());
     }
 

@@ -31,6 +31,10 @@
             <span class="value">{{ formatDate(contract.contractDate) }}</span>
           </div>
           <div class="detail-row">
+            <span class="label">Created At</span>
+            <span class="value">{{ formatDateTime(contract.createdAt) }}</span>
+          </div>
+          <div class="detail-row">
             <span class="label">Total</span>
             <span class="value">{{ formatCurrency(contract.grandTotal, contract.currency) }}</span>
           </div>

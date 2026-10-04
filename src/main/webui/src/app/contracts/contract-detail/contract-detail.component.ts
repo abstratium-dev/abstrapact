@@ -8,7 +8,7 @@ import {
   PaymentAttempt,
 } from '../contracts.model.service';
 import { ContractsController } from '../contracts.controller';
-import { formatDateTime as formatDateTimeString } from '../date-format';
+import { formatDate as formatDateString, formatDateTime as formatDateTimeString } from '../date-format';
 
 @Component({
   selector: 'app-contract-detail',
@@ -48,7 +48,7 @@ export class ContractDetailComponent implements OnInit {
   }
 
   formatDate(date: string | null): string {
-    return formatDateTimeString(date);
+    return formatDateString(date);
   }
 
   formatDateTime(date: string | null): string {

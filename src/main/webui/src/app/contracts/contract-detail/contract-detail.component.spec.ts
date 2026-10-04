@@ -38,6 +38,7 @@ describe('ContractDetailComponent', () => {
     createdAt: '2024-01-15T10:00:00Z',
     updatedAt: '2024-01-15T10:00:00Z',
     lineItems: [],
+    termsLinks: [],
     checkoutUrl: 'https://checkout.example.com',
   };
 
@@ -174,7 +175,7 @@ describe('ContractDetailComponent', () => {
 
   describe('Utility Methods', () => {
     it('should format date correctly', () => {
-      expect(component.formatDate('2024-01-15')).toBe('2024-01-15 00:00:00.000');
+      expect(component.formatDate('2024-01-15')).toBe('2024-01-15');
     });
 
     it('should return N/A for null date', () => {
@@ -182,7 +183,12 @@ describe('ContractDetailComponent', () => {
     });
 
     it('should format datetime correctly', () => {
-      expect(component.formatDateTime('2024-01-15T10:00:00Z')).toBe('2024-01-15 10:00:00.000');
+      const input = '2024-01-15T10:00:00Z';
+      const d = new Date(input);
+      const pad2 = (n: number) => n.toString().padStart(2, '0');
+      const expected = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ` +
+        `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}.${d.getMilliseconds().toString().padStart(3, '0')}`;
+      expect(component.formatDateTime(input)).toBe(expected);
     });
 
     it('should format currency correctly', () => {

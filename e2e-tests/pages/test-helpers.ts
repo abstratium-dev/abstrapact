@@ -131,18 +131,21 @@ export async function assertHeaderSignedIn(page: Page) {
 const EMAIL = 'test@abstratium.dev';
 const PASSWORD = 'secretLong';
 
-export async function signInViaHeader(page: Page) {
-    console.log('[TestHelper] Signing in via header');
+export async function signInAsUser(page: Page, email: string, password: string) {
+    console.log(`[TestHelper] Signing in as ${email}`);
     await dismissCookieNoticeIfPresent(page);
     const alreadySignedIn = await page.locator('#signout-link').isVisible().catch(() => false);
     if (alreadySignedIn) {
-        console.log('[TestHelper] Already signed in, skipping auth flow');
-        await assertHeaderSignedIn(page);
-        return;
+        console.log('[TestHelper] Already signed in, signing out first');
+        await signOut(page);
     }
     await headerSignInLink(page).click();
-    await handleAuthServer(page, EMAIL, PASSWORD);
+    await handleAuthServer(page, email, password);
     await assertHeaderSignedIn(page);
+}
+
+export async function signInViaHeader(page: Page) {
+    await signInAsUser(page, EMAIL, PASSWORD);
 }
 
 export function testStepLogger(testName: string) {

@@ -1,6 +1,6 @@
 import { env } from 'node:process';
 import { test, expect, Page } from '@playwright/test';
-import { signInViaHeader, testStepLogger } from '../pages/test-helpers';
+import { signInViaHeader, signInAsUser, testStepLogger } from '../pages/test-helpers';
 import { handleAuthServer, headerSignInLink, signOut } from '../pages/test-helpers';
 import { registerNewUser } from '../pages/auth-server.page';
 import {
@@ -11,8 +11,21 @@ import {
     assertPaymentAttemptCount,
     assertPaymentAttemptStatus,
     assertStateChangeCount,
+    assertStateChangesInclude,
     goBackToContractsList,
     clickPaymentSuccessReturnLink,
+    navigateToOrganisationContractsList,
+    assertOrganisationContractVisibleInList,
+    openOrganisationContractDetail,
+    assertOrganisationContractDetailState,
+    assertOrganisationPaymentAttemptCount,
+    assertOrganisationPaymentAttemptStatus,
+    assertOrganisationPaymentAttemptShowsNetAndFee,
+    assertOrganisationPaymentAttemptShowsPspDetails,
+    assertOrganisationStateChangeCount,
+    assertOrganisationStateChangesInclude,
+    assertOrganisationTermsLinksVisible,
+    goBackToOrganisationContractsList,
 } from '../pages/contracts.page';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -32,6 +45,10 @@ let stripeWebhookSecret: string | null = env.STRIPE_TEST_WEBHOOK_SECRET || null;
 const STRIPE_TEST_CARD_NUMBER = '4242424242424242';
 const STRIPE_TEST_CARD_EXPIRY = '1230'; // 12/30
 const STRIPE_TEST_CARD_CVC = '123';
+
+// Seller credentials used to create the product in PF1.
+const SELLER_EMAIL = 'test@abstratium.dev';
+const SELLER_PASSWORD = 'secretLong';
 
 /**
  * Fetches the Stripe webhook signing secret from the start-stripe-cli.js helper
@@ -103,6 +120,7 @@ async function createCrossTenantProduct(page: Page, productCode: string, partCod
             billingModel: 'FIXED_PRICE',
             paymentModel: 'PREPAID',
             crossTenantApiAllowed: true,
+            termsAndConditionsCode: 'ABSTRATIUM-001',
             stripeSecretKey: STRIPE_TEST_SECRET_KEY,
             stripeWebhookSecret: stripeWebhookSecret,
         },
@@ -483,21 +501,41 @@ test.describe('05 Payment Flow', () => {
         log('Verify contract is RUNNING and payment is SUCCEEDED in the contracts UI');
         await clickPaymentSuccessReturnLink(page, contractId);
         await assertContractDetailState(page, 'RUNNING');
-        await assertStateChangeCount(page, 6); // includes AWAITING_PAYMENT -> RUNNING
+        await assertStateChangesInclude(page, 5, ['DRAFT', 'RUNNING']);
         await assertPaymentAttemptCount(page, 1);
         await assertPaymentAttemptStatus(page, 0, 'SUCCEEDED');
         await goBackToContractsList(page);
         await assertContractVisibleInList(page, contractId, 'RUNNING');
-        console.log('[PF1] Post-payment UI verification passed');
+        console.log('[PF1] Post-payment customer UI verification passed');
 
-        // ── Step 9: print manual verification info ─────────────────────────────
-        const baseUrl = page.context().pages()[0].url().replace(/\/contracts.*$/, '') || env.BASE_URL || 'http://localhost:8088';
+        // ── Step 9: sign in as the seller and verify the organisation contract view
+        log('Sign in as seller and verify organisation contract view');
+        await signOut(page);
+        await signInAsUser(page, SELLER_EMAIL, SELLER_PASSWORD);
+        await navigateToOrganisationContractsList(page);
+        await assertOrganisationContractVisibleInList(page, contractId, 'RUNNING');
+        await openOrganisationContractDetail(page, contractId);
+        await assertOrganisationContractDetailState(page, 'RUNNING');
+        await assertOrganisationStateChangesInclude(page, 5, ['DRAFT', 'RUNNING']);
+        await assertOrganisationTermsLinksVisible(page);
+        await assertOrganisationPaymentAttemptCount(page, 1);
+        await assertOrganisationPaymentAttemptStatus(page, 0, 'SUCCEEDED');
+        await assertOrganisationPaymentAttemptShowsNetAndFee(page, 0);
+        await assertOrganisationPaymentAttemptShowsPspDetails(page, 0);
+        console.log('[PF1] Seller organisation contract view verification passed');
+
+        // ── Step 10: print manual verification info ─────────────────────────────
+        const baseUrl = page.context().pages()[0].url().replace(/\/organisation-contracts.*$/, '') || env.BASE_URL || 'http://localhost:8088';
         console.log('\n===== MANUAL VERIFICATION INFO =====');
-        console.log(`Username: ${newUserEmail}`);
-        console.log(`Password: ${newUserPassword}`);
+        console.log(`Customer username: ${newUserEmail}`);
+        console.log(`Customer password: ${newUserPassword}`);
+        console.log(`Seller username: ${SELLER_EMAIL}`);
+        console.log(`Seller password: ${SELLER_PASSWORD}`);
         console.log(`Contract ID: ${contractId}`);
-        console.log(`Contracts list URL: ${baseUrl}/contracts`);
-        console.log(`Contract detail URL: ${baseUrl}/contracts/${contractId}`);
+        console.log(`Customer contracts list URL: ${baseUrl}/contracts`);
+        console.log(`Customer contract detail URL: ${baseUrl}/contracts/${contractId}`);
+        console.log(`Seller organisation contracts list URL: ${baseUrl}/organisation-contracts`);
+        console.log(`Seller organisation contract detail URL: ${baseUrl}/organisation-contracts/${contractId}`);
         console.log('=====================================\n');
 
         console.log(`[PF1] Payment flow completed successfully: id=${contractId}, state=RUNNING`);

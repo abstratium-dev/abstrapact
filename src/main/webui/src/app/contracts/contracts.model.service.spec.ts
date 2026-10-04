@@ -5,7 +5,6 @@ import {
   CustomerContractSummary,
   CustomerContract,
   OrganisationContractSummary,
-  OrganisationContract,
   ContractStateChange,
   PaymentAttempt,
 } from './contracts.model.service';
@@ -29,6 +28,7 @@ describe('ContractsModelService', () => {
     ...mockContractSummary,
     publicNotes: 'notes',
     lineItems: [],
+    termsLinks: [],
     checkoutUrl: null,
   };
 
@@ -70,10 +70,20 @@ describe('ContractsModelService', () => {
     updatedAt: '2024-01-15T10:00:00Z',
   };
 
-  const mockOrgContract: OrganisationContract = {
-    ...mockOrgContractSummary,
+  const mockOrgContract: CustomerContract = {
+    id: 'org-contract-1',
+    contractReference: 'ORG-REF-001',
+    sellerOrganisationId: 'seller-org-1',
+    contractDate: '2024-01-15',
+    currency: 'EUR',
+    grandTotal: 123.45,
+    state: 'RUNNING',
     publicNotes: 'org notes',
+    createdAt: '2024-01-15T10:00:00Z',
+    updatedAt: '2024-01-15T10:00:00Z',
     lineItems: [],
+    termsLinks: [],
+    checkoutUrl: null,
   };
 
   beforeEach(() => {

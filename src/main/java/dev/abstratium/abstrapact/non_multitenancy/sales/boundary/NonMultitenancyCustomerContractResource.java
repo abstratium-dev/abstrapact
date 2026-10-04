@@ -154,7 +154,10 @@ public class NonMultitenancyCustomerContractResource {
     @Path("/{id}")
     @Operation(summary = "Get a single contract by id")
     public CustomerContractResponse get(@PathParam("id") String id) {
-        return contractService.getContract(id, accountId());
+        String callerOrgId = currentOrgContext.getOrgId();
+        String sellerOrgId = resolveOrgIdFromContract(id);
+        currentOrgContext.setOrgId(sellerOrgId);
+        return contractService.getContract(id, accountId(), callerOrgId);
     }
 
     @GET
@@ -294,7 +297,7 @@ public class NonMultitenancyCustomerContractResource {
                 () -> {
                 try {
                     String checkoutUrl = salesProcessService.acceptContract(id, accountId);
-                    CustomerContractResponse response = contractService.getContract(id, accountId);
+                    CustomerContractResponse response = contractService.getContract(id, accountId, currentOrgContext.getOrgId());
                     response.setCheckoutUrl(checkoutUrl);
                     String json = objectMapper.writeValueAsString(response);
                     return new ProcessedResponse(200, json);
@@ -359,7 +362,7 @@ public class NonMultitenancyCustomerContractResource {
                 () -> {
                 try {
                     String checkoutUrl = paymentService.retryPayment(id, accountId);
-                    CustomerContractResponse response = contractService.getContract(id, accountId);
+                    CustomerContractResponse response = contractService.getContract(id, accountId, currentOrgContext.getOrgId());
                     response.setCheckoutUrl(checkoutUrl);
                     String json = objectMapper.writeValueAsString(response);
                     return new ProcessedResponse(200, json);
@@ -431,7 +434,7 @@ public class NonMultitenancyCustomerContractResource {
                     .build());
         }
         try {
-            CustomerContractResponse response = contractService.getContract(contractId, accountId);
+            CustomerContractResponse response = contractService.getContract(contractId, accountId, currentOrgContext.getOrgId());
             response.setCheckoutUrl(checkoutUrl);
             return Response.ok(objectMapper.writeValueAsString(response)).build();
         } catch (Exception ex) {

@@ -26,6 +26,11 @@
 
   - add user interface and endpoints for loading all payments to the org.
 
+  - be able to update payments when webhook receives a refunded payment
+
+  - show all webhook calls?
+  - why does T_webhook_event_AUD exist?
+
   - add a "reconcilliation" link from a payment to the stripe page, so that admins can verify payments in stripe - of course only if the contract belongs to the org that the user belongs to
 
   - inform users if something is wrong with a payment?

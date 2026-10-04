@@ -7,6 +7,7 @@ import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.*;
 import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.PaymentTransaction;
 import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyProductDefinition;
 import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyProductInstance;
+import dev.abstratium.core.service.OrgScopedCodec;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -128,7 +129,7 @@ public class NonMultitenancyCustomerContractService {
 
         salesProcessService.startSalesProcess(contract, accountId);
 
-        return toResponse(contract, lineItems);
+        return toResponse(contract, lineItems, contract.getTermsLinks());
     }
 
     // ==================== Update ====================
@@ -186,7 +187,7 @@ public class NonMultitenancyCustomerContractService {
         contract.setLineItems(lineItems);
         em.merge(contract);
 
-        return toResponse(contract, lineItems);
+        return toResponse(contract, lineItems, contract.getTermsLinks());
     }
 
     // ==================== Delete line item ====================
@@ -223,7 +224,7 @@ public class NonMultitenancyCustomerContractService {
         contract.setUpdatedAt(LocalDateTime.now());
         em.merge(contract);
 
-        return toResponse(contract, contract.getLineItems());
+        return toResponse(contract, contract.getLineItems(), contract.getTermsLinks());
     }
 
     // ==================== Read ====================
@@ -257,9 +258,14 @@ public class NonMultitenancyCustomerContractService {
     /**
      * Returns the full contract detail, scoped to the caller's account.
      */
-    public CustomerContractResponse getContract(String contractId, String accountId) {
-        NonMultitenancyContract contract = loadContractForAccount(contractId, accountId);
-        return toResponse(contract, contract.getLineItems());
+    public CustomerContractResponse getContract(String contractId, String accountId, String callerOrgId) {
+        NonMultitenancyContract contract = loadContractForAccountOrOrg(contractId, accountId, callerOrgId);
+        List<NonMultitenancyContractTermsLink> termsLinks = em.createQuery(
+                "SELECT l FROM NonMultitenancyContractTermsLink l WHERE l.contract.id = :contractId",
+                NonMultitenancyContractTermsLink.class)
+            .setParameter("contractId", contractId)
+            .getResultList();
+        return toResponse(contract, contract.getLineItems(), termsLinks);
     }
 
     /**
@@ -378,14 +384,20 @@ public class NonMultitenancyCustomerContractService {
         }
 
         LocalDate today = LocalDate.now();
+        String storedCode = pd.getTermsAndConditionsCode();
+        String rawCode = OrgScopedCodec.isPrefixed(storedCode)
+            ? OrgScopedCodec.decode(storedCode, "Conditions")
+            : storedCode;
         Optional<NonMultitenancyTermsAndConditions> tac = em.createQuery(
                 "SELECT t FROM NonMultitenancyTermsAndConditions t " +
-                "WHERE t.organisationId = :orgId AND t.code = :code " +
+                "WHERE t.organisationId = :orgId " +
+                "AND (t.code = :storedCode OR t.code = :rawCode) " +
                 "AND t.effectiveFrom <= :today " +
                 "AND (t.effectiveUntil IS NULL OR t.effectiveUntil >= :today)",
                 NonMultitenancyTermsAndConditions.class)
             .setParameter("orgId", sellerOrgId)
-            .setParameter("code", pd.getTermsAndConditionsCode())
+            .setParameter("storedCode", storedCode)
+            .setParameter("rawCode", rawCode)
             .setParameter("today", today)
             .getResultStream()
             .findFirst();
@@ -464,7 +476,8 @@ public class NonMultitenancyCustomerContractService {
 
     private CustomerContractResponse toResponse(
             NonMultitenancyContract c,
-            List<NonMultitenancyContractLineItem> lineItems) {
+            List<NonMultitenancyContractLineItem> lineItems,
+            List<NonMultitenancyContractTermsLink> termsLinks) {
 
         CustomerContractResponse r = new CustomerContractResponse();
         r.setId(c.getId());
@@ -485,9 +498,27 @@ public class NonMultitenancyCustomerContractService {
             liR.setDisplayOrder(li.getDisplayOrder());
             liR.setLineTotal(li.getLineTotal());
             liR.setProductInstance(li.getProductInstance());
+            if (li.getProductInstance() != null && li.getProductInstance().getProductDefinition() != null) {
+                liR.setProductCode(li.getProductInstance().getProductDefinition().getProductCode());
+                liR.setProductDescription(li.getProductInstance().getProductDefinition().getDescription());
+            }
             liResponses.add(liR);
         }
         r.setLineItems(liResponses);
+
+        List<ContractTermsLinkResponse> termsResponses = new ArrayList<>();
+        for (NonMultitenancyContractTermsLink link : termsLinks) {
+            ContractTermsLinkResponse tR = new ContractTermsLinkResponse();
+            tR.setId(link.getId());
+            tR.setScope(link.getScope());
+            tR.setTermsVersion(link.getTermsVersionAtSigning());
+            if (link.getTermsAndConditions() != null) {
+                tR.setTermsCode(link.getTermsAndConditions().getCode());
+                tR.setTermsTitle(link.getTermsAndConditions().getTitle());
+            }
+            termsResponses.add(tR);
+        }
+        r.setTermsLinks(termsResponses);
         return r;
     }
 

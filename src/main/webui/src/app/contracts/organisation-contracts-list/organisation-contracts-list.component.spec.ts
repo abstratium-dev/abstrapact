@@ -103,7 +103,7 @@ describe('OrganisationContractsListComponent', () => {
 
   describe('Utility Methods', () => {
     it('should format date correctly', () => {
-      expect(component.formatDate('2024-01-15')).toBe('2024-01-15 00:00:00.000');
+      expect(component.formatDate('2024-01-15')).toBe('2024-01-15');
     });
 
     it('should return N/A for null date', () => {

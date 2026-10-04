@@ -3,12 +3,12 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   ContractsModelService,
-  OrganisationContract,
+  CustomerContract,
   ContractStateChange,
   PaymentAttempt,
 } from '../contracts.model.service';
 import { ContractsController } from '../contracts.controller';
-import { formatDateTime } from '../date-format';
+import { formatDate as formatDateString, formatDateTime as formatDateTimeString } from '../date-format';
 
 @Component({
   selector: 'app-organisation-contract-detail',
@@ -22,7 +22,7 @@ export class OrganisationContractDetailComponent implements OnInit {
   private modelService = inject(ContractsModelService);
   private controller = inject(ContractsController);
 
-  contract: Signal<OrganisationContract | null> = this.modelService.selectedOrgContract$;
+  contract: Signal<CustomerContract | null> = this.modelService.selectedOrgContract$;
   contractLoading: Signal<boolean> = this.modelService.selectedOrgContractLoading$;
   contractError: Signal<string | null> = this.modelService.selectedOrgContractError$;
 
@@ -48,11 +48,11 @@ export class OrganisationContractDetailComponent implements OnInit {
   }
 
   formatDate(date: string | null): string {
-    return formatDateTime(date);
+    return formatDateString(date);
   }
 
   formatDateTime(date: string | null): string {
-    return formatDateTime(date);
+    return formatDateTimeString(date);
   }
 
   formatCurrency(amount: number | null, currency: string): string {

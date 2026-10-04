@@ -7,7 +7,6 @@ import {
   CustomerContractSummary,
   ContractStateChange,
   PaymentAttempt,
-  OrganisationContract,
   OrganisationContractSummary,
 } from './contracts.model.service';
 
@@ -115,7 +114,10 @@ export class ContractsController {
 
     this.http.get<OrganisationContractSummary[]>('/api/contracts').subscribe({
       next: (contracts) => {
-        this.modelService.setOrgContracts(contracts);
+        const sorted = [...contracts].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        this.modelService.setOrgContracts(sorted);
         this.modelService.setOrgContractsLoading(false);
       },
       error: (err) => {
@@ -127,7 +129,7 @@ export class ContractsController {
     });
   }
 
-  async getOrganisationContract(id: string): Promise<OrganisationContract | null> {
+  async getOrganisationContract(id: string): Promise<CustomerContract | null> {
     this.modelService.setSelectedOrgContractLoading(true);
     this.modelService.setSelectedOrgContractError(null);
     this.modelService.setOrgStateChanges([]);
@@ -137,7 +139,7 @@ export class ContractsController {
 
     try {
       const contract = await firstValueFrom(
-        this.http.get<OrganisationContract>(`/api/contracts/${id}`)
+        this.http.get<CustomerContract>(`/api/public/sales/contracts/${id}`)
       );
       this.modelService.setSelectedOrgContract(contract);
       this.modelService.setSelectedOrgContractLoading(false);
@@ -159,7 +161,7 @@ export class ContractsController {
     this.modelService.setOrgStateChangesLoading(true);
     this.modelService.setOrgStateChangesError(null);
 
-    this.http.get<ContractStateChange[]>(`/api/contracts/${id}/state-changes`).subscribe({
+    this.http.get<ContractStateChange[]>(`/api/public/sales/contracts/${id}/state-changes`).subscribe({
       next: (changes) => {
         const sorted = [...changes].sort(
           (a, b) => new Date(b.stepTimestamp).getTime() - new Date(a.stepTimestamp).getTime()
@@ -180,7 +182,7 @@ export class ContractsController {
     this.modelService.setOrgPaymentAttemptsLoading(true);
     this.modelService.setOrgPaymentAttemptsError(null);
 
-    this.http.get<PaymentAttempt[]>(`/api/contracts/${id}/payment-attempts`).subscribe({
+    this.http.get<PaymentAttempt[]>(`/api/public/sales/contracts/${id}/payment-attempts`).subscribe({
       next: (attempts) => {
         const sorted = [...attempts].sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()

@@ -17,6 +17,16 @@ export interface CustomerContractLineItem {
   displayOrder: number;
   lineTotal: number;
   productInstance: unknown;
+  productCode: string | null;
+  productDescription: string | null;
+}
+
+export interface ContractTermsLink {
+  id: string;
+  termsCode: string | null;
+  termsTitle: string | null;
+  termsVersion: string | null;
+  scope: string | null;
 }
 
 export interface CustomerContract {
@@ -31,6 +41,7 @@ export interface CustomerContract {
   createdAt: string;
   updatedAt: string;
   lineItems: CustomerContractLineItem[];
+  termsLinks: ContractTermsLink[];
   checkoutUrl: string | null;
 }
 
@@ -123,8 +134,8 @@ export class ContractsModelService {
   private orgContractsLoading = signal<boolean>(false);
   private orgContractsError = signal<string | null>(null);
 
-  // Selected organisation contract state
-  private selectedOrgContract = signal<OrganisationContract | null>(null);
+  // Selected organisation contract state (loaded from the seller view endpoint)
+  private selectedOrgContract = signal<CustomerContract | null>(null);
   private selectedOrgContractLoading = signal<boolean>(false);
   private selectedOrgContractError = signal<string | null>(null);
 
@@ -159,7 +170,7 @@ export class ContractsModelService {
   orgContractsLoading$: Signal<boolean> = this.orgContractsLoading.asReadonly();
   orgContractsError$: Signal<string | null> = this.orgContractsError.asReadonly();
 
-  selectedOrgContract$: Signal<OrganisationContract | null> = this.selectedOrgContract.asReadonly();
+  selectedOrgContract$: Signal<CustomerContract | null> = this.selectedOrgContract.asReadonly();
   selectedOrgContractLoading$: Signal<boolean> = this.selectedOrgContractLoading.asReadonly();
   selectedOrgContractError$: Signal<string | null> = this.selectedOrgContractError.asReadonly();
 
@@ -232,7 +243,7 @@ export class ContractsModelService {
     this.orgContractsError.set(error);
   }
 
-  setSelectedOrgContract(contract: OrganisationContract | null) {
+  setSelectedOrgContract(contract: CustomerContract | null) {
     this.selectedOrgContract.set(contract);
   }
 

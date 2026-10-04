@@ -31,16 +31,51 @@
           <span class="value">{{ formatDate(contract()!.contractDate) }}</span>
         </div>
         <div class="detail-row">
+          <span class="label">Created At</span>
+          <span class="value">{{ formatDateTime(contract()!.createdAt) }}</span>
+        </div>
+        <div class="detail-row">
           <span class="label">Total</span>
           <span class="value">{{ formatCurrency(contract()!.grandTotal, contract()!.currency) }}</span>
         </div>
         <div class="detail-row">
-          <span class="label">Payment Model</span>
-          <span class="value">{{ contract()!.paymentModel }}</span>
+          <span class="label">Seller Organisation</span>
+          <span class="value">{{ contract()!.sellerOrganisationId }}</span>
         </div>
         <div class="detail-row" *ngIf="contract()!.publicNotes">
           <span class="label">Notes</span>
           <span class="value">{{ contract()!.publicNotes }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" *ngIf="contract()!.lineItems.length > 0" data-testid="organisation-line-items-card">
+      <div class="card-header">
+        <h2>Line Items</h2>
+      </div>
+      <div class="detail-section">
+        <div class="detail-row line-item-row" *ngFor="let lineItem of contract()!.lineItems" data-testid="organisation-line-item-row">
+          <span class="label">#{{ lineItem.displayOrder + 1 }}</span>
+          <span class="value">
+            {{ formatCurrency(lineItem.lineTotal, contract()!.currency) }}
+            <span *ngIf="lineItem.productCode" class="text-muted">({{ lineItem.productCode }})</span>
+            <span *ngIf="lineItem.productDescription" class="text-muted">{{ lineItem.productDescription }}</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" *ngIf="contract()!.termsLinks.length > 0" data-testid="organisation-terms-links-card">
+      <div class="card-header">
+        <h2>Terms and Conditions</h2>
+      </div>
+      <div class="detail-section">
+        <div class="detail-row terms-link-row" *ngFor="let termsLink of contract()!.termsLinks" data-testid="organisation-terms-link-row">
+          <span class="label">{{ termsLink.scope }}</span>
+          <span class="value">
+            {{ termsLink.termsTitle || termsLink.termsCode }}
+            <span *ngIf="termsLink.termsVersion" class="text-muted">v{{ termsLink.termsVersion }}</span>
+          </span>
         </div>
       </div>
     </div>
@@ -67,10 +102,15 @@
       <div class="detail-section">
         <div class="detail-row payment-attempt-row" *ngFor="let attempt of paymentAttempts()" data-testid="organisation-payment-attempt-row">
           <span class="label">{{ formatDateTime(attempt.createdAt) }}</span>
-          <span class="value">
-            {{ formatCurrency(attempt.grossAmount, attempt.currency) }}
+          <span class="value payment-attempt-details">
+            <span class="payment-amount">{{ formatCurrency(attempt.grossAmount, attempt.currency) }}</span>
             <span class="badge" [class]="getPaymentStatusClass(attempt.status)" data-testid="organisation-payment-status-badge">{{ attempt.status }}</span>
-            <span *ngIf="attempt.pspIdentifier" class="text-muted">({{ attempt.pspIdentifier }})</span>
+            <span *ngIf="attempt.feeAmount != null" class="text-muted payment-fee">fee {{ formatCurrency(attempt.feeAmount, attempt.currency) }}</span>
+            <span *ngIf="attempt.netAmount != null" class="text-muted payment-net">net {{ formatCurrency(attempt.netAmount, attempt.currency) }}</span>
+            <span *ngIf="attempt.pspIdentifier" class="text-muted payment-psp">PSP: {{ attempt.pspIdentifier }}</span>
+            <span *ngIf="attempt.pspSessionId" class="text-muted payment-psp">Session: {{ attempt.pspSessionId }}</span>
+            <span *ngIf="attempt.pspTransactionRef" class="text-muted payment-psp">Transaction: {{ attempt.pspTransactionRef }}</span>
+            <span *ngIf="attempt.correlationId" class="text-muted payment-psp">Correlation: {{ attempt.correlationId }}</span>
           </span>
         </div>
       </div>

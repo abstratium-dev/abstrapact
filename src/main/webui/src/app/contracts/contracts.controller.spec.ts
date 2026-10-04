@@ -2,7 +2,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { ContractsController } from './contracts.controller';
-import { ContractsModelService, CustomerContractSummary, CustomerContract, OrganisationContractSummary, OrganisationContract, ContractStateChange, PaymentAttempt } from './contracts.model.service';
+import { ContractsModelService, CustomerContractSummary, CustomerContract, OrganisationContractSummary, ContractStateChange, PaymentAttempt } from './contracts.model.service';
 
 describe('ContractsController', () => {
   let controller: ContractsController;
@@ -25,6 +25,7 @@ describe('ContractsController', () => {
     ...mockContractSummary,
     publicNotes: null,
     lineItems: [],
+    termsLinks: [],
     checkoutUrl: null,
   };
 
@@ -66,10 +67,20 @@ describe('ContractsController', () => {
     updatedAt: '2024-01-15T10:00:00Z',
   };
 
-  const mockOrgContract: OrganisationContract = {
-    ...mockOrgContractSummary,
+  const mockOrgContract: CustomerContract = {
+    id: 'org-contract-1',
+    contractReference: 'ORG-REF-001',
+    sellerOrganisationId: 'seller-org-1',
+    contractDate: '2024-01-15',
+    currency: 'EUR',
+    grandTotal: 123.45,
+    state: 'RUNNING',
     publicNotes: null,
+    createdAt: '2024-01-15T10:00:00Z',
+    updatedAt: '2024-01-15T10:00:00Z',
     lineItems: [],
+    termsLinks: [],
+    checkoutUrl: null,
   };
 
   beforeEach(() => {
@@ -229,15 +240,15 @@ describe('ContractsController', () => {
     it('should load organisation contract details, state changes and payment attempts', async () => {
       const promise = controller.getOrganisationContract('org-contract-1');
 
-      const contractReq = httpMock.expectOne('/api/contracts/org-contract-1');
+      const contractReq = httpMock.expectOne('/api/public/sales/contracts/org-contract-1');
       contractReq.flush(mockOrgContract);
 
       await Promise.resolve();
 
-      const stateChangeReq = httpMock.expectOne('/api/contracts/org-contract-1/state-changes');
+      const stateChangeReq = httpMock.expectOne('/api/public/sales/contracts/org-contract-1/state-changes');
       stateChangeReq.flush([mockStateChange]);
 
-      const paymentReq = httpMock.expectOne('/api/contracts/org-contract-1/payment-attempts');
+      const paymentReq = httpMock.expectOne('/api/public/sales/contracts/org-contract-1/payment-attempts');
       paymentReq.flush([mockPaymentAttempt]);
 
       const result = await promise;
@@ -274,15 +285,15 @@ describe('ContractsController', () => {
 
       const promise = controller.getOrganisationContract('org-contract-1');
 
-      const contractReq = httpMock.expectOne('/api/contracts/org-contract-1');
+      const contractReq = httpMock.expectOne('/api/public/sales/contracts/org-contract-1');
       contractReq.flush(mockOrgContract);
 
       await Promise.resolve();
 
-      const stateChangeReq = httpMock.expectOne('/api/contracts/org-contract-1/state-changes');
+      const stateChangeReq = httpMock.expectOne('/api/public/sales/contracts/org-contract-1/state-changes');
       stateChangeReq.flush([earlierStateChange, mockStateChange, laterStateChange]);
 
-      const paymentReq = httpMock.expectOne('/api/contracts/org-contract-1/payment-attempts');
+      const paymentReq = httpMock.expectOne('/api/public/sales/contracts/org-contract-1/payment-attempts');
       paymentReq.flush([laterPayment, earlierPayment, mockPaymentAttempt]);
 
       await promise;
@@ -296,7 +307,7 @@ describe('ContractsController', () => {
     it('should set error state when organisation contract load fails', async () => {
       const promise = controller.getOrganisationContract('org-contract-1');
 
-      const contractReq = httpMock.expectOne('/api/contracts/org-contract-1');
+      const contractReq = httpMock.expectOne('/api/public/sales/contracts/org-contract-1');
       contractReq.flush('error', { status: 500, statusText: 'Server Error' });
 
       const result = await promise;

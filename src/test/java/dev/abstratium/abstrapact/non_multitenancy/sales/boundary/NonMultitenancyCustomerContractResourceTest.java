@@ -34,6 +34,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -227,6 +228,21 @@ class NonMultitenancyCustomerContractResourceTest {
             .body("state", equalTo("DRAFT"))
             .body("sellerOrganisationId", equalTo(defaultOrgId))
             .body("lineItems.size()", equalTo(1));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldCreateContractWithMillisecondTimestamp() {
+        String ref = "REST-MS-" + System.currentTimeMillis();
+        given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .body(buildRequest(ref))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .body("createdAt", matchesPattern(".*\\.\\d{3,}.*"));
     }
 
     @Test

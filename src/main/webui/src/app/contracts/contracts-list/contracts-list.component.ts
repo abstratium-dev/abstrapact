@@ -6,7 +6,7 @@ import {
   CustomerContractSummary,
 } from '../contracts.model.service';
 import { ContractsController } from '../contracts.controller';
-import { formatDateTime } from '../date-format';
+import { formatDate, formatDateTime } from '../date-format';
 
 @Component({
   selector: 'app-contracts-list',
@@ -36,6 +36,10 @@ export class ContractsListComponent implements OnInit {
   }
 
   formatDate(date: string | null): string {
+    return formatDate(date);
+  }
+
+  formatDateTime(date: string | null): string {
     return formatDateTime(date);
   }
 

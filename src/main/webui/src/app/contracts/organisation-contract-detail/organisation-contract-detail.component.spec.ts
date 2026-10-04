@@ -6,7 +6,7 @@ import { Router } from '@angular/router';
 import { OrganisationContractDetailComponent } from './organisation-contract-detail.component';
 import {
   ContractsModelService,
-  OrganisationContract,
+  CustomerContract,
   ContractStateChange,
   PaymentAttempt,
 } from '../contracts.model.service';
@@ -18,7 +18,7 @@ describe('OrganisationContractDetailComponent', () => {
   let controller: jasmine.SpyObj<ContractsController>;
   let router: jasmine.SpyObj<Router>;
 
-  let selectedContractSignal: ReturnType<typeof signal<OrganisationContract | null>>;
+  let selectedContractSignal: ReturnType<typeof signal<CustomerContract | null>>;
   let selectedContractLoadingSignal: ReturnType<typeof signal<boolean>>;
   let selectedContractErrorSignal: ReturnType<typeof signal<string | null>>;
   let stateChangesSignal: ReturnType<typeof signal<ContractStateChange[]>>;
@@ -26,18 +26,37 @@ describe('OrganisationContractDetailComponent', () => {
   let paymentAttemptsSignal: ReturnType<typeof signal<PaymentAttempt[]>>;
   let paymentAttemptsLoadingSignal: ReturnType<typeof signal<boolean>>;
 
-  const mockContract: OrganisationContract = {
+  const mockContract: CustomerContract = {
     id: 'org-contract-1',
     contractReference: 'ORG-REF-001',
+    sellerOrganisationId: 'seller-org-1',
     contractDate: '2024-01-15',
     currency: 'EUR',
     grandTotal: 123.45,
-    paymentModel: 'PREPAID',
     state: 'RUNNING',
     publicNotes: 'Test notes',
     createdAt: '2024-01-15T10:00:00Z',
     updatedAt: '2024-01-15T10:00:00Z',
-    lineItems: [],
+    lineItems: [
+      {
+        id: 'li-1',
+        displayOrder: 0,
+        lineTotal: 123.45,
+        productInstance: {},
+        productCode: 'PROD-001',
+        productDescription: 'Test product',
+      }
+    ],
+    termsLinks: [
+      {
+        id: 'tl-1',
+        termsCode: 'T&C-001',
+        termsTitle: 'General Terms',
+        termsVersion: '1.0',
+        scope: 'GENERAL',
+      }
+    ],
+    checkoutUrl: null,
   };
 
   const mockStateChanges: ContractStateChange[] = [
@@ -74,7 +93,7 @@ describe('OrganisationContractDetailComponent', () => {
     const controllerSpy = jasmine.createSpyObj('ContractsController', ['getOrganisationContract']);
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
-    selectedContractSignal = signal<OrganisationContract | null>(null);
+    selectedContractSignal = signal<CustomerContract | null>(null);
     selectedContractLoadingSignal = signal<boolean>(false);
     selectedContractErrorSignal = signal<string | null>(null);
     stateChangesSignal = signal<ContractStateChange[]>([]);
@@ -173,7 +192,7 @@ describe('OrganisationContractDetailComponent', () => {
 
   describe('Utility Methods', () => {
     it('should format date correctly', () => {
-      expect(component.formatDate('2024-01-15')).toBe('2024-01-15 00:00:00.000');
+      expect(component.formatDate('2024-01-15')).toBe('2024-01-15');
     });
 
     it('should return N/A for null date', () => {
@@ -181,7 +200,12 @@ describe('OrganisationContractDetailComponent', () => {
     });
 
     it('should format datetime correctly', () => {
-      expect(component.formatDateTime('2024-01-15T10:00:00Z')).toBe('2024-01-15 10:00:00.000');
+      const input = '2024-01-15T10:00:00Z';
+      const d = new Date(input);
+      const pad2 = (n: number) => n.toString().padStart(2, '0');
+      const expected = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ` +
+        `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}.${d.getMilliseconds().toString().padStart(3, '0')}`;
+      expect(component.formatDateTime(input)).toBe(expected);
     });
 
     it('should format currency correctly', () => {
@@ -250,6 +274,43 @@ describe('OrganisationContractDetailComponent', () => {
 
       const badges = fixture.nativeElement.querySelectorAll('.badge');
       expect(badges.length).toBeGreaterThan(0);
+    });
+
+    it('should render line items with product code and description', () => {
+      selectedContractSignal.set(mockContract);
+      fixture.detectChanges();
+
+      const lineItemsCard = fixture.nativeElement.querySelector('[data-testid="organisation-line-items-card"]');
+      expect(lineItemsCard).toBeTruthy();
+      expect(lineItemsCard.textContent).toContain('PROD-001');
+      expect(lineItemsCard.textContent).toContain('Test product');
+    });
+
+    it('should render terms and conditions', () => {
+      selectedContractSignal.set(mockContract);
+      fixture.detectChanges();
+
+      const termsCard = fixture.nativeElement.querySelector('[data-testid="organisation-terms-links-card"]');
+      expect(termsCard).toBeTruthy();
+      expect(termsCard.textContent).toContain('General Terms');
+      expect(termsCard.textContent).toContain('v1.0');
+    });
+
+    it('should render fee and net amounts for payment attempts', () => {
+      const attemptWithFeeAndNet: PaymentAttempt = {
+        ...mockPaymentAttempts[0],
+        feeAmount: 2.50,
+        netAmount: 120.95,
+      };
+      selectedContractSignal.set(mockContract);
+      paymentAttemptsSignal.set([attemptWithFeeAndNet]);
+      fixture.detectChanges();
+
+      const row = fixture.nativeElement.querySelector('.payment-attempt-row');
+      expect(row.textContent).toContain('fee');
+      expect(row.textContent).toContain('net');
+      expect(row.textContent).toContain('2.50');
+      expect(row.textContent).toContain('120.95');
     });
   });
 });
