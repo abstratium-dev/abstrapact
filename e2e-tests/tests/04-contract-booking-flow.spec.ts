@@ -22,7 +22,7 @@ let stripeWebhookSecret: string | null = env.STRIPE_TEST_WEBHOOK_SECRET || null;
  */
 async function fetchStripeWebhookSecret(): Promise<string | null> {
     try {
-        const resp = await fetch('http://localhost:19997/webhook-secret', {
+        const resp = await fetch(`http://localhost:${env.STRIPE_CLI_HELPER_PORT || 19997}/webhook-secret`, {
             signal: AbortSignal.timeout(5000),
         });
         if (!resp.ok) return null;

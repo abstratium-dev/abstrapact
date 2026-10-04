@@ -26,26 +26,28 @@ ls -lh target/quarkus-app/quarkus-run.jar || echo "JAR NOT FOUND!"
 
 # ── Stripe CLI helper ─────────────────────────────────────────────────────────
 # Start the helper in the background if STRIPE_API_KEY is set and the helper's
-# HTTP server is not already responding on port 19997.
+# HTTP server is not already responding on its port (default 19997, override
+# with STRIPE_CLI_HELPER_PORT).
+HELPER_PORT="${STRIPE_CLI_HELPER_PORT:-19997}"
 HELPER_PID=""
 if [ -n "$STRIPE_API_KEY" ]; then
-    if curl -s http://localhost:19997/webhook-secret >/dev/null 2>&1; then
-        echo "Stripe CLI helper already running on port 19997."
+    if curl -s "http://localhost:${HELPER_PORT}/webhook-secret" >/dev/null 2>&1; then
+        echo "Stripe CLI helper already running on port ${HELPER_PORT}."
     else
         echo "Starting Stripe CLI helper (start-stripe-cli.js)..."
-        node e2e-tests/start-stripe-cli.js &
+        STRIPE_CLI_HELPER_PORT="${HELPER_PORT}" node e2e-tests/start-stripe-cli.js &
         HELPER_PID=$!
 
         # Wait up to 10 seconds for the helper to capture the secret
         for i in {1..20}; do
-            if curl -s http://localhost:19997/webhook-secret >/dev/null 2>&1; then
+            if curl -s "http://localhost:${HELPER_PORT}/webhook-secret" >/dev/null 2>&1; then
                 echo "Stripe CLI helper ready (secret captured)."
                 break
             fi
             sleep 0.5
         done
 
-        if ! curl -s http://localhost:19997/webhook-secret >/dev/null 2>&1; then
+        if ! curl -s "http://localhost:${HELPER_PORT}/webhook-secret" >/dev/null 2>&1; then
             echo "WARNING: Stripe CLI helper did not become ready within 10s."
             echo "         Payment E2E tests may fail."
         fi

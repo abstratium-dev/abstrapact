@@ -113,7 +113,13 @@ When running tests manually against a dev server (`mvn quarkus:dev`), start the 
 node e2e-tests/start-stripe-cli.js
 ```
 
-This helper starts `stripe listen`, captures the webhook signing secret, and serves it on `http://localhost:19997/webhook-secret` for the tests to fetch automatically.
+This helper starts `stripe listen`, captures the webhook signing secret, and serves it on `http://localhost:19997/webhook-secret` (override the port with `STRIPE_CLI_HELPER_PORT`) for the tests to fetch automatically.
+
+> **Port allocation:** the Stripe helper uses `19997` by default. Unit/integration
+> test WireMock servers must use different ports — currently in use: `19994`
+> (`SalesProcessServiceTest`), `19996` (`NonMultitenancyCustomerContractResourceTest`),
+> `19998` (`StripePSPServiceTest`), `19999` (`TogglesServiceTest`). Pick an unused
+> port when adding new WireMock-based tests.
 
 And then the e2e tests:
 

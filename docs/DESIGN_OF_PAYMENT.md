@@ -1218,7 +1218,8 @@ API is used — this ensures the integration with Stripe is genuinely tested.
    ```
    This starts `stripe listen --forward-to localhost:8088/public/payment/webhook`,
    scrapes the `whsec_...` signing secret from the CLI output, and serves it via HTTP
-   on `localhost:19999` so the tests can fetch it automatically. The PID is stored in
+   on `localhost:19997` (override with `STRIPE_CLI_HELPER_PORT`) so the tests can
+   fetch it automatically. The PID is stored in
    `tmp/stripe-cli.pid` and logs in `tmp/stripe-cli.log`.
 4. **E2E server started:**
    ```bash
@@ -1227,7 +1228,8 @@ API is used — this ensures the integration with Stripe is genuinely tested.
    ```
 
 The webhook signing secret (`whsec_...`) is fetched automatically by the tests from the
-helper script's HTTP endpoint (`GET http://localhost:19999/webhook-secret`). No manual
+helper script's HTTP endpoint (`GET http://localhost:19997/webhook-secret`; the port
+is `STRIPE_CLI_HELPER_PORT` if set). No manual
 copying is required. It can also be overridden via the `STRIPE_TEST_WEBHOOK_SECRET`
 environment variable if needed.
 

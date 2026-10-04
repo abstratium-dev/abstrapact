@@ -15,12 +15,13 @@
  *   1. Spawns `stripe listen --all-snapshot --forward-to localhost:8088/public/payment/webhook`
  *   2. Mirrors stdout/stderr to the console and to tmp/stripe-cli.log
  *   3. Scrapes the whsec_... signing secret from the output
- *   4. Starts an HTTP server on port 19999 that serves the secret as JSON
+ *   4. Starts an HTTP server (default port 19997, override with
+ *      STRIPE_CLI_HELPER_PORT) that serves the secret as JSON
  *   5. Writes the Stripe CLI PID to tmp/stripe-cli.pid
  *   6. On Ctrl+C or exit, kills the Stripe CLI and the HTTP server
  *
  * The E2E tests fetch the secret via:
- *   GET http://localhost:19999/webhook-secret
+ *   GET http://localhost:19997/webhook-secret
  *   → { "secret": "whsec_..." }
  */
 const { spawn } = require('child_process');
@@ -29,7 +30,7 @@ const fs = require('fs');
 const path = require('path');
 
 const FORWARD_TO = 'localhost:8088/public/payment/webhook';
-const HTTP_PORT = 19997;
+const HTTP_PORT = Number(process.env.STRIPE_CLI_HELPER_PORT || 19997);
 const TMP_DIR = path.resolve(__dirname, '..', 'tmp');
 const PID_FILE = path.join(TMP_DIR, 'stripe-cli.pid');
 const LOG_FILE = path.join(TMP_DIR, 'stripe-cli.log');

@@ -12,7 +12,8 @@ const PART_UNIT_PRICE = 25.00;
 // Stripe test credentials.
 // The API key is read from STRIPE_API_KEY (used by both the Stripe CLI and abstrapact).
 // The webhook secret is fetched from the start-stripe-cli.js helper script's HTTP
-// server on localhost:19999. It can also be overridden via STRIPE_TEST_WEBHOOK_SECRET.
+// server on localhost:19997 (override with STRIPE_CLI_HELPER_PORT). It can also
+// be overridden via STRIPE_TEST_WEBHOOK_SECRET.
 const STRIPE_TEST_SECRET_KEY = env.STRIPE_API_KEY || env.STRIPE_TEST_SECRET_KEY;
 let stripeWebhookSecret: string | null = env.STRIPE_TEST_WEBHOOK_SECRET || null;
 
@@ -23,7 +24,8 @@ const STRIPE_TEST_CARD_CVC = '123';
 
 /**
  * Fetches the Stripe webhook signing secret from the start-stripe-cli.js helper
- * script, which serves it via HTTP on localhost:19999.
+ * script, which serves it via HTTP on localhost:19997
+ * (override with STRIPE_CLI_HELPER_PORT).
  *
  * The helper script must be running (see start-stripe-cli.js). It starts the
  * Stripe CLI listener, scrapes the whsec_... from the output, and exposes it
@@ -34,7 +36,7 @@ const STRIPE_TEST_CARD_CVC = '123';
  */
 async function fetchStripeWebhookSecret(): Promise<string | null> {
     try {
-        const resp = await fetch('http://localhost:19997/webhook-secret', {
+        const resp = await fetch(`http://localhost:${env.STRIPE_CLI_HELPER_PORT || 19997}/webhook-secret`, {
             signal: AbortSignal.timeout(5000),
         });
         if (!resp.ok) {

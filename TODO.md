@@ -16,6 +16,8 @@
     2026-08-17 20:00:38,537 WARN  [dev.abs.abs.bou.oau.AuthorizationResource] (executor-thread-1) [skey:] Invalid redirect_uri for client 058ebe1e-e9c8-4359-ab77-e943990ab0dd__abstratium-abstracore: requested=http://localhost:10081/oauth/callback, allowed=["http://localhost:8081/oauth/callback"]
 
 - user interface to review payments?
+  - X work on adding REST endpoints
+  - work on adding angular user interface
   - inform users if something is wrong with a payment?
 
       Admin query endpoint — e.g. GET /api/admin/payment-transactions?status=STALE so ops can list/reconcile them.
@@ -30,8 +32,6 @@
 - run e2e with only info, warn and error logs to see what comes out in quarkus, esp. around stripe webhooks and calls to stripe.
 
 - remove excess REST interfaces for contracts, since they are handled mainly in the SalesProcessService
-
-- check this, it seems to be implemented: when calling stripe, add a uuid other than the contract id, which is generated and stored by abstrapact and which is not shown to any user. this way we can guarantee that when the callback comes, it was for our transaction. otherwise someone could create a draft, then use their own infrastructure to create a stripe callback and call us with it. altho... can they do that? we don't trust their payload because it isn't signed with the key that i really hope is unique per customer (ie i should have a key so that only i can verify the callback is for my application).
 
 - delete CreateDraftContractRequest and co, as they aren't needed except for the NonMultitenant API. there are probably a few such DTOs, defo an endpoint and maybe a service class or two
 

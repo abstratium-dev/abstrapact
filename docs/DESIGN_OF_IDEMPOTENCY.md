@@ -69,8 +69,8 @@ The `offer` endpoint (`POST /api/public/sales/contracts/{id}/offer`) is also pro
 CREATE TABLE T_idempotency_record (
     id              VARCHAR(36) PRIMARY KEY,
     idempotency_key VARCHAR(255) NOT NULL,
-    scope           VARCHAR(50) NOT NULL,        -- 'account', 'contract', 'stripe_api'
-    scope_id        VARCHAR(36),                  -- the account id or contract id
+    scope           VARCHAR(50) NOT NULL,        -- 'contract_create', 'contract_offer', 'contract_accept', 'contract_retry_payment'
+    scope_id        VARCHAR(255),                 -- the account id or contract id (VARCHAR(255): JWT principal names can exceed 36 chars)
     request_fingerprint VARCHAR(64) NOT NULL,    -- SHA-256 of the request payload
     status_code     INT NOT NULL,
     response_body   TEXT,
@@ -87,8 +87,8 @@ CREATE INDEX I_idempotency_record_expires ON T_idempotency_record(expires_at);
 **Fields explained:**
 
 - `idempotency_key` — the key supplied by the client in the `Idempotency-Key` header.
-- `scope` — prevents key collisions across different operation types. A client may reuse the same UUID for different endpoints; the scope disambiguates. Implemented values: `contract_create`, `contract_accept`.
-- `scope_id` — for `contract_create`, the caller account id. For `contract_accept`, the contract id.
+- `scope` — prevents key collisions across different operation types. A client may reuse the same UUID for different endpoints; the scope disambiguates. Implemented values: `contract_create`, `contract_offer`, `contract_accept`, `contract_retry_payment`.
+- `scope_id` — for `contract_create`, the caller account id. For `contract_offer`, `contract_accept`, and `contract_retry_payment`, the contract id.
 - `request_fingerprint` — SHA-256 hash of the request payload. Detects key reuse with different parameters.
 - `status_code` + `response_body` — the cached result to replay on retry.
 - `expires_at` — records older than 24 hours are eligible for deletion (Stripe's retention window is 24 hours; we align with that).
@@ -263,8 +263,8 @@ The state-based guard alone cannot close the race: two concurrent accepts with *
 
 ```sql
 ALTER TABLE T_payment_transaction
-    ADD COLUMN pending_contract_key VARCHAR(36) GENERATED ALWAYS AS
-        (CASE WHEN status = 'PENDING' THEN contract_id ELSE NULL END) STORED;
+    ADD COLUMN pending_contract_key VARCHAR(36) AS
+        (CASE WHEN status = 'PENDING' THEN contract_id ELSE NULL END);
 
 ALTER TABLE T_payment_transaction
     ADD CONSTRAINT UQ_payment_transaction_pending_contract
