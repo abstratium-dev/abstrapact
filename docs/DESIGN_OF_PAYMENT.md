@@ -443,7 +443,6 @@ possible. The `rejection_reason` is set only when `processing_result=REJECTED`. 
 ```java
 @Entity
 @Table(name = "T_webhook_event")
-@Audited
 public class WebhookEvent {
 
     @Id
@@ -498,9 +497,6 @@ public class WebhookEvent {
     // getters / setters
 }
 ```
-
-Both new tables and their Envers audit tables (`T_payment_transaction_AUD`,
-`T_webhook_event_AUD`) are included in migration `V01.025__createPaymentTransactionTable.sql`.
 
 ---
 
@@ -602,7 +598,7 @@ enqueue the event and return `200` immediately.
 | `payment_intent.succeeded` | Extract correlation ID from PaymentIntent metadata; mark payment succeeded |
 | `checkout.session.async_payment_succeeded` | Same as `checkout.session.completed` (delayed payment methods) |
 | `checkout.session.async_payment_failed` | Mark payment failed; contract remains in `AWAITING_PAYMENT` |
-| `checkout.session.expired` | Session died unpaid → mark transaction `EXPIRED`. A `PaymentSessionExpiryJob` (hourly) is the backstop, marking `PENDING` transactions older than `abstrapact.payment.session-ttl-hours` (default `48`) as `EXPIRED`. The customer retries via `POST /api/public/sales/contracts/{id}/retry-payment`. The same job deletes terminal transactions older than `abstrapact.payment.transaction-retention-days` (default `30`) |
+| `checkout.session.expired` | Session died unpaid → mark transaction `EXPIRED`. A `PaymentSessionExpiryJob` (hourly) is the backstop, marking `PENDING` transactions older than `abstrapact.payment.session-ttl-hours` (default `48`) as `EXPIRED`. The customer retries via `POST /api/public/sales/contracts/{id}/retry-payment`. The same job deletes webhook events older than `abstrapact.payment.webhook.retention-days` (default `30`); payment transactions are retained indefinitely as the financial record |
 | `charge.updated` | Update fee amount from `balance_transaction` data. May arrive after the transaction is already `SUCCEEDED` — in that case, the fee is updated without any state transition. Stripe webhooks include `balance_transaction` as an ID string (not expanded), so the service makes a separate API call to retrieve the balance transaction and extract the fee. |
 
 > **Fee data timing:** Stripe does not always include fee data in the initial
@@ -1002,7 +998,7 @@ public class StripePSPService implements PSPInterface {
 | `abstrapact.payment.stripe.cancel-url` | abstrapact's own cancel redirect endpoint (must include `{CHECKOUT_SESSION_ID}`) | `https://abstrapact.example.com/api/public/payment/cancel?session_id={CHECKOUT_SESSION_ID}` |
 | `abstrapact.payment.webhook.stale-after-hours` | Hours after which a `PENDING` transaction is considered stale. Default: `48`; values below 25h are clamped to 25h | `48` |
 | `abstrapact.payment.session-ttl-hours` | Hours after which a `PENDING` transaction is swept to `EXPIRED` by `PaymentSessionExpiryJob` (backstop for a lost `checkout.session.expired` webhook). Stripe Checkout Sessions always expire within 24h (default `expires_at` = 24h, allowed range 30min–24h), so a sweep older than 24h can never expire a session that is still payable. Default: `48`; values below 25h are clamped to 25h | `48` |
-| `abstrapact.payment.transaction-retention-days` | Days after which terminal transactions (`SUCCEEDED`, `FAILED`, `STALE`, `EXPIRED`) are deleted from `T_payment_transaction` to keep the live table small. `T_payment_transaction_AUD` retains full history (Envers). Default: `30` | `30` |
+| `abstrapact.payment.webhook.retention-days` | Days after which a `WebhookEvent` row is deleted by `PaymentSessionExpiryJob`. Webhook events are a transient processing/deduplication log; `T_payment_transaction` rows are never deleted — they are the application's financial evidence that a payment was made. Default: `30` | `30` |
 | `abstrapact.payment.webhook.max-payload-size-bytes` | Maximum webhook payload size in bytes. Webhooks exceeding this limit are not recorded in `T_webhook_event` — they are logged via the JBoss logger only. Default: `131072` (128KB) | `131072` |
 
 These are set via environment variables or `application.properties` and must **never** be
@@ -1280,7 +1276,7 @@ payment-related E2E tests are skipped automatically (via `test.skip`).
 ### Database Migrations
 
 - [ ] **V01.025** — create `T_payment_transaction`, `T_payment_transaction_AUD`,
-      `T_webhook_event`, `T_webhook_event_AUD`; add `stripe_secret_key`,
+      `T_webhook_event`; add `stripe_secret_key`,
       `stripe_webhook_secret`, `payment_success_redirect_url`,
       `payment_cancel_redirect_url` columns to `T_product_definition`.
 - [ ] **V01.027** — make `psp_event_id`, `event_type`, `raw_payload` nullable on

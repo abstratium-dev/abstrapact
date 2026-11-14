@@ -56,6 +56,15 @@ describe('OrganisationContractDetailComponent', () => {
         scope: 'GENERAL',
       }
     ],
+    accountRoles: [
+      {
+        id: 'role-1',
+        accountId: 'customer@example.com',
+        roleType: 'CUSTOMER',
+        validFrom: null,
+        validUntil: null,
+      }
+    ],
     checkoutUrl: null,
   };
 
@@ -294,6 +303,16 @@ describe('OrganisationContractDetailComponent', () => {
       expect(termsCard).toBeTruthy();
       expect(termsCard.textContent).toContain('General Terms');
       expect(termsCard.textContent).toContain('v1.0');
+    });
+
+    it('should render account roles', () => {
+      selectedContractSignal.set(mockContract);
+      fixture.detectChanges();
+
+      const rolesCard = fixture.nativeElement.querySelector('[data-testid="organisation-account-roles-card"]');
+      expect(rolesCard).toBeTruthy();
+      expect(rolesCard.textContent).toContain('customer@example.com');
+      expect(rolesCard.textContent).toContain('CUSTOMER');
     });
 
     it('should render fee and net amounts for payment attempts', () => {

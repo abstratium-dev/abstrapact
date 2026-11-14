@@ -19,7 +19,6 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "T_webhook_event")
-@Audited
 public class WebhookEvent {
 
     @Id

@@ -94,24 +94,3 @@ CREATE TABLE T_payment_transaction_AUD (
 
 CREATE INDEX I_payment_transaction_aud_rev ON T_payment_transaction_AUD(REV);
 CREATE INDEX I_payment_transaction_aud_id ON T_payment_transaction_AUD(id);
-
-CREATE TABLE T_webhook_event_AUD (
-    id VARCHAR(36) NOT NULL,
-    organisation_id VARCHAR(36),
-    psp_identifier VARCHAR(30),
-    psp_event_id VARCHAR(255),
-    event_type VARCHAR(100),
-    correlation_id VARCHAR(36),
-    payment_transaction_id VARCHAR(36),
-    matched BOOLEAN,
-    processing_result VARCHAR(30),
-    raw_payload TEXT,
-    received_at TIMESTAMP,
-    REV BIGINT NOT NULL,
-    REVTYPE TINYINT,
-    PRIMARY KEY (id, REV),
-    CONSTRAINT FK_webhook_event_aud_rev FOREIGN KEY (REV) REFERENCES REVINFO(REV)
-);
-
-CREATE INDEX I_webhook_event_aud_rev ON T_webhook_event_AUD(REV);
-CREATE INDEX I_webhook_event_aud_id ON T_webhook_event_AUD(id);

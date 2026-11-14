@@ -327,6 +327,33 @@ class NonMultitenancyCustomerContractResourceTest {
 
     @Test
     @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturnAccountRolesOnCreateAndGet() {
+        String id = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", java.util.UUID.randomUUID().toString())
+            .body(buildRequest("REST-ROLES-" + System.currentTimeMillis()))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .body("accountRoles.size()", equalTo(1))
+            .body("accountRoles[0].accountId", equalTo("testuser"))
+            .body("accountRoles[0].roleType", equalTo("CUSTOMER"))
+            .extract()
+            .path("id");
+
+        given()
+            .when()
+            .get("/api/public/sales/contracts/" + id)
+            .then()
+            .statusCode(200)
+            .body("accountRoles.size()", equalTo(1))
+            .body("accountRoles[0].accountId", equalTo("testuser"))
+            .body("accountRoles[0].roleType", equalTo("CUSTOMER"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
     void shouldOfferContract() {
         String id = given()
             .contentType("application/json")

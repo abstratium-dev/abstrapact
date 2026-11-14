@@ -342,6 +342,16 @@ export async function assertOrganisationTermsLinksVisible(page: Page) {
     await expect(page.getByTestId('organisation-terms-link-row')).toBeVisible({ timeout: 10000 });
 }
 
+export async function assertOrganisationAccountRoleVisible(page: Page, expectedEmail: string, expectedRole: string) {
+    console.log(`[OrganisationContractDetailPage] Asserting account role ${expectedEmail} (${expectedRole}) is displayed`);
+    await expect(page.getByTestId('organisation-account-roles-card')).toBeVisible({ timeout: 10000 });
+    const rows = page.getByTestId('organisation-account-role-row');
+    await expect(rows.first()).toBeVisible({ timeout: 10000 });
+    const allText = (await rows.allTextContents()).join(' ');
+    expect(allText).toContain(expectedEmail);
+    expect(allText).toContain(expectedRole);
+}
+
 export async function goBackToOrganisationContractsList(page: Page) {
     console.log('[OrganisationContractDetailPage] Going back to organisation contracts list');
     await backToOrganisationContractsButton(page).click();

@@ -26,7 +26,7 @@ Implement the full PSP-agnostic payment handling feature described in `docs/DESI
 - `ALTER TABLE T_product_definition ADD COLUMN` the 4 columns: `stripe_secret_key VARCHAR(100)`, `stripe_webhook_secret VARCHAR(100)`, `payment_success_redirect_url VARCHAR(500)`, `payment_cancel_redirect_url VARCHAR(500)`.
 - `CREATE TABLE T_payment_transaction` (+ indexes + FK to `T_contract`) per design.
 - `CREATE TABLE T_webhook_event` (+ indexes + unique `(psp_identifier, psp_event_id)` + FK to `T_payment_transaction`) per design.
-- Envers audit tables `T_payment_transaction_AUD` and `T_webhook_event_AUD` (mirror `V01.020` pattern: `REV BIGINT NOT NULL, REVTYPE TINYINT, PRIMARY KEY(id, REV)`, FK to `REVINFO`).
+- Envers audit table `T_payment_transaction_AUD` (mirror `V01.020` pattern: `REV BIGINT NOT NULL, REVTYPE TINYINT, PRIMARY KEY(id, REV)`, FK to `REVINFO`).
 
 ### 3. Entities
 - `non_multitenancy/sales/payment/entity/PaymentTransaction.java` — per design (id, organisationId, contractId, pspIdentifier, correlationId unique, pspSessionId, pspTransactionRef, grossAmount, feeAmount, netAmount, currency, status, createdAt, updatedAt). Nested `enum PaymentStatus { PENDING, SUCCEEDED, FAILED, STALE }`. `@Audited`.

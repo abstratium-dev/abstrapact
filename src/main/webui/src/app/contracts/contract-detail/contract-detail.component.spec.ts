@@ -39,6 +39,7 @@ describe('ContractDetailComponent', () => {
     updatedAt: '2024-01-15T10:00:00Z',
     lineItems: [],
     termsLinks: [],
+    accountRoles: [],
     checkoutUrl: 'https://checkout.example.com',
   };
 

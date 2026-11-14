@@ -23,13 +23,14 @@
       - X user cannot read payment attempt of contracts outside of the org: NMCContractService#getPaymentAttempt
       - purchase from a different org, and view that contract
   - X work on adding angular user interface (view own contracts list + detail)
+  - show webhook calls related to a payment
+  - e2e tests for viewing contracts in org
 
   - add user interface and endpoints for loading all payments to the org.
 
-  - be able to update payments when webhook receives a refunded payment
+  - add user interface and endpoints for loading all webhooks to the org.
 
-  - show all webhook calls?
-  - why does T_webhook_event_AUD exist?
+  - be able to update payments when webhook receives a refunded payment
 
   - add a "reconcilliation" link from a payment to the stripe page, so that admins can verify payments in stripe - of course only if the contract belongs to the org that the user belongs to
 

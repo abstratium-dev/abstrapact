@@ -10,7 +10,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * Scheduled job that marks {@code PENDING} payment transactions whose PSP session
@@ -21,6 +20,10 @@ import java.util.List;
  * job is the backstop in case that webhook is lost (the "at least once" payment
  * guarantee requires that a dead session can always be replaced via
  * {@code POST /api/public/sales/contracts/{id}/retry-payment}).
+ *
+ * <p>The same schedule also purges old {@code WebhookEvent} rows — transient
+ * logs of Stripe callbacks. {@code PaymentTransaction} rows are never deleted:
+ * they are the application's financial evidence that a payment was made.
  *
  * <p>See {@code docs/DESIGN_OF_IDEMPOTENCY.md}.
  */
@@ -45,9 +48,17 @@ public class PaymentSessionExpiryJob {
         defaultValue = "48")
     long sessionTtlHours;
 
-    @ConfigProperty(name = "abstrapact.payment.transaction-retention-days",
+    /**
+     * Webhook events are a transient log of Stripe callbacks used for
+     * processing, deduplication, and short-term troubleshooting. Once a
+     * transaction is terminal the raw payload has no remaining value, so
+     * events older than this retention window are deleted. The
+     * {@code PaymentTransaction} rows themselves — the financial evidence —
+     * are never deleted by this job.
+     */
+    @ConfigProperty(name = "abstrapact.payment.webhook.retention-days",
         defaultValue = "30")
-    long transactionRetentionDays;
+    long webhookRetentionDays;
 
     @Scheduled(every = "1h")
     @Transactional
@@ -73,36 +84,28 @@ public class PaymentSessionExpiryJob {
             log.infof("Marked %d stale PENDING payment transaction(s) as EXPIRED", expired);
         }
 
-        deleteOldTerminalTransactions();
+        deleteOldWebhookEvents();
     }
 
     /**
-     * Deletes payment transactions in a terminal state
-     * ({@code SUCCEEDED}, {@code FAILED}, {@code STALE}, {@code EXPIRED}) that have
-     * not been modified for {@code abstrapact.payment.transaction-retention-days}
-     * (default 30 days). PSP session expiry is owned by Stripe (max 24h session
-     * TTL + {@code checkout.session.expired} webhook), so terminal rows are only
-     * retained for reconciliation and troubleshooting.
-     *
-     * <p>Note: {@code PaymentTransaction} is {@code @Audited} — Envers history in
-     * {@code T_payment_transaction_AUD} is kept, so this keeps the live table
-     * small but does not reclaim audit storage.
+     * Deletes webhook events received more than
+     * {@code abstrapact.payment.webhook.retention-days} ago (default 30 days).
+     * Webhook events are transient processing/deduplication logs; the payment
+     * transactions they refer to are retained indefinitely as the financial
+     * record. Unlinked events ({@code paymentTransactionId IS NULL}, e.g.
+     * {@code UNMATCHED}/{@code REJECTED}) are deleted by the same cutoff.
      */
-    void deleteOldTerminalTransactions() {
+    void deleteOldWebhookEvents() {
         LocalDateTime retentionCutoff =
-            LocalDateTime.now().minusDays(transactionRetentionDays);
+            LocalDateTime.now().minusDays(webhookRetentionDays);
         int deleted = em.createQuery(
-                "DELETE FROM PaymentTransaction t " +
-                "WHERE t.status IN (:terminal) AND t.updatedAt < :cutoff")
-            .setParameter("terminal", List.of(
-                PaymentStatus.SUCCEEDED, PaymentStatus.FAILED,
-                PaymentStatus.STALE, PaymentStatus.EXPIRED))
+                "DELETE FROM WebhookEvent w WHERE w.receivedAt < :cutoff")
             .setParameter("cutoff", retentionCutoff)
             .executeUpdate();
 
         if (deleted > 0) {
-            log.infof("Deleted %d terminal payment transaction(s) older than %d days",
-                deleted, transactionRetentionDays);
+            log.infof("Deleted %d webhook event(s) older than %d days",
+                deleted, webhookRetentionDays);
         }
     }
 }

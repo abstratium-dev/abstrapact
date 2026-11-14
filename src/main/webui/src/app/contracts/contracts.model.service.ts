@@ -29,6 +29,14 @@ export interface ContractTermsLink {
   scope: string | null;
 }
 
+export interface ContractAccountRole {
+  id: string;
+  accountId: string;
+  roleType: string;
+  validFrom: string | null;
+  validUntil: string | null;
+}
+
 export interface CustomerContract {
   id: string;
   contractReference: string;
@@ -42,6 +50,7 @@ export interface CustomerContract {
   updatedAt: string;
   lineItems: CustomerContractLineItem[];
   termsLinks: ContractTermsLink[];
+  accountRoles: ContractAccountRole[];
   checkoutUrl: string | null;
 }
 

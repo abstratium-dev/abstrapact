@@ -110,6 +110,7 @@ When running tests manually against a dev server (`mvn quarkus:dev`), start the 
 
 ```bash
 # In a separate terminal (requires STRIPE_API_KEY to be set)
+source /w/abstratium-abstrapact.env
 node e2e-tests/start-stripe-cli.js
 ```
 

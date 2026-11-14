@@ -5,6 +5,7 @@ import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyCo
 import dev.abstratium.abstrapact.non_multitenancy.sales.entity.NonMultitenancyProductDefinition;
 import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.PaymentTransaction;
 import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.PaymentTransaction.PaymentStatus;
+import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.WebhookEvent;
 import dev.abstratium.test.TestDataCleaner;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -123,23 +124,68 @@ class PaymentSessionExpiryJobTest {
 
     @Test
     @Transactional
-    void oldTerminalTransactionsAreDeleted() {
-        // Terminal tx untouched for >30 days → deleted by the retention sweep.
-        PaymentTransaction oldFailed = newPendingTx(LocalDateTime.now().minusDays(31));
-        oldFailed.setStatus(PaymentStatus.FAILED);
-        em.persist(oldFailed);
-
-        // Recent terminal tx → kept.
-        PaymentTransaction recentFailed = newPendingTx(LocalDateTime.now().minusDays(1));
-        recentFailed.setStatus(PaymentStatus.FAILED);
-        em.persist(recentFailed);
+    void oldTerminalTransactionsAreRetained() {
+        // Payment transactions are financial evidence and are never deleted,
+        // regardless of age or status.
+        PaymentTransaction oldTx = newPendingTx(LocalDateTime.now().minusDays(365));
+        oldTx.setStatus(PaymentStatus.SUCCEEDED);
+        em.persist(oldTx);
         em.flush();
 
         job.expireStalePendingSessions();
         em.clear();
 
-        assertEquals(null, em.find(PaymentTransaction.class, oldFailed.getId()));
-        assertEquals(PaymentStatus.FAILED,
-            em.find(PaymentTransaction.class, recentFailed.getId()).getStatus());
+        assertEquals(PaymentStatus.SUCCEEDED,
+            em.find(PaymentTransaction.class, oldTx.getId()).getStatus());
+    }
+
+    @Test
+    @Transactional
+    void oldWebhookEventsAreDeleted() {
+        PaymentTransaction tx = newPendingTx(LocalDateTime.now().minusDays(31));
+        tx.setStatus(PaymentStatus.SUCCEEDED);
+        em.persist(tx);
+
+        WebhookEvent oldEvent = newWebhookEvent(tx.getId(),
+            LocalDateTime.now().minusDays(31));
+        em.persist(oldEvent);
+
+        WebhookEvent recentEvent = newWebhookEvent(tx.getId(),
+            LocalDateTime.now().minusDays(1));
+        em.persist(recentEvent);
+
+        // Unlinked events (UNMATCHED/REJECTED) are purged by the same cutoff.
+        WebhookEvent oldUnlinked = newWebhookEvent(null,
+            LocalDateTime.now().minusDays(31));
+        em.persist(oldUnlinked);
+        em.flush();
+
+        job.expireStalePendingSessions();
+        em.clear();
+
+        assertEquals(null, em.find(WebhookEvent.class, oldEvent.getId()));
+        assertEquals(null, em.find(WebhookEvent.class, oldUnlinked.getId()));
+        assertEquals(tx.getId(),
+            em.find(WebhookEvent.class, recentEvent.getId()).getPaymentTransactionId());
+        // The linked transaction survives the webhook purge.
+        assertEquals(PaymentStatus.SUCCEEDED,
+            em.find(PaymentTransaction.class, tx.getId()).getStatus());
+    }
+
+    private WebhookEvent newWebhookEvent(String paymentTransactionId,
+            LocalDateTime receivedAt) {
+        WebhookEvent event = new WebhookEvent();
+        event.setId(UUID.randomUUID().toString());
+        event.setOrganisationId("expiry-test-org");
+        event.setPspIdentifier("stripe");
+        event.setPspEventId("evt_" + UUID.randomUUID());
+        event.setEventType("checkout.session.completed");
+        event.setCorrelationId(UUID.randomUUID().toString());
+        event.setPaymentTransactionId(paymentTransactionId);
+        event.setMatched(paymentTransactionId != null);
+        event.setProcessingResult(WebhookEvent.ProcessingResult.PROCESSED);
+        event.setRawPayload("{}");
+        event.setReceivedAt(receivedAt);
+        return event;
     }
 }

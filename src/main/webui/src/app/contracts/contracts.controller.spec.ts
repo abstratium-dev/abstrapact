@@ -26,6 +26,7 @@ describe('ContractsController', () => {
     publicNotes: null,
     lineItems: [],
     termsLinks: [],
+    accountRoles: [],
     checkoutUrl: null,
   };
 
@@ -80,6 +81,7 @@ describe('ContractsController', () => {
     updatedAt: '2024-01-15T10:00:00Z',
     lineItems: [],
     termsLinks: [],
+    accountRoles: [],
     checkoutUrl: null,
   };
 

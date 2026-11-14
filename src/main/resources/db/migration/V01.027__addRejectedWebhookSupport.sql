@@ -15,6 +15,3 @@ ALTER TABLE T_webhook_event DROP CONSTRAINT CHK_webhook_event_processing_result;
 ALTER TABLE T_webhook_event
     ADD CONSTRAINT CHK_webhook_event_processing_result
     CHECK (processing_result IN ('PROCESSED', 'DUPLICATE', 'UNMATCHED', 'STALE', 'IGNORED', 'REJECTED'));
-
--- Mirror on Envers audit table
-ALTER TABLE T_webhook_event_AUD ADD COLUMN rejection_reason VARCHAR(500);

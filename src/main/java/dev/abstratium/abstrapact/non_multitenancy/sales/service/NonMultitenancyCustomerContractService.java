@@ -126,6 +126,7 @@ public class NonMultitenancyCustomerContractService {
         accountRole.setAccountId(accountId);
         accountRole.setRoleType(NonMultitenancyContractAccountRole.RoleType.CUSTOMER);
         em.persist(accountRole);
+        contract.getAccountRoles().add(accountRole);
 
         salesProcessService.startSalesProcess(contract, accountId);
 
@@ -519,6 +520,18 @@ public class NonMultitenancyCustomerContractService {
             termsResponses.add(tR);
         }
         r.setTermsLinks(termsResponses);
+
+        List<ContractAccountRoleResponse> roleResponses = new ArrayList<>();
+        for (NonMultitenancyContractAccountRole role : c.getAccountRoles()) {
+            ContractAccountRoleResponse roleR = new ContractAccountRoleResponse();
+            roleR.setId(role.getId());
+            roleR.setAccountId(role.getAccountId());
+            roleR.setRoleType(role.getRoleType());
+            roleR.setValidFrom(role.getValidFrom());
+            roleR.setValidUntil(role.getValidUntil());
+            roleResponses.add(roleR);
+        }
+        r.setAccountRoles(roleResponses);
         return r;
     }
 

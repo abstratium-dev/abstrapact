@@ -24,6 +24,8 @@ public class CustomerContractResponse {
 
     private List<ContractTermsLinkResponse> termsLinks = new ArrayList<>();
 
+    private List<ContractAccountRoleResponse> accountRoles = new ArrayList<>();
+
     /**
      * Checkout URL for prepaid contracts, populated only when a payment was created
      * (i.e. after accept on a prepaid contract). {@code null} otherwise.
@@ -127,6 +129,14 @@ public class CustomerContractResponse {
 
     public void setTermsLinks(List<ContractTermsLinkResponse> termsLinks) {
         this.termsLinks = termsLinks;
+    }
+
+    public List<ContractAccountRoleResponse> getAccountRoles() {
+        return accountRoles;
+    }
+
+    public void setAccountRoles(List<ContractAccountRoleResponse> accountRoles) {
+        this.accountRoles = accountRoles;
     }
 
     public String getCheckoutUrl() {

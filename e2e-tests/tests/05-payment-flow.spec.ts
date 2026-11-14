@@ -1,5 +1,5 @@
 import { env } from 'node:process';
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, Page, FrameLocator } from '@playwright/test';
 import { signInViaHeader, signInAsUser, testStepLogger } from '../pages/test-helpers';
 import { handleAuthServer, headerSignInLink, signOut } from '../pages/test-helpers';
 import { registerNewUser } from '../pages/auth-server.page';
@@ -25,6 +25,7 @@ import {
     assertOrganisationStateChangeCount,
     assertOrganisationStateChangesInclude,
     assertOrganisationTermsLinksVisible,
+    assertOrganisationAccountRoleVisible,
     goBackToOrganisationContractsList,
 } from '../pages/contracts.page';
 
@@ -156,8 +157,9 @@ async function getXsrfHeader(page: Page): Promise<Record<string, string>> {
  * Fills in the Stripe hosted checkout form and submits the payment.
  *
  * Stripe Checkout uses an accordion for payment methods. The "Card" option must
- * be clicked to expand its panel and reveal the card input fields. The fields are
- * direct textboxes (not iframes in the current Stripe Checkout version).
+ * be clicked to expand its panel and reveal the card input fields. The entire
+ * form is embedded in an iframe served from js.stripe.com, so all form
+ * interaction must go through `stripePaymentFrame`.
  *
  * GBP note: Stripe auto-detects the customer's location and shows a local currency
  * (e.g. GBP) alongside the merchant's currency (CHF). This is normal Stripe behavior.
@@ -167,6 +169,16 @@ async function getXsrfHeader(page: Page): Promise<Record<string, string>> {
  * payment details. These assertions verify that the contract details (amount,
  * currency, product info) are correctly passed through to Stripe's hosted page.
  */
+/**
+ * Returns a frameLocator for the Stripe payment form iframe. The current hosted
+ * checkout page ("Guacamole", URL /g/pay/...) embeds the entire payment form —
+ * including the submit button — inside an iframe served from js.stripe.com
+ * (elements-inner-habanero). All form interaction must go through this frame.
+ */
+function stripePaymentFrame(page: Page): FrameLocator {
+    return page.frameLocator('iframe[title="Secure embedded form frame"]');
+}
+
 async function assertStripeCheckoutContent(page: Page, expectedAmount: number): Promise<void> {
     console.log('[StripeCheckout] Asserting checkout page content...');
 
@@ -186,8 +198,8 @@ async function assertStripeCheckoutContent(page: Page, expectedAmount: number): 
     const hasAmount = bodyText!.includes(expectedAmount.toString());
     expect(hasAmount, `Checkout page should show amount ${expectedAmount}`).toBe(true);
 
-    // The Pay button must be present and actionable.
-    const payButton = page.getByTestId('hosted-payment-submit-button');
+    // The Pay button must be present and actionable (inside the payment frame).
+    const payButton = stripePaymentFrame(page).getByTestId('payment-form-submit-button');
     await expect(payButton).toBeVisible({ timeout: 10000 });
 
     console.log('[StripeCheckout] Checkout page content verified');
@@ -195,13 +207,14 @@ async function assertStripeCheckoutContent(page: Page, expectedAmount: number): 
 
 async function fillStripeCheckoutAndPay(page: Page, email: string): Promise<void> {
     console.log('[StripeCheckout] Waiting for Stripe checkout page to load...');
-    await page.getByTestId('hosted-payment-submit-button').waitFor({ state: 'visible', timeout: 15000 });
+    const frame = stripePaymentFrame(page);
+    await frame.getByTestId('payment-form-submit-button').waitFor({ state: 'visible', timeout: 15000 });
 
     // Verify the checkout page shows the correct amount and details.
     await assertStripeCheckoutContent(page, PART_UNIT_PRICE);
 
     // Fill email if the field is visible and empty.
-    const emailInput = page.getByLabel('Email');
+    const emailInput = frame.locator('input[name="email"]');
     try {
         await emailInput.waitFor({ state: 'visible', timeout: 10000 });
         const currentValue = await emailInput.inputValue();
@@ -217,12 +230,10 @@ async function fillStripeCheckoutAndPay(page: Page, email: string): Promise<void
 
     // ── Expand the "Card" payment accordion ────────────────────────────────────
     // The card input fields may already be visible when Card is the default method.
-    const cardNumberInput = page.locator('input[name="cardNumber"]').or(
-        page.getByRole('textbox', { name: 'Card number' }),
-    ).first();
+    const cardNumberInput = frame.locator('input[name="number"]');
     if (!(await cardNumberInput.isVisible())) {
         console.log('[StripeCheckout] Expanding Card payment accordion...');
-        const cardAccordion = page.getByTestId('card-accordion-item');
+        const cardAccordion = frame.getByRole('button', { name: /^Card/ }).first();
         await expect(cardAccordion).toBeVisible({ timeout: 10000 });
         await cardAccordion.click({ timeout: 10000 });
     } else {
@@ -237,20 +248,14 @@ async function fillStripeCheckoutAndPay(page: Page, email: string): Promise<void
 
     // ── Fill expiry date ────────────────────────────────────────────────────────
     console.log('[StripeCheckout] Filling expiry...');
-    await page.locator('input[name="cardExpiry"]').or(
-        page.getByRole('textbox', { name: 'Expiration' }),
-    ).first().fill(STRIPE_TEST_CARD_EXPIRY, { timeout: 10000 });
+    await frame.locator('input[name="expiry"]').fill(STRIPE_TEST_CARD_EXPIRY, { timeout: 10000 });
 
     // ── Fill CVC ────────────────────────────────────────────────────────────────
-    // Use getByRole('textbox') to avoid matching the SVG icon which also has an
-    // aria-label containing "CVC".
     console.log('[StripeCheckout] Filling CVC...');
-    await page.locator('input[name="cardCvc"]').or(
-        page.getByRole('textbox', { name: 'CVC' }),
-    ).first().fill(STRIPE_TEST_CARD_CVC, { timeout: 10000 });
+    await frame.locator('input[name="cvc"]').fill(STRIPE_TEST_CARD_CVC, { timeout: 10000 });
 
     // Cardholder name (if present — some configurations require it).
-    const nameInput = page.getByLabel('Cardholder name');
+    const nameInput = frame.locator('input[name="name"]');
     try {
         await nameInput.waitFor({ state: 'visible', timeout: 3000 });
         await nameInput.fill('E2E Test Customer');
@@ -258,19 +263,18 @@ async function fillStripeCheckoutAndPay(page: Page, email: string): Promise<void
         // Not required — ignore.
     }
 
-    // Postal code (if present).
-    const postalInput = page.getByLabel('Postal code');
+    // Postal code (if present — Stripe shows it for some card countries).
+    const postalInput = frame.locator('input[name="postalCode"], input[name="zip"], input[name="postal"]');
     try {
-        await postalInput.waitFor({ state: 'visible', timeout: 3000 });
-        await postalInput.fill('12345');
+        await postalInput.first().waitFor({ state: 'visible', timeout: 3000 });
+        await postalInput.first().fill('12345');
     } catch {
         // Not required — ignore.
     }
 
-    // Click the Pay button.
-    // Use the specific data-testid to avoid matching the "Pay with card" accordion button.
+    // Click the Pay button inside the payment frame.
     console.log('[StripeCheckout] Clicking Pay button...');
-    await page.getByTestId('hosted-payment-submit-button').click();
+    await frame.getByTestId('payment-form-submit-button').click();
 
     console.log('[StripeCheckout] Payment submitted, waiting for redirect...');
 }
@@ -518,6 +522,7 @@ test.describe('05 Payment Flow', () => {
         await assertOrganisationContractDetailState(page, 'RUNNING');
         await assertOrganisationStateChangesInclude(page, 5, ['DRAFT', 'RUNNING']);
         await assertOrganisationTermsLinksVisible(page);
+        await assertOrganisationAccountRoleVisible(page, newUserEmail, 'CUSTOMER');
         await assertOrganisationPaymentAttemptCount(page, 1);
         await assertOrganisationPaymentAttemptStatus(page, 0, 'SUCCEEDED');
         await assertOrganisationPaymentAttemptShowsNetAndFee(page, 0);

@@ -49,6 +49,28 @@
       </div>
     </div>
 
+    <div class="card" *ngIf="contract()!.accountRoles && contract()!.accountRoles.length > 0" data-testid="organisation-account-roles-card">
+      <div class="card-header">
+        <h2>Parties</h2>
+      </div>
+      <div class="detail-section">
+        <table class="standard-table" data-testid="organisation-account-roles-table">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let role of contract()!.accountRoles" data-testid="organisation-account-role-row">
+              <td data-testid="organisation-account-role-email">{{ role.accountId }}</td>
+              <td data-testid="organisation-account-role-type">{{ role.roleType }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="card" *ngIf="contract()!.lineItems.length > 0" data-testid="organisation-line-items-card">
       <div class="card-header">
         <h2>Line Items</h2>
