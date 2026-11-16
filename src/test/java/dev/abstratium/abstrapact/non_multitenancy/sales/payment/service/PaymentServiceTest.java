@@ -11,6 +11,8 @@ import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.WebhookEv
 import dev.abstratium.abstrapact.process.entity.ProcessInstanceState;
 import dev.abstratium.test.TestDataCleaner;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.InjectSpy;
+import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -21,8 +23,13 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.reset;
 
 /**
  * Tests {@link PaymentService} webhook result handling logic: deduplication, staleness
@@ -38,7 +45,7 @@ class PaymentServiceTest {
     @Inject
     PaymentService paymentService;
 
-    @Inject
+    @InjectSpy
     PaymentTransactionService transactionService;
 
     @Inject
@@ -58,7 +65,7 @@ class PaymentServiceTest {
     @BeforeEach
     @Transactional
     void setUp() {
-        orgId = "test-org-payment";
+        orgId = "00000000-0000-0000-0000-000000000000";
         contractId = UUID.randomUUID().toString();
         correlationId = UUID.randomUUID().toString();
 
@@ -164,6 +171,70 @@ class PaymentServiceTest {
         WebhookEvent event = findWebhookEvent();
         assertEquals(WebhookEvent.ProcessingResult.PROCESSED, event.getProcessingResult());
         assertTrue(event.isMatched());
+    }
+
+    @Test
+    @Transactional
+    void distinctSuccessEventsRecordOnlyOneRunningTransition() {
+        PaymentEventResult first = successResult(correlationId);
+        paymentService.handlePaymentResult(first);
+        PaymentEventResult second = successResult(correlationId);
+        second.setPspEventId("evt_second_" + UUID.randomUUID());
+        second.setEventType("payment_intent.succeeded");
+        paymentService.handlePaymentResult(second);
+
+        assertEquals(2, webhookEventCount());
+        assertEquals(WebhookEvent.ProcessingResult.DUPLICATE,
+            em.createQuery("SELECT w FROM WebhookEvent w WHERE w.pspEventId = :id", WebhookEvent.class)
+                .setParameter("id", second.getPspEventId()).getSingleResult().getProcessingResult());
+        assertEquals(1L, em.createQuery(
+                "SELECT COUNT(s) FROM NonMultitenancyProcessInstanceStep s "
+                    + "WHERE s.processInstance.contractId = :cid AND s.toState = 'RUNNING'", Long.class)
+            .setParameter("cid", contractId).getSingleResult());
+    }
+
+    @Test
+    void concurrentSuccessEventsRecordOnlyOneRunningTransition() throws Exception {
+        CyclicBarrier bothLoaded = new CyclicBarrier(2);
+        doAnswer(invocation -> {
+            Object result = invocation.callRealMethod();
+            bothLoaded.await(10, TimeUnit.SECONDS);
+            return result;
+        }).when(transactionService).findByCorrelationId(correlationId);
+
+        PaymentEventResult checkout = successResult(correlationId);
+        checkout.setPspEventId("evt_checkout_" + UUID.randomUUID());
+        checkout.setEventType("checkout.session.completed");
+        PaymentEventResult paymentIntent = successResult(correlationId);
+        paymentIntent.setPspEventId("evt_intent_" + UUID.randomUUID());
+        paymentIntent.setEventType("payment_intent.succeeded");
+
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(() -> handleInRequest(checkout));
+            var second = executor.submit(() -> handleInRequest(paymentIntent));
+            first.get(20, TimeUnit.SECONDS);
+            second.get(20, TimeUnit.SECONDS);
+        } finally {
+            reset(transactionService);
+        }
+
+        QuarkusTransaction.requiringNew().run(() -> {
+            assertEquals(PaymentTransaction.PaymentStatus.SUCCEEDED,
+                transactionService.findById(tx.getId()).orElseThrow().getStatus());
+            assertEquals(dev.abstratium.abstrapact.contracts.entity.ContractState.RUNNING,
+                em.find(NonMultitenancyContract.class, contractId).getState());
+            assertEquals(1L, em.createQuery(
+                    "SELECT COUNT(s) FROM NonMultitenancyProcessInstanceStep s "
+                        + "WHERE s.processInstance.contractId = :cid AND s.toState = 'RUNNING'", Long.class)
+                .setParameter("cid", contractId).getSingleResult());
+            assertEquals(2, webhookEventCount());
+            assertEquals(1L, em.createQuery(
+                    "SELECT COUNT(w) FROM WebhookEvent w WHERE w.correlationId = :cid "
+                        + "AND w.processingResult = :result", Long.class)
+                .setParameter("cid", correlationId)
+                .setParameter("result", WebhookEvent.ProcessingResult.DUPLICATE)
+                .getSingleResult());
+        });
     }
 
     // ==================== Duplicate event ====================
@@ -371,6 +442,16 @@ class PaymentServiceTest {
     }
 
     // ==================== helpers ====================
+
+    private void handleInRequest(PaymentEventResult result) {
+        var context = io.quarkus.arc.Arc.container().requestContext();
+        context.activate();
+        try {
+            paymentService.handlePaymentResult(result);
+        } finally {
+            context.terminate();
+        }
+    }
 
     private PaymentEventResult successResult(String corrId) {
         PaymentEventResult result = new PaymentEventResult();

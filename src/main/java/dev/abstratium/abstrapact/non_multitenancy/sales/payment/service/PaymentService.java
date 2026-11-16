@@ -18,6 +18,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
@@ -412,6 +413,7 @@ public class PaymentService {
         }
 
         PaymentTransaction tx = txOpt.get();
+        em.refresh(tx, LockModeType.PESSIMISTIC_WRITE);
 
         // Fee-only update on a terminal transaction — update fee/net without state transition.
         // Stripe sends fee data in charge.updated, which may arrive after the transaction is

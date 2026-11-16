@@ -70,6 +70,11 @@ state transition. If two deliveries of the same event race past the dedup check,
 fails on `UQ_webhook_event_psp_event` and the endpoint still returns `200` — the winner
 already committed the event and its state changes.
 
+Processing locks and refreshes the matched payment transaction with a pessimistic write
+lock before checking its status. The lock is held until the transaction, contract state,
+and process step commit together, so concurrent events with different event IDs cannot
+both transition the same payment's contract to `RUNNING`.
+
 ### Staleness Check
 
 A payment transaction that has been `PENDING` for too long may indicate a stuck payment,

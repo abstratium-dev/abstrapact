@@ -27,20 +27,6 @@
   - e2e tests for viewing contracts in org
 
 
-http://localhost:8088/organisation-contracts/5c61a9f8-e279-466e-9900-51d5eaf01693
-
-why is there two state changes to running?
-
-State Changes
-2026-11-14 23:26:00.819
-AWAITING_PAYMENT → RUNNING by system
-2026-11-14 23:26:00.536
-AWAITING_PAYMENT → RUNNING by system
-2026-11-14 23:25:38.943
-APPROVED → AWAITING_PAYMENT by e2e-payment-1794695125687@example.com
-
-
-
 Notable gaps if you want to tighten up:
 
 0% coverage classes — mostly entities/DTOs (Signatory, ContractTermsLink, NonMultitenancy* entities, ContractSummary DTO) plus SecurityProblemLogger, TogglesResource, UnsupportedPaymentModelExceptionMapper
