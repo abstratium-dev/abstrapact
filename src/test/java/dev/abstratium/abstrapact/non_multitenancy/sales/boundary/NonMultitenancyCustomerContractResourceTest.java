@@ -1682,4 +1682,119 @@ class NonMultitenancyCustomerContractResourceTest {
             () -> contractService.getPaymentAttempt(contractId, txId, "other-customer", OTHER_ORG_ID));
         assertEquals(403, ex.getResponse().getStatus());
     }
+
+    // ==================== Purchase from a different org ====================
+
+    private CreateCustomerContractRequest buildRequestForOrg(
+            String ref, String orgId, String rawProductCode) {
+        CustomerLineItemRequest li = new CustomerLineItemRequest();
+        li.setProductCode(rawProductCode);
+        li.setDisplayOrder(0);
+
+        CreateCustomerContractRequest req = new CreateCustomerContractRequest();
+        req.setOrgId(orgId);
+        req.setContractReference(ref);
+        req.setLineItems(List.of(li));
+        return req;
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldPurchaseFromDifferentOrgAndViewContract() {
+        String ref = "REST-OTHER-ORG-PURCHASE-" + System.currentTimeMillis();
+        String contractId = given()
+            .contentType("application/json")
+            .header("Idempotency-Key", UUID.randomUUID().toString())
+            .body(buildRequestForOrg(ref, OTHER_ORG_ID, "REST-CONTRACT-PROD-OTHER-ORG"))
+            .when()
+            .post("/api/public/sales/contracts")
+            .then()
+            .statusCode(201)
+            .body("sellerOrganisationId", equalTo(OTHER_ORG_ID))
+            .extract()
+            .path("id");
+
+        // The contract is stored under the seller's org, not the caller's org.
+        assertEquals(OTHER_ORG_ID, contractService.getOrgIdForContract(contractId));
+
+        // The customer may still view it because their account is linked as CUSTOMER.
+        given()
+            .when()
+            .get("/api/public/sales/contracts/" + contractId)
+            .then()
+            .statusCode(200)
+            .body("id", equalTo(contractId))
+            .body("contractReference", equalTo(ref))
+            .body("sellerOrganisationId", equalTo(OTHER_ORG_ID));
+
+        given()
+            .when()
+            .get("/api/public/sales/contracts")
+            .then()
+            .statusCode(200)
+            .body("contractReference", hasItem(ref));
+
+        given()
+            .when()
+            .get("/api/public/sales/contracts/" + contractId + "/state-changes")
+            .then()
+            .statusCode(200)
+            .body("size()", greaterThan(0));
+
+        given()
+            .when()
+            .get("/api/public/sales/contracts/" + contractId + "/payment-attempts")
+            .then()
+            .statusCode(200)
+            .body("size()", equalTo(0));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void serviceShouldAllowLinkedCustomerToViewContractInDifferentOrg() throws Exception {
+        // Insert a contract owned by OTHER_ORG_ID with a CUSTOMER role for
+        // "linked-customer", bypassing the REST layer.
+        String contractId = UUID.randomUUID().toString();
+        String ref = "REST-OTHER-ORG-LINKED-" + System.currentTimeMillis();
+
+        utx.begin();
+        try {
+            em.createNativeQuery(
+                    "INSERT INTO T_contract " +
+                    "(id, organisation_id, contract_reference, contract_date, currency, " +
+                    " grand_total, payment_model, state, public_notes, created_at, updated_at) " +
+                    "VALUES (:id, :orgId, :ref, :date, 'EUR', 0, 'PREPAID', 'DRAFT', 'notes', :now, :now)")
+                .setParameter("id", contractId)
+                .setParameter("orgId", OTHER_ORG_ID)
+                .setParameter("ref", ref)
+                .setParameter("date", java.sql.Date.valueOf(LocalDate.now()))
+                .setParameter("now", java.sql.Timestamp.valueOf(java.time.LocalDateTime.now()))
+                .executeUpdate();
+
+            em.createNativeQuery(
+                    "INSERT INTO T_contract_account_role " +
+                    "(id, organisation_id, contract_id, account_id, role_type) " +
+                    "VALUES (:id, :orgId, :contractId, 'linked-customer', 'CUSTOMER')")
+                .setParameter("id", UUID.randomUUID().toString())
+                .setParameter("orgId", OTHER_ORG_ID)
+                .setParameter("contractId", contractId)
+                .executeUpdate();
+            utx.commit();
+        } catch (Exception e) {
+            utx.rollback();
+            throw e;
+        }
+
+        // Linked customer in the default org can read the contract in OTHER_ORG.
+        var resp = contractService.getContract(contractId, "linked-customer", defaultOrgId);
+        assertEquals(contractId, resp.getId());
+        assertEquals(ref, resp.getContractReference());
+        assertEquals(OTHER_ORG_ID, resp.getSellerOrganisationId());
+
+        // An unlinked account cannot.
+        jakarta.ws.rs.WebApplicationException ex = org.junit.jupiter.api.Assertions.assertThrows(
+            jakarta.ws.rs.WebApplicationException.class,
+            () -> contractService.getContract(contractId, "stranger", defaultOrgId));
+        assertEquals(403, ex.getResponse().getStatus());
+    }
 }
