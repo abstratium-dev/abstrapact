@@ -9,7 +9,9 @@ import dev.abstratium.abstrapact.contracts.boundary.dto.LineItemRequest;
 import dev.abstratium.abstrapact.contracts.boundary.dto.PartInstanceAttributeRequest;
 import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.ContractStateChangeResponse;
 import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.PaymentAttemptResponse;
+import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.WebhookEventResponse;
 import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.PaymentTransaction;
+import dev.abstratium.abstrapact.non_multitenancy.sales.payment.entity.WebhookEvent;
 import dev.abstratium.abstrapact.process.entity.ProcessInstanceStep;
 import dev.abstratium.core.service.ConfigService;
 import dev.abstratium.abstrapact.product.entity.PartDefinition;
@@ -150,6 +152,36 @@ public class ContractService {
             throw notFound("Payment attempt not found: " + txId);
         }
         return toPaymentAttemptResponse(tx);
+    }
+
+    /**
+     * Returns all webhook events recorded for the given payment transaction,
+     * ordered by reception time ascending. The tenant-scoped {@link Contract}
+     * lookup guarantees that the contract belongs to the caller's organisation;
+     * the payment transaction must belong to that contract, and the webhook
+     * query is additionally filtered by the contract's organisation id so that
+     * events can never leak across organisations.
+     */
+    public List<WebhookEventResponse> listWebhookEvents(String contractId, String txId) {
+        Contract contract = em.find(Contract.class, contractId);
+        if (contract == null) {
+            throw notFound("Contract not found: " + contractId);
+        }
+        PaymentTransaction tx = em.find(PaymentTransaction.class, txId);
+        if (tx == null || !tx.getContractId().equals(contractId)) {
+            throw notFound("Payment attempt not found: " + txId);
+        }
+        return em.createQuery(
+                "SELECT w FROM WebhookEvent w " +
+                "WHERE w.paymentTransactionId = :txId " +
+                "AND w.organisationId = :orgId " +
+                "ORDER BY w.receivedAt ASC",
+                WebhookEvent.class)
+            .setParameter("txId", txId)
+            .setParameter("orgId", contract.getOrganisationId())
+            .getResultStream()
+            .map(this::toWebhookEventResponse)
+            .toList();
     }
 
     @Transactional
@@ -315,6 +347,21 @@ public class ContractService {
         r.setCorrelationId(t.getCorrelationId());
         r.setCreatedAt(t.getCreatedAt());
         r.setUpdatedAt(t.getUpdatedAt());
+        return r;
+    }
+
+    private WebhookEventResponse toWebhookEventResponse(WebhookEvent w) {
+        WebhookEventResponse r = new WebhookEventResponse();
+        r.setId(w.getId());
+        r.setPspIdentifier(w.getPspIdentifier());
+        r.setPspEventId(w.getPspEventId());
+        r.setEventType(w.getEventType());
+        r.setCorrelationId(w.getCorrelationId());
+        r.setMatched(w.isMatched());
+        r.setProcessingResult(w.getProcessingResult());
+        r.setRawPayload(w.getRawPayload());
+        r.setRejectionReason(w.getRejectionReason());
+        r.setReceivedAt(w.getReceivedAt());
         return r;
     }
 

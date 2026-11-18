@@ -97,6 +97,19 @@ export interface ContractStateChange {
   reason: string | null;
 }
 
+export interface WebhookEvent {
+  id: string;
+  pspIdentifier: string;
+  pspEventId: string | null;
+  eventType: string | null;
+  correlationId: string | null;
+  matched: boolean;
+  processingResult: string;
+  rawPayload: string | null;
+  rejectionReason: string | null;
+  receivedAt: string;
+}
+
 export interface PaymentAttempt {
   id: string;
   status: string;
@@ -158,6 +171,10 @@ export class ContractsModelService {
   private orgPaymentAttemptsLoading = signal<boolean>(false);
   private orgPaymentAttemptsError = signal<string | null>(null);
 
+  // Organisation webhook events, keyed by payment transaction id
+  private orgWebhookEvents = signal<Record<string, WebhookEvent[]>>({});
+  private orgWebhookEventsLoading = signal<boolean>(false);
+
   // Readonly signals
   contracts$: Signal<CustomerContractSummary[]> = this.contracts.asReadonly();
   contractsLoading$: Signal<boolean> = this.contractsLoading.asReadonly();
@@ -190,6 +207,9 @@ export class ContractsModelService {
   orgPaymentAttempts$: Signal<PaymentAttempt[]> = this.orgPaymentAttempts.asReadonly();
   orgPaymentAttemptsLoading$: Signal<boolean> = this.orgPaymentAttemptsLoading.asReadonly();
   orgPaymentAttemptsError$: Signal<string | null> = this.orgPaymentAttemptsError.asReadonly();
+
+  orgWebhookEvents$: Signal<Record<string, WebhookEvent[]>> = this.orgWebhookEvents.asReadonly();
+  orgWebhookEventsLoading$: Signal<boolean> = this.orgWebhookEventsLoading.asReadonly();
 
   // Setters
   setContracts(contracts: CustomerContractSummary[]) {
@@ -286,5 +306,13 @@ export class ContractsModelService {
 
   setOrgPaymentAttemptsError(error: string | null) {
     this.orgPaymentAttemptsError.set(error);
+  }
+
+  setOrgWebhookEvents(events: Record<string, WebhookEvent[]>) {
+    this.orgWebhookEvents.set(events);
+  }
+
+  setOrgWebhookEventsLoading(loading: boolean) {
+    this.orgWebhookEventsLoading.set(loading);
   }
 }

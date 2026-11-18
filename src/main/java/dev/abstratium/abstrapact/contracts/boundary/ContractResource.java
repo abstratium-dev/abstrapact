@@ -8,6 +8,7 @@ import dev.abstratium.abstrapact.contracts.boundary.dto.CreateDraftContractReque
 import dev.abstratium.abstrapact.contracts.service.ContractService;
 import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.ContractStateChangeResponse;
 import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.PaymentAttemptResponse;
+import dev.abstratium.abstrapact.non_multitenancy.sales.boundary.dto.WebhookEventResponse;
 import dev.abstratium.core.service.CurrentOrgContext;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -89,6 +90,15 @@ public class ContractResource {
             @PathParam("id") String id,
             @PathParam("txId") String txId) {
         return service.getPaymentAttempt(id, txId);
+    }
+
+    @GET
+    @Path("/{id}/payment-attempts/{txId}/webhook-events")
+    @Operation(summary = "List webhook calls recorded for a payment attempt")
+    public List<WebhookEventResponse> listWebhookEvents(
+            @PathParam("id") String id,
+            @PathParam("txId") String txId) {
+        return service.listWebhookEvents(id, txId);
     }
 
     @DELETE

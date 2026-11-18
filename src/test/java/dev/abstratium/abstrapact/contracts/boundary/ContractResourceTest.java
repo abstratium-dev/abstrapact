@@ -382,6 +382,11 @@ class ContractResourceTest {
     }
 
     private String insertPaymentAttempt(String contractId, String productDefinitionId) throws Exception {
+        return insertPaymentAttempt(contractId, productDefinitionId, "PENDING");
+    }
+
+    private String insertPaymentAttempt(
+            String contractId, String productDefinitionId, String status) throws Exception {
         String txId = UUID.randomUUID().toString();
         String defaultOrgId = em.createQuery(
                 "SELECT c.organisationId FROM Contract c WHERE c.id = :id", String.class)
@@ -395,12 +400,13 @@ class ContractResourceTest {
                     "(id, organisation_id, contract_id, product_definition_id, psp_identifier, " +
                     " correlation_id, gross_amount, currency, status, created_at, updated_at) " +
                     "VALUES (:id, :orgId, :contractId, :productId, 'stripe', :correlationId, " +
-                    " 100, 'EUR', 'PENDING', :now, :now)")
+                    " 100, 'EUR', :status, :now, :now)")
                 .setParameter("id", txId)
                 .setParameter("orgId", defaultOrgId)
                 .setParameter("contractId", contractId)
                 .setParameter("productId", productDefinitionId)
                 .setParameter("correlationId", UUID.randomUUID().toString())
+                .setParameter("status", status)
                 .setParameter("now", java.sql.Timestamp.valueOf(java.time.LocalDateTime.now()))
                 .executeUpdate();
             utx.commit();
@@ -502,5 +508,267 @@ class ContractResourceTest {
             .get("/api/contracts/" + contractId + "/payment-attempts")
             .then()
             .statusCode(404);
+    }
+
+    // ==================== Seller view: webhook events per payment attempt ====================
+
+    private String insertWebhookEvent(
+            String txId, String orgId, String pspEventId, String eventType,
+            String processingResult, int receivedAtOffsetSeconds) throws Exception {
+        String eventId = UUID.randomUUID().toString();
+        utx.begin();
+        try {
+            em.createNativeQuery(
+                    "INSERT INTO T_webhook_event " +
+                    "(id, organisation_id, psp_identifier, psp_event_id, event_type, " +
+                    " correlation_id, payment_transaction_id, matched, processing_result, " +
+                    " raw_payload, received_at) " +
+                    "VALUES (:id, :orgId, 'stripe', :pspEventId, :eventType, :correlationId, " +
+                    " :txId, true, :processingResult, '{}', :receivedAt)")
+                .setParameter("id", eventId)
+                .setParameter("orgId", orgId)
+                .setParameter("pspEventId", pspEventId)
+                .setParameter("eventType", eventType)
+                .setParameter("correlationId", UUID.randomUUID().toString())
+                .setParameter("txId", txId)
+                .setParameter("processingResult", processingResult)
+                .setParameter("receivedAt", java.sql.Timestamp.valueOf(
+                    java.time.LocalDateTime.now().plusSeconds(receivedAtOffsetSeconds)))
+                .executeUpdate();
+            utx.commit();
+        } catch (Exception e) {
+            utx.rollback();
+            throw e;
+        }
+        return eventId;
+    }
+
+    private String orgIdOfContract(String contractId) {
+        return em.createQuery(
+                "SELECT c.organisationId FROM Contract c WHERE c.id = :id", String.class)
+            .setParameter("id", contractId)
+            .getSingleResult();
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldListWebhookEventsForPaymentAttemptAsSeller() throws Exception {
+        CreatedContract created = createContractForSellerView("SELLER-WH-" + System.currentTimeMillis());
+        String txId = insertPaymentAttempt(created.contractId(), created.productDefinitionId());
+        // Only one PENDING transaction per contract is allowed, so the second
+        // attempt uses a terminal status.
+        String otherTxId = insertPaymentAttempt(
+            created.contractId(), created.productDefinitionId(), "FAILED");
+        String orgId = orgIdOfContract(created.contractId());
+        String otherOrgId = "11111111-0000-0000-0000-000000000000";
+
+        // Two events for the transaction under test (inserted out of order to
+        // verify receivedAt ASC ordering).
+        insertWebhookEvent(txId, orgId, "evt_wh_2_" + System.nanoTime(),
+            "charge.updated", "PROCESSED", 2);
+        insertWebhookEvent(txId, orgId, "evt_wh_1_" + System.nanoTime(),
+            "checkout.session.completed", "PROCESSED", 1);
+        // An event for a different transaction of the same contract — must not appear.
+        insertWebhookEvent(otherTxId, orgId, "evt_other_tx_" + System.nanoTime(),
+            "checkout.session.expired", "PROCESSED", 3);
+        // An event referencing this transaction but stored under a different
+        // org — must never leak across organisations.
+        insertWebhookEvent(txId, otherOrgId, "evt_other_org_" + System.nanoTime(),
+            "checkout.session.completed", "PROCESSED", 4);
+
+        List<Map<String, Object>> events = given()
+            .when()
+            .get("/api/contracts/" + created.contractId()
+                + "/payment-attempts/" + txId + "/webhook-events")
+            .then()
+            .statusCode(200)
+            .body("size()", equalTo(2))
+            .extract()
+            .jsonPath()
+            .getList("$");
+
+        assertEquals("checkout.session.completed", events.get(0).get("eventType"));
+        assertEquals("charge.updated", events.get(1).get("eventType"));
+        assertEquals("PROCESSED", events.get(0).get("processingResult"));
+        assertNotNull(events.get(0).get("id"));
+        assertNotNull(events.get(0).get("receivedAt"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturnEmptyWebhookEventsWhenNoneRecorded() throws Exception {
+        CreatedContract created = createContractForSellerView("SELLER-WH-EMPTY-" + System.currentTimeMillis());
+        String txId = insertPaymentAttempt(created.contractId(), created.productDefinitionId());
+
+        given()
+            .when()
+            .get("/api/contracts/" + created.contractId()
+                + "/payment-attempts/" + txId + "/webhook-events")
+            .then()
+            .statusCode(200)
+            .body("size()", equalTo(0));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404WebhookEventsForContractFromOtherOrganisation() throws Exception {
+        String otherOrgId = "11111111-0000-0000-0000-000000000000";
+        String contractId = UUID.randomUUID().toString();
+        String txId = UUID.randomUUID().toString();
+        String productId = UUID.randomUUID().toString();
+
+        utx.begin();
+        try {
+            em.createNativeQuery(
+                    "INSERT INTO T_product_definition " +
+                    "(id, organisation_id, product_code, description, billing_model, " +
+                    " product_valid_from, cross_tenant_api_allowed) " +
+                    "VALUES (:id, :orgId, :code, 'Product in other org', 'FIXED_PRICE', :validFrom, true)")
+                .setParameter("id", productId)
+                .setParameter("orgId", otherOrgId)
+                .setParameter("code", "OTHER-ORG-PROD-" + System.currentTimeMillis())
+                .setParameter("validFrom", java.sql.Date.valueOf(LocalDate.now()))
+                .executeUpdate();
+
+            em.createNativeQuery(
+                    "INSERT INTO T_contract " +
+                    "(id, organisation_id, contract_reference, contract_date, currency, " +
+                    " grand_total, payment_model, state, public_notes, created_at, updated_at) " +
+                    "VALUES (:id, :orgId, :ref, :date, 'EUR', 0, 'PREPAID', 'DRAFT', 'notes', :now, :now)")
+                .setParameter("id", contractId)
+                .setParameter("orgId", otherOrgId)
+                .setParameter("ref", "OTHER-ORG-WH-" + System.currentTimeMillis())
+                .setParameter("date", java.sql.Date.valueOf(LocalDate.now()))
+                .setParameter("now", java.sql.Timestamp.valueOf(java.time.LocalDateTime.now()))
+                .executeUpdate();
+
+            em.createNativeQuery(
+                    "INSERT INTO T_payment_transaction " +
+                    "(id, organisation_id, contract_id, product_definition_id, psp_identifier, " +
+                    " correlation_id, gross_amount, currency, status, created_at, updated_at) " +
+                    "VALUES (:id, :orgId, :contractId, :productId, 'stripe', :correlationId, " +
+                    " 100, 'EUR', 'SUCCEEDED', :now, :now)")
+                .setParameter("id", txId)
+                .setParameter("orgId", otherOrgId)
+                .setParameter("contractId", contractId)
+                .setParameter("productId", productId)
+                .setParameter("correlationId", UUID.randomUUID().toString())
+                .setParameter("now", java.sql.Timestamp.valueOf(java.time.LocalDateTime.now()))
+                .executeUpdate();
+            utx.commit();
+        } catch (Exception e) {
+            utx.rollback();
+            throw e;
+        }
+
+        insertWebhookEvent(txId, otherOrgId, "evt_foreign_" + System.nanoTime(),
+            "checkout.session.completed", "PROCESSED", 0);
+
+        given()
+            .when()
+            .get("/api/contracts/" + contractId + "/payment-attempts/" + txId + "/webhook-events")
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404WebhookEventsForAttemptOfOtherContract() throws Exception {
+        CreatedContract created = createContractForSellerView("SELLER-WH-A-" + System.currentTimeMillis());
+        CreatedContract other = createContractForSellerView("SELLER-WH-B-" + System.currentTimeMillis());
+        String otherTxId = insertPaymentAttempt(other.contractId(), other.productDefinitionId());
+
+        given()
+            .when()
+            .get("/api/contracts/" + created.contractId()
+                + "/payment-attempts/" + otherTxId + "/webhook-events")
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser", roles = {"abstratium-abstrapact_user"})
+    void shouldReturn404WebhookEventsForCustomerOfContractInOtherOrganisation() throws Exception {
+        // A customer purchased from a different seller org: the contract, the
+        // CUSTOMER account link (to "testuser"), the payment transaction, and
+        // the webhook event all live in OTHER_ORG_ID. The org-scoped endpoint
+        // must still deny access — being the paying customer does not grant
+        // visibility into another organisation's contract.
+        String otherOrgId = "11111111-0000-0000-0000-000000000000";
+        String contractId = UUID.randomUUID().toString();
+        String txId = UUID.randomUUID().toString();
+        String productId = UUID.randomUUID().toString();
+
+        utx.begin();
+        try {
+            em.createNativeQuery(
+                    "INSERT INTO T_product_definition " +
+                    "(id, organisation_id, product_code, description, billing_model, " +
+                    " product_valid_from, cross_tenant_api_allowed) " +
+                    "VALUES (:id, :orgId, :code, 'Product in other org', 'FIXED_PRICE', :validFrom, true)")
+                .setParameter("id", productId)
+                .setParameter("orgId", otherOrgId)
+                .setParameter("code", "OTHER-ORG-CUST-PROD-" + System.currentTimeMillis())
+                .setParameter("validFrom", java.sql.Date.valueOf(LocalDate.now()))
+                .executeUpdate();
+
+            em.createNativeQuery(
+                    "INSERT INTO T_contract " +
+                    "(id, organisation_id, contract_reference, contract_date, currency, " +
+                    " grand_total, payment_model, state, public_notes, created_at, updated_at) " +
+                    "VALUES (:id, :orgId, :ref, :date, 'EUR', 0, 'PREPAID', 'DRAFT', 'notes', :now, :now)")
+                .setParameter("id", contractId)
+                .setParameter("orgId", otherOrgId)
+                .setParameter("ref", "OTHER-ORG-CUST-" + System.currentTimeMillis())
+                .setParameter("date", java.sql.Date.valueOf(LocalDate.now()))
+                .setParameter("now", java.sql.Timestamp.valueOf(java.time.LocalDateTime.now()))
+                .executeUpdate();
+
+            em.createNativeQuery(
+                    "INSERT INTO T_contract_account_role " +
+                    "(id, organisation_id, contract_id, account_id, role_type) " +
+                    "VALUES (:id, :orgId, :contractId, 'testuser', 'CUSTOMER')")
+                .setParameter("id", UUID.randomUUID().toString())
+                .setParameter("orgId", otherOrgId)
+                .setParameter("contractId", contractId)
+                .executeUpdate();
+
+            em.createNativeQuery(
+                    "INSERT INTO T_payment_transaction " +
+                    "(id, organisation_id, contract_id, product_definition_id, psp_identifier, " +
+                    " correlation_id, gross_amount, currency, status, created_at, updated_at) " +
+                    "VALUES (:id, :orgId, :contractId, :productId, 'stripe', :correlationId, " +
+                    " 100, 'EUR', 'SUCCEEDED', :now, :now)")
+                .setParameter("id", txId)
+                .setParameter("orgId", otherOrgId)
+                .setParameter("contractId", contractId)
+                .setParameter("productId", productId)
+                .setParameter("correlationId", UUID.randomUUID().toString())
+                .setParameter("now", java.sql.Timestamp.valueOf(java.time.LocalDateTime.now()))
+                .executeUpdate();
+            utx.commit();
+        } catch (Exception e) {
+            utx.rollback();
+            throw e;
+        }
+
+        insertWebhookEvent(txId, otherOrgId, "evt_cust_foreign_" + System.nanoTime(),
+            "checkout.session.completed", "PROCESSED", 0);
+
+        given()
+            .when()
+            .get("/api/contracts/" + contractId + "/payment-attempts/" + txId + "/webhook-events")
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    void shouldRequireAuthenticationForWebhookEventsEndpoint() {
+        given()
+            .when()
+            .get("/api/contracts/" + UUID.randomUUID()
+                + "/payment-attempts/" + UUID.randomUUID() + "/webhook-events")
+            .then()
+            .statusCode(anyOf(is(400), is(401)));
     }
 }

@@ -2,7 +2,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { ContractsController } from './contracts.controller';
-import { ContractsModelService, CustomerContractSummary, CustomerContract, OrganisationContractSummary, ContractStateChange, PaymentAttempt } from './contracts.model.service';
+import { ContractsModelService, CustomerContractSummary, CustomerContract, OrganisationContractSummary, ContractStateChange, PaymentAttempt, WebhookEvent } from './contracts.model.service';
 
 describe('ContractsController', () => {
   let controller: ContractsController;
@@ -54,6 +54,19 @@ describe('ContractsController', () => {
     correlationId: 'corr-1',
     createdAt: '2024-01-15T10:00:00Z',
     updatedAt: '2024-01-15T10:00:00Z',
+  };
+
+  const mockWebhookEvent: WebhookEvent = {
+    id: 'evt-1',
+    pspIdentifier: 'stripe',
+    pspEventId: 'evt_stripe_1',
+    eventType: 'checkout.session.completed',
+    correlationId: 'corr-1',
+    matched: true,
+    processingResult: 'PROCESSED',
+    rawPayload: '{}',
+    rejectionReason: null,
+    receivedAt: '2024-01-15T10:05:00Z',
   };
 
   const mockOrgContractSummary: OrganisationContractSummary = {
@@ -253,12 +266,94 @@ describe('ContractsController', () => {
       const paymentReq = httpMock.expectOne('/api/public/sales/contracts/org-contract-1/payment-attempts');
       paymentReq.flush([mockPaymentAttempt]);
 
+      const webhookReq = httpMock.expectOne(
+        '/api/contracts/org-contract-1/payment-attempts/tx-1/webhook-events');
+      webhookReq.flush([mockWebhookEvent]);
+
       const result = await promise;
       expect(result).toEqual(mockOrgContract);
       expect(modelService.selectedOrgContract$()).toEqual(mockOrgContract);
       expect(modelService.orgStateChanges$()).toEqual([mockStateChange]);
       expect(modelService.orgPaymentAttempts$()).toEqual([mockPaymentAttempt]);
+      expect(modelService.orgWebhookEvents$()).toEqual({ 'tx-1': [mockWebhookEvent] });
       expect(modelService.selectedOrgContractLoading$()).toBe(false);
+    });
+
+    it('should load webhook events grouped per payment attempt', async () => {
+      const secondAttempt: PaymentAttempt = {
+        ...mockPaymentAttempt,
+        id: 'tx-2',
+      };
+      const secondEvent: WebhookEvent = {
+        ...mockWebhookEvent,
+        id: 'evt-2',
+        pspEventId: 'evt_stripe_2',
+        eventType: 'checkout.session.expired',
+        processingResult: 'PROCESSED',
+      };
+
+      const promise = controller.getOrganisationContract('org-contract-1');
+
+      const contractReq = httpMock.expectOne('/api/public/sales/contracts/org-contract-1');
+      contractReq.flush(mockOrgContract);
+
+      await Promise.resolve();
+
+      httpMock.expectOne('/api/public/sales/contracts/org-contract-1/state-changes').flush([]);
+      httpMock.expectOne('/api/public/sales/contracts/org-contract-1/payment-attempts')
+        .flush([mockPaymentAttempt, secondAttempt]);
+
+      httpMock.expectOne('/api/contracts/org-contract-1/payment-attempts/tx-1/webhook-events')
+        .flush([mockWebhookEvent]);
+      httpMock.expectOne('/api/contracts/org-contract-1/payment-attempts/tx-2/webhook-events')
+        .flush([secondEvent]);
+
+      await promise;
+
+      expect(modelService.orgWebhookEvents$()).toEqual({
+        'tx-1': [mockWebhookEvent],
+        'tx-2': [secondEvent],
+      });
+      expect(modelService.orgWebhookEventsLoading$()).toBe(false);
+    });
+
+    it('should still expose payment attempts when webhook loading fails', async () => {
+      const promise = controller.getOrganisationContract('org-contract-1');
+
+      const contractReq = httpMock.expectOne('/api/public/sales/contracts/org-contract-1');
+      contractReq.flush(mockOrgContract);
+
+      await Promise.resolve();
+
+      httpMock.expectOne('/api/public/sales/contracts/org-contract-1/state-changes').flush([]);
+      httpMock.expectOne('/api/public/sales/contracts/org-contract-1/payment-attempts')
+        .flush([mockPaymentAttempt]);
+
+      httpMock.expectOne('/api/contracts/org-contract-1/payment-attempts/tx-1/webhook-events')
+        .flush('error', { status: 500, statusText: 'Server Error' });
+
+      await promise;
+
+      expect(modelService.orgPaymentAttempts$()).toEqual([mockPaymentAttempt]);
+      expect(modelService.orgWebhookEvents$()).toEqual({ 'tx-1': [] });
+      expect(modelService.orgWebhookEventsLoading$()).toBe(false);
+    });
+
+    it('should not request webhook events when there are no payment attempts', async () => {
+      const promise = controller.getOrganisationContract('org-contract-1');
+
+      const contractReq = httpMock.expectOne('/api/public/sales/contracts/org-contract-1');
+      contractReq.flush(mockOrgContract);
+
+      await Promise.resolve();
+
+      httpMock.expectOne('/api/public/sales/contracts/org-contract-1/state-changes').flush([]);
+      httpMock.expectOne('/api/public/sales/contracts/org-contract-1/payment-attempts').flush([]);
+
+      await promise;
+
+      expect(modelService.orgWebhookEvents$()).toEqual({});
+      expect(modelService.orgWebhookEventsLoading$()).toBe(false);
     });
 
     it('should sort organisation state changes and payment attempts by timestamp descending', async () => {
@@ -297,6 +392,11 @@ describe('ContractsController', () => {
 
       const paymentReq = httpMock.expectOne('/api/public/sales/contracts/org-contract-1/payment-attempts');
       paymentReq.flush([laterPayment, earlierPayment, mockPaymentAttempt]);
+
+      for (const txId of ['tx-later', 'tx-1', 'tx-earlier']) {
+        httpMock.expectOne(`/api/contracts/org-contract-1/payment-attempts/${txId}/webhook-events`)
+          .flush([]);
+      }
 
       await promise;
 

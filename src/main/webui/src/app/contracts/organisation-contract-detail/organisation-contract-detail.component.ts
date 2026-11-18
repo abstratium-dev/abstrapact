@@ -6,6 +6,7 @@ import {
   CustomerContract,
   ContractStateChange,
   PaymentAttempt,
+  WebhookEvent,
 } from '../contracts.model.service';
 import { ContractsController } from '../contracts.controller';
 import { formatDate as formatDateString, formatDateTime as formatDateTimeString } from '../date-format';
@@ -31,6 +32,9 @@ export class OrganisationContractDetailComponent implements OnInit {
 
   paymentAttempts: Signal<PaymentAttempt[]> = this.modelService.orgPaymentAttempts$;
   paymentAttemptsLoading: Signal<boolean> = this.modelService.orgPaymentAttemptsLoading$;
+
+  webhookEvents: Signal<Record<string, WebhookEvent[]>> = this.modelService.orgWebhookEvents$;
+  webhookEventsLoading: Signal<boolean> = this.modelService.orgWebhookEventsLoading$;
 
   contractId: string | null = null;
 
@@ -74,6 +78,21 @@ export class OrganisationContractDetailComponent implements OnInit {
       case 'CANCELLED':
       case 'EXPIRED':
       case 'TERMINATED': return 'badge-error';
+      default: return 'badge-secondary';
+    }
+  }
+
+  webhooksFor(attemptId: string): WebhookEvent[] {
+    return this.webhookEvents()[attemptId] ?? [];
+  }
+
+  getProcessingResultClass(result: string): string {
+    switch (result) {
+      case 'PROCESSED': return 'badge-success';
+      case 'DUPLICATE':
+      case 'IGNORED': return 'badge-secondary';
+      case 'STALE': return 'badge-warning';
+      case 'REJECTED': return 'badge-error';
       default: return 'badge-secondary';
     }
   }

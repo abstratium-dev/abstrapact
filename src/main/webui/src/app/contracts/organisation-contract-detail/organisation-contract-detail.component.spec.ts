@@ -9,6 +9,7 @@ import {
   CustomerContract,
   ContractStateChange,
   PaymentAttempt,
+  WebhookEvent,
 } from '../contracts.model.service';
 import { ContractsController } from '../contracts.controller';
 
@@ -25,6 +26,8 @@ describe('OrganisationContractDetailComponent', () => {
   let stateChangesLoadingSignal: ReturnType<typeof signal<boolean>>;
   let paymentAttemptsSignal: ReturnType<typeof signal<PaymentAttempt[]>>;
   let paymentAttemptsLoadingSignal: ReturnType<typeof signal<boolean>>;
+  let webhookEventsSignal: ReturnType<typeof signal<Record<string, WebhookEvent[]>>>;
+  let webhookEventsLoadingSignal: ReturnType<typeof signal<boolean>>;
 
   const mockContract: CustomerContract = {
     id: 'org-contract-1',
@@ -98,6 +101,23 @@ describe('OrganisationContractDetailComponent', () => {
     }
   ];
 
+  const mockWebhookEvents: Record<string, WebhookEvent[]> = {
+    'tx-1': [
+      {
+        id: 'evt-1',
+        pspIdentifier: 'stripe',
+        pspEventId: 'evt_stripe_1',
+        eventType: 'checkout.session.completed',
+        correlationId: 'corr-1',
+        matched: true,
+        processingResult: 'PROCESSED',
+        rawPayload: '{}',
+        rejectionReason: null,
+        receivedAt: '2024-01-15T10:05:00Z',
+      }
+    ]
+  };
+
   beforeEach(async () => {
     const controllerSpy = jasmine.createSpyObj('ContractsController', ['getOrganisationContract']);
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
@@ -109,6 +129,8 @@ describe('OrganisationContractDetailComponent', () => {
     stateChangesLoadingSignal = signal<boolean>(false);
     paymentAttemptsSignal = signal<PaymentAttempt[]>([]);
     paymentAttemptsLoadingSignal = signal<boolean>(false);
+    webhookEventsSignal = signal<Record<string, WebhookEvent[]>>({});
+    webhookEventsLoadingSignal = signal<boolean>(false);
 
     const modelServiceSpy = jasmine.createSpyObj('ContractsModelService', [], {
       selectedOrgContract$: selectedContractSignal.asReadonly(),
@@ -118,6 +140,8 @@ describe('OrganisationContractDetailComponent', () => {
       orgStateChangesLoading$: stateChangesLoadingSignal.asReadonly(),
       orgPaymentAttempts$: paymentAttemptsSignal.asReadonly(),
       orgPaymentAttemptsLoading$: paymentAttemptsLoadingSignal.asReadonly(),
+      orgWebhookEvents$: webhookEventsSignal.asReadonly(),
+      orgWebhookEventsLoading$: webhookEventsLoadingSignal.asReadonly(),
     });
 
     await TestBed.configureTestingModule({
@@ -166,6 +190,8 @@ describe('OrganisationContractDetailComponent', () => {
         orgStateChangesLoading$: stateChangesLoadingSignal.asReadonly(),
         orgPaymentAttempts$: paymentAttemptsSignal.asReadonly(),
         orgPaymentAttemptsLoading$: paymentAttemptsLoadingSignal.asReadonly(),
+        orgWebhookEvents$: webhookEventsSignal.asReadonly(),
+        orgWebhookEventsLoading$: webhookEventsLoadingSignal.asReadonly(),
       });
 
       await TestBed.configureTestingModule({
@@ -234,6 +260,20 @@ describe('OrganisationContractDetailComponent', () => {
       expect(component.getPaymentStatusClass('FAILED')).toBe('badge-error');
       expect(component.getPaymentStatusClass('PENDING')).toBe('badge-warning');
       expect(component.getPaymentStatusClass('UNKNOWN')).toBe('badge-secondary');
+    });
+
+    it('should return correct processing result classes', () => {
+      expect(component.getProcessingResultClass('PROCESSED')).toBe('badge-success');
+      expect(component.getProcessingResultClass('DUPLICATE')).toBe('badge-secondary');
+      expect(component.getProcessingResultClass('STALE')).toBe('badge-warning');
+      expect(component.getProcessingResultClass('REJECTED')).toBe('badge-error');
+      expect(component.getProcessingResultClass('UNKNOWN')).toBe('badge-secondary');
+    });
+
+    it('should return webhook events for a given payment attempt', () => {
+      webhookEventsSignal.set(mockWebhookEvents);
+      expect(component.webhooksFor('tx-1')).toEqual(mockWebhookEvents['tx-1']);
+      expect(component.webhooksFor('tx-unknown')).toEqual([]);
     });
   });
 
@@ -330,6 +370,35 @@ describe('OrganisationContractDetailComponent', () => {
       expect(row.textContent).toContain('net');
       expect(row.textContent).toContain('2.50');
       expect(row.textContent).toContain('120.95');
+    });
+
+    it('should render webhook events nested under their payment attempt', () => {
+      selectedContractSignal.set(mockContract);
+      paymentAttemptsSignal.set(mockPaymentAttempts);
+      webhookEventsSignal.set(mockWebhookEvents);
+      fixture.detectChanges();
+
+      const webhookContainer = fixture.nativeElement.querySelector(
+        '[data-testid="organisation-webhook-events"]');
+      expect(webhookContainer).toBeTruthy();
+
+      const rows = webhookContainer.querySelectorAll(
+        '[data-testid="organisation-webhook-event-row"]');
+      expect(rows.length).toBe(1);
+      expect(rows[0].textContent).toContain('checkout.session.completed');
+      expect(rows[0].textContent).toContain('PROCESSED');
+      expect(rows[0].textContent).toContain('evt_stripe_1');
+    });
+
+    it('should not render a webhook section when an attempt has no events', () => {
+      selectedContractSignal.set(mockContract);
+      paymentAttemptsSignal.set(mockPaymentAttempts);
+      webhookEventsSignal.set({});
+      fixture.detectChanges();
+
+      const webhookContainer = fixture.nativeElement.querySelector(
+        '[data-testid="organisation-webhook-events"]');
+      expect(webhookContainer).toBeNull();
     });
   });
 });

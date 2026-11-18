@@ -16,8 +16,6 @@
     2026-08-17 20:00:38,537 WARN  [dev.abs.abs.bou.oau.AuthorizationResource] (executor-thread-1) [skey:] Invalid redirect_uri for client 058ebe1e-e9c8-4359-ab77-e943990ab0dd__abstratium-abstracore: requested=http://localhost:10081/oauth/callback, allowed=["http://localhost:8081/oauth/callback"]
 
 - user interface to review payments?
-  - X work on adding angular user interface (view own contracts list + detail)
-  - show webhook calls related to a payment
   - e2e tests for viewing contracts in org
 
 

@@ -1,1 +1,17 @@
+.webhook-events {
+  margin-left: 2rem;
+  padding-left: 1rem;
+  border-left: 2px solid var(--color-bg-secondary, #e0e0e0);
+  margin-bottom: 0.5rem;
+}
 
+.webhook-event-row {
+  padding: 0.25rem 0;
+}
+
+.webhook-event-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}

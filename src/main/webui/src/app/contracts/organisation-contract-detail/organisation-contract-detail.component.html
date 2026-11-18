@@ -122,18 +122,32 @@
         <h2>Payment Attempts</h2>
       </div>
       <div class="detail-section">
-        <div class="detail-row payment-attempt-row" *ngFor="let attempt of paymentAttempts()" data-testid="organisation-payment-attempt-row">
-          <span class="label">{{ formatDateTime(attempt.createdAt) }}</span>
-          <span class="value payment-attempt-details">
-            <span class="payment-amount">{{ formatCurrency(attempt.grossAmount, attempt.currency) }}</span>
-            <span class="badge" [class]="getPaymentStatusClass(attempt.status)" data-testid="organisation-payment-status-badge">{{ attempt.status }}</span>
-            <span *ngIf="attempt.feeAmount != null" class="text-muted payment-fee">fee {{ formatCurrency(attempt.feeAmount, attempt.currency) }}</span>
-            <span *ngIf="attempt.netAmount != null" class="text-muted payment-net">net {{ formatCurrency(attempt.netAmount, attempt.currency) }}</span>
-            <span *ngIf="attempt.pspIdentifier" class="text-muted payment-psp">PSP: {{ attempt.pspIdentifier }}</span>
-            <span *ngIf="attempt.pspSessionId" class="text-muted payment-psp">Session: {{ attempt.pspSessionId }}</span>
-            <span *ngIf="attempt.pspTransactionRef" class="text-muted payment-psp">Transaction: {{ attempt.pspTransactionRef }}</span>
-            <span *ngIf="attempt.correlationId" class="text-muted payment-psp">Correlation: {{ attempt.correlationId }}</span>
-          </span>
+        <div class="payment-attempt-group" *ngFor="let attempt of paymentAttempts()">
+          <div class="detail-row payment-attempt-row" data-testid="organisation-payment-attempt-row">
+            <span class="label">{{ formatDateTime(attempt.createdAt) }}</span>
+            <span class="value payment-attempt-details">
+              <span class="payment-amount">{{ formatCurrency(attempt.grossAmount, attempt.currency) }}</span>
+              <span class="badge" [class]="getPaymentStatusClass(attempt.status)" data-testid="organisation-payment-status-badge">{{ attempt.status }}</span>
+              <span *ngIf="attempt.feeAmount != null" class="text-muted payment-fee">fee {{ formatCurrency(attempt.feeAmount, attempt.currency) }}</span>
+              <span *ngIf="attempt.netAmount != null" class="text-muted payment-net">net {{ formatCurrency(attempt.netAmount, attempt.currency) }}</span>
+              <span *ngIf="attempt.pspIdentifier" class="text-muted payment-psp">PSP: {{ attempt.pspIdentifier }}</span>
+              <span *ngIf="attempt.pspSessionId" class="text-muted payment-psp">Session: {{ attempt.pspSessionId }}</span>
+              <span *ngIf="attempt.pspTransactionRef" class="text-muted payment-psp">Transaction: {{ attempt.pspTransactionRef }}</span>
+              <span *ngIf="attempt.correlationId" class="text-muted payment-psp">Correlation: {{ attempt.correlationId }}</span>
+            </span>
+          </div>
+          <div class="webhook-events" *ngIf="webhooksFor(attempt.id).length > 0" data-testid="organisation-webhook-events">
+            <div class="detail-row webhook-event-row" *ngFor="let event of webhooksFor(attempt.id)" data-testid="organisation-webhook-event-row">
+              <span class="label">{{ formatDateTime(event.receivedAt) }}</span>
+              <span class="value webhook-event-details">
+                <span class="text-muted webhook-label">webhook</span>
+                <span *ngIf="event.eventType">{{ event.eventType }}</span>
+                <span class="badge" [class]="getProcessingResultClass(event.processingResult)" data-testid="organisation-webhook-result-badge">{{ event.processingResult }}</span>
+                <span *ngIf="event.pspEventId" class="text-muted">Event: {{ event.pspEventId }}</span>
+                <span *ngIf="event.rejectionReason" class="text-muted">{{ event.rejectionReason }}</span>
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

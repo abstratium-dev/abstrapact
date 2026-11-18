@@ -8,6 +8,7 @@ import {
   ContractStateChange,
   PaymentAttempt,
   OrganisationContractSummary,
+  WebhookEvent,
 } from './contracts.model.service';
 
 @Injectable({
@@ -136,6 +137,7 @@ export class ContractsController {
     this.modelService.setOrgStateChangesError(null);
     this.modelService.setOrgPaymentAttempts([]);
     this.modelService.setOrgPaymentAttemptsError(null);
+    this.modelService.setOrgWebhookEvents({});
 
     try {
       const contract = await firstValueFrom(
@@ -189,6 +191,8 @@ export class ContractsController {
         );
         this.modelService.setOrgPaymentAttempts(sorted);
         this.modelService.setOrgPaymentAttemptsLoading(false);
+
+        this.loadOrganisationWebhookEvents(id, sorted);
       },
       error: (err) => {
         console.error('Error loading organisation payment attempts:', err);
@@ -197,5 +201,39 @@ export class ContractsController {
         this.modelService.setOrgPaymentAttemptsLoading(false);
       }
     });
+  }
+
+  private loadOrganisationWebhookEvents(contractId: string, attempts: PaymentAttempt[]): void {
+    if (attempts.length === 0) {
+      this.modelService.setOrgWebhookEvents({});
+      return;
+    }
+
+    this.modelService.setOrgWebhookEventsLoading(true);
+    const eventsByTx: Record<string, WebhookEvent[]> = {};
+    let pending = attempts.length;
+    const done = () => {
+      pending--;
+      if (pending === 0) {
+        this.modelService.setOrgWebhookEvents(eventsByTx);
+        this.modelService.setOrgWebhookEventsLoading(false);
+      }
+    };
+
+    for (const attempt of attempts) {
+      this.http.get<WebhookEvent[]>(
+        `/api/contracts/${contractId}/payment-attempts/${attempt.id}/webhook-events`
+      ).subscribe({
+        next: (events) => {
+          eventsByTx[attempt.id] = events;
+          done();
+        },
+        error: (err) => {
+          console.error('Error loading webhook events:', err);
+          eventsByTx[attempt.id] = [];
+          done();
+        }
+      });
+    }
   }
 }
